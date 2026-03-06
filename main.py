@@ -1,51 +1,47 @@
 import os
 import feedparser
-from groq import Groq
+import google.generativeai as genai # A Groq helyett ezt használjuk
 import requests
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+# Beállítások
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-client = Groq(api_key=GROQ_API_KEY)
+# Gemini konfigurálása
+genai.configure(api_key=GOOGLE_API_KEY)
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {"chat_id": int(TELEGRAM_CHAT_ID), "text": text, "parse_mode": "Markdown"}
-    response = requests.post(url, data=payload)
-    print(f"Telegram válasz: {response.status_code} - {response.text}") # Ez kiírja a hibát!
-    return response
-    
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "Markdown"}
+    requests.post(url, data=payload)
+
 def analyze_today():
-    # 1. Lekérjük a Google News magyarországi vezető híreit
+    # Hírek lekérése
     feed = feedparser.parse("https://news.google.com/rss?hl=hu&gl=HU&ceid=HU:hu")
     top_titles = [entry.title for entry in feed.entries[:5]]
     
-    # 2. Megkérjük az AI-t az elemzésre
+    # Itt a Gemini-nek szóló magyar nyelvű instrukció
     prompt = f"""
-    Te egy pártatlan média-elemző ágens vagy. 
-    Itt van a mai 5 legfontosabb hír címe Magyarországról:
+    Te egy tapasztalt magyar médiaelemző vagy. 
+    Itt van a mai 5 vezető hír címe Magyarországról:
     {top_titles}
 
-    Készíts egy rövid, átlátható elemzést a Telegramra. 
-    Minden hírnél térj ki arra:
-    - Mi a puszta tény?
-    - Hogyan tálalhatja ezt a 'kormányközeli' vs. 'független' média? (keretezési különbségek)
-    - Csatold a linkeket minden hír alatt.
+    Készíts egy profi, rövid elemzést a Telegramra. 
+    Minden hírnél fejtsd ki:
+    1. Mi a valódi esemény?
+    2. Hogyan tálalja ezt a kormányközeli média (pl. sikerpropaganda vagy ellenségkép)?
+    3. Hogyan tálalja a független média (pl. kritikai észrevételek vagy elhallgatott részletek)?
     
-    Használj Markdown formázást! Ne használj emojikat!
+    Használj magyaros kifejezéseket! Legyen tömör.
     """
 
-    completion = client.chat.completions.create(
-        messages=[{"role": "user", "content": prompt}],
-        model="llama-3.1-8b-instant",
-    )
+    # Gemini hívása
+    response = model.generate_content(prompt)
+    valasz = response.text
     
-    valasz = completion.choices[0].message.content
-    
-    # 3. Küldés a telefonra
-    send_telegram(f"*Napi Hírelemző Jelenti*\n\n{valasz}")
-    print("Siker! Nézd meg a Telegramodat.")
+    send_telegram(f"🇭🇺 *Napi Magyar Hírelemző (Gemini)*\n\n{valasz}")
 
-# Indítás
-analyze_today()
+if __name__ == "__main__":
+    analyze_today()

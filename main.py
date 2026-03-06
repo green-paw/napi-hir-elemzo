@@ -1,6 +1,6 @@
 import os
 import feedparser
-import google.generativeai as genai # A Groq helyett ezt használjuk
+import google.genai as genai # A Groq helyett ezt használjuk
 import requests
 
 # Beállítások
@@ -10,7 +10,7 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 # Gemini konfigurálása
 genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel('models/gemma-7b-it')
+model = genai.GenerativeModel('gemma-3n')
 #model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-09-2025')
 
 def send_telegram(text):

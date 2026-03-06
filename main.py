@@ -14,7 +14,7 @@ client = genai.Client(api_key=GOOGLE_API_KEY)
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {
-        "chat_id": TELEGRAM_CHAT_ID, 
+        "chat_id": int(TELEGRAM_CHAT_ID), 
         "text": text, 
         "parse_mode": "Markdown"
     }

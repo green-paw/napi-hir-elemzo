@@ -32,7 +32,7 @@ def analyze_today():
     """
 
     response = client.models.generate_content(
-        model='gemma-3n', # Az új SDK-ban már nem kell a 'models/' előtag
+        model='gemini-flash-lite-latest',
         contents=prompt
     )
     

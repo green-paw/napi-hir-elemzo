@@ -10,7 +10,7 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 # Gemini konfigurálása
 genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash-latest')
+model = genai.GenerativeModel(model_name="models/gemini-1.5-flash")
 
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -35,6 +35,7 @@ def analyze_today():
     3. Hogyan tálalja a független média (pl. kritikai észrevételek vagy elhallgatott részletek)?
     
     Használj magyaros kifejezéseket! Legyen tömör.
+    Kérlek, ne használj bonyolult Markdown formázást, csak a vastagítást (csillagokkal) és egyszerű listákat.
     """
 
     # Gemini hívása

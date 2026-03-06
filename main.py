@@ -14,24 +14,42 @@ client = genai.Client(api_key=GOOGLE_API_KEY)
 
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    MAX_LENGTH = 4000 
     
-    # 1. BIZTONSÁGI VÁGÁS: A Telegram limitje 4096, mi megállunk 3900-nál
-    if len(text) > 3900:
-        text = text[:3900] + "\n\n[...VÁGVA A HOSSZ MIATT...]"
+    # Tisztítsuk meg a szöveget a biztonság kedvéért (Markdown karakterek eltávolítása)
+    # Ha a Gemini mégis tenne bele csillagokat, itt kiszedjük
+    clean_text = text.replace('*', '').replace('_', '').replace('`', '')
 
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": text,
-        "parse_mode": "Markdown" # Ha továbbra is 400-as hiba van, töröld ki ezt a sort!
-    }
-    
-    response = requests.post(url, data=payload)
-    print(f"Telegram status: {response.status_code}, Response: {response.text}")
-    
-    # Ha a Markdown elrontja, küldjük el sima szövegként (fallback)
-    if response.status_code != 200:
-        del payload["parse_mode"]
-        requests.post(url, data=payload)
+    chunks = []
+    while len(clean_text) > 0:
+        if len(clean_text) <= MAX_LENGTH:
+            chunks.append(clean_text)
+            break
+        
+        split_at = clean_text.rfind('\n', 0, MAX_LENGTH)
+        if split_at == -1:
+            split_at = MAX_LENGTH
+        
+        chunks.append(clean_text[:split_at])
+        clean_text = clean_text[split_at:].lstrip()
+
+    for i, chunk in enumerate(chunks):
+        # HTML formázást használunk a vastagításhoz, mert az ritkábban törik el
+        header = f"<b>🗞 Napi Top Hírelemzés ({i+1}/{len(chunks)})</b>\n\n"
+        
+        payload = {
+            "chat_id": TELEGRAM_CHAT_ID,
+            "text": header + chunk,
+            "parse_mode": "HTML" # Markdown helyett HTML!
+        }
+        
+        response = requests.post(url, data=payload)
+        
+        # Végső mentőöv: ha a HTML is elszállna, küldjük el tök sima szövegként
+        if response.status_code != 200:
+            del payload["parse_mode"]
+            payload["text"] = chunk # Fejléc nélkül, csak a nyers szöveg
+            requests.post(url, data=payload)
 
 def analyze_trending_news():
     feed = feedparser.parse("https://news.google.com/rss?hl=hu&gl=HU&ceid=HU:hu")
@@ -69,8 +87,8 @@ def analyze_trending_news():
     SZIGORÚ SZABÁLYOK:
     1. Csak a megadott forrásokból dolgozz! Ha nincs adat, írd: "Nincs adat".
     2. Ne találj ki háttérsztorit.
-    3. Tömör, egyszerű markdown.
-    4. Maximum 3900 karakter lehet az egész hírösszefoglaló.
+    3. Tömör, egyszerű megfogalmazás.
+    4. Ne használj semmilyen Markdown formázást (ne legyenek csillagok, kettőskeresztek). Használj sima kötőjeleket a listákhoz és nagybetűket a kiemeléshez.
     """
 
     try:
@@ -78,8 +96,7 @@ def analyze_trending_news():
             model='gemini-flash-lite-latest',
             contents=prompt
         )
-        valasz = response.text
-        send_telegram(f"🗞 *Napi Top Hírelemzés*\n\n{valasz}")
+        send_telegram(response.text)
     except Exception as e:
         print(f"Hiba az AI folyamatban: {e}")
 

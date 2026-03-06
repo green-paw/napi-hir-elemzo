@@ -39,11 +39,12 @@ def analyze_today():
     top_titles = [entry.title for entry in feed.entries[:5]]
     
     prompt = f"""
-    Magyar médiaelemző vagy. Elemezd ezt az 5 hírt kétoldalú nézőpontból: {top_titles}. 
-    Mondd meg mi a tény, és mi a várható keretezés a két oldalon.
-    Használj emoji-kat és Markdown formázást.
+    Magyar médiaelemző vagy. Elemezd ezt az 5 hírt: {top_titles}
+    Minden hírnél csak 2-2 mondatod van (tény + keretezés). 
+    FIGYELEM: Az egész válaszod ne legyen több 2000 karakternél!
+    Használj egyszerű Markdown-t.
     """
-
+    
     response = client.models.generate_content(
         model='gemini-flash-lite-latest',
         contents=prompt

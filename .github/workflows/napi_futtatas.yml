@@ -12,9 +12,9 @@ jobs:
       - name: Python beallitasa
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.10'
       - name: Fuggosegek telepitese
-        run: pip install feedparser google-generativeai requests
+        run: pip install feedparser google-genai requests
       - name: Script futtatasa
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}

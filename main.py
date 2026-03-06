@@ -114,5 +114,5 @@ def analyze_today():
 
 if __name__ == "__main__":
 #    analyze_today()
-    valasz = analyze_trending_news().text
+    valasz = analyze_trending_news()
     send_telegram(f"🗞 *Napi Hírelemzés*\n\n{valasz}")

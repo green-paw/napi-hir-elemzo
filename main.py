@@ -1,7 +1,8 @@
-import os
 import feedparser
 from google import genai
 import requests
+import re
+import os
 
 # Beállítások
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -33,6 +34,66 @@ def send_telegram(text):
     
     return response
 
+def analyze_trending_news():
+    print("Vezető hírek begyűjtése és rangsorolása...")
+    # A főoldali RSS-t használjuk, mert itt csoportosít a Google
+    feed = feedparser.parse("https://news.google.com/rss?hl=hu&gl=HU&ceid=HU:hu")
+    
+    scored_news = []
+    
+    for entry in feed.entries:
+        # Kiszámoljuk a 'fontosságot': hány darab forrást (újságot) említ a leírás?
+        # A summary-ben a források listája így néz ki általában: "Forrás 1, Forrás 2, Forrás 3..."
+        source_count = len(re.findall(r'<li>', entry.summary)) # A Google <li> elemekbe teszi a forrásokat
+        
+        scored_news.append({
+            "title": entry.title,
+            "summary": entry.summary,
+            "score": source_count
+        })
+
+    # Rangsorolás: a legtöbb forrással rendelkező hírek kerülnek előre
+    top_news = sorted(scored_news, key=lambda x: x['score'], reverse=True)[:10]
+
+    # Összefűzzük az adatokat az AI-nak
+    context = ""
+    for i, news in enumerate(top_news, 1):
+        context += f"{i}. HÍR: {news['title']}\nRELEVANCIA (források száma): {news['score']}\nFORRÁSLISTA: {news['summary']}\n\n"
+
+    prompt = f"""
+    Te egy magyar médiaelemző szoftver vagy. Az alábbi 10 hír ma a legmeghatározóbb a magyar sajtóban (relevancia szerint rangsorolva):
+    {context}
+
+    FELADAT (Narratíva-rekonstrukció):
+    Válaszd ki a listából azokat, amelyeknek komoly politikai vagy gazdasági súlya van (hagyd ki a bulvárt, ha van benne).
+    Mutasd be a két pólust:
+
+    📌 [Hír címe]
+    - Jobb oldal: Hogyan keretezik? Kulcsszavak?
+    - Bal oldal: Mit emelnek ki/mit kritizálnak?
+    - KÖZÖS METSZET: Mi a puszta tény?
+
+    SZIGORÚ SZABÁLYOK:
+    1. Csak a megadott forrásokból dolgozz! Ha nincs adat, írd: "Nincs adat".
+    2. Ne találj ki háttérsztorit.
+    3. Tömör, egyszerű markdown.
+    4. Max 4000 karakter.
+    """
+
+    print(f"Elemzés indítása a Top 10 legfontosabb hír alapján (Gemini Flash Lite)...")
+    
+    try:
+        response = client.models.generate_content(
+            model='gemini-flash-lite-latest',
+            contents=prompt
+        )
+        print("\n=== MAI TOP HÍREK ELEMZÉSE ===\n")
+        print(response.text)
+    except Exception as e:
+        print(f"Hiba: {e}")
+
+    return response
+
 def analyze_today():
     # Hírek lekérése
     feed = feedparser.parse("https://news.google.com/rss?hl=hu&gl=HU&ceid=HU:hu")
@@ -54,4 +115,6 @@ def analyze_today():
     send_telegram(f"🗞 *Napi Hírelemzés (Új GenAI SDK)*\n\n{valasz}")
 
 if __name__ == "__main__":
-    analyze_today()
+#    analyze_today()
+    valasz = analyze_trending_news().text
+    send_telegram(f"🗞 *Napi Hírelemzés (Új GenAI SDK)*\n\n{valasz}")

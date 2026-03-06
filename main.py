@@ -13,12 +13,25 @@ client = genai.Client(api_key=GOOGLE_API_KEY)
 
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    
+    # Biztosítsuk, hogy a Chat ID szám legyen, és ne maradjon benne szóköz
+    clean_chat_id = str(TELEGRAM_CHAT_ID).strip()
+    
     payload = {
-        "chat_id": int(TELEGRAM_CHAT_ID), 
+        "chat_id": int(clean_chat_id), 
         "text": text, 
         "parse_mode": "Markdown"
     }
-    requests.post(url, data=payload)
+    
+    response = requests.post(url, data=payload)
+    
+    # EZT NÉZD MAJD A GITHUB LOGBAN:
+    print(f"--- Telegram Küldés Állapota ---")
+    print(f"Státusz kód: {response.status_code}")
+    print(f"Válasz: {response.text}")
+    print(f"Cél Chat ID: {clean_chat_id}")
+    
+    return response
 
 def analyze_today():
     # Hírek lekérése

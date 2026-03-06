@@ -15,26 +15,75 @@ client = genai.Client(api_key=GOOGLE_API_KEY)
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     
-    # Biztosítsuk, hogy a Chat ID szám legyen, és ne maradjon benne szóköz
-    clean_chat_id = str(TELEGRAM_CHAT_ID).strip()
-    
+    # 1. BIZTONSÁGI VÁGÁS: A Telegram limitje 4096, mi megállunk 3900-nál
+    if len(text) > 3900:
+        text = text[:3900] + "\n\n[...VÁGVA A HOSSZ MIATT...]"
+
     payload = {
-        "chat_id": int(clean_chat_id), 
-        "text": text, 
-        "parse_mode": "Markdown"
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": text,
+        "parse_mode": "Markdown" # Ha továbbra is 400-as hiba van, töröld ki ezt a sort!
     }
     
     response = requests.post(url, data=payload)
+    print(f"Telegram status: {response.status_code}, Response: {response.text}")
     
-    # EZT NÉZD MAJD A GITHUB LOGBAN:
-    print(f"--- Telegram Küldés Állapota ---")
-    print(f"Státusz kód: {response.status_code}")
-    print(f"Válasz: {response.text}")
-    print(f"Cél Chat ID: {clean_chat_id}")
-    
-    return response
+    # Ha a Markdown elrontja, küldjük el sima szövegként (fallback)
+    if response.status_code != 200:
+        del payload["parse_mode"]
+        requests.post(url, data=payload)
 
 def analyze_trending_news():
+    feed = feedparser.parse("https://news.google.com/rss?hl=hu&gl=HU&ceid=HU:hu")
+    
+    scored_news = []
+    for entry in feed.entries:
+        # Relevancia pontszám a források száma alapján
+        source_count = len(re.findall(r'<li>', entry.summary))
+        scored_news.append({
+            "title": entry.title,
+            "summary": entry.summary,
+            "score": source_count
+        })
+
+    # Top 8 hír (kicsit kevesebb, hogy biztosan beférjen a 4000 karakterbe)
+    top_news = sorted(scored_news, key=lambda x: x['score'], reverse=True)[:8]
+
+    context = ""
+    for i, news in enumerate(top_news, 1):
+        context += f"{i}. HÍR: {news['title']}\nFORRÁSOK: {news['summary']}\n\n"
+
+    prompt = f"""
+    Te egy magyar médiaelemző szoftver vagy. Az alábbi 10 hír ma a legmeghatározóbb a magyar sajtóban (relevancia szerint rangsorolva):
+    {context}
+
+    FELADAT (Narratíva-rekonstrukció):
+    Válaszd ki a listából azokat, amelyeknek komoly politikai vagy gazdasági súlya van (hagyd ki a bulvárt, ha van benne).
+    Mutasd be a két pólust:
+
+    📌 [Hír címe]
+    - Jobb oldal: Hogyan keretezik? Kulcsszavak?
+    - Bal oldal: Mit emelnek ki/mit kritizálnak?
+    - KÖZÖS METSZET: Mi a puszta tény?
+
+    SZIGORÚ SZABÁLYOK:
+    1. Csak a megadott forrásokból dolgozz! Ha nincs adat, írd: "Nincs adat".
+    2. Ne találj ki háttérsztorit.
+    3. Tömör, egyszerű markdown.
+    4. Maximum 3900 karakter lehet az egész hírösszefoglaló.
+    """
+
+    try:
+        response = client.models.generate_content(
+            model='gemini-flash-lite-latest',
+            contents=prompt
+        )
+        valasz = response.text
+        send_telegram(f"🗞 *Napi Top Hírelemzés*\n\n{valasz}")
+    except Exception as e:
+        print(f"Hiba az AI folyamatban: {e}")
+
+def analyze_trending_news_old():
     print("Vezető hírek begyűjtése és rangsorolása...")
     # A főoldali RSS-t használjuk, mert itt csoportosít a Google
     feed = feedparser.parse("https://news.google.com/rss?hl=hu&gl=HU&ceid=HU:hu")
@@ -90,6 +139,7 @@ def analyze_trending_news():
     except Exception as e:
         print(f"Hiba: {e}")
 
+    print(f"AI generált szöveg hossza: {len(response.text)}")
     return response.text
 
 def analyze_today():
@@ -113,6 +163,5 @@ def analyze_today():
     send_telegram(f"🗞 *Napi Hírelemzés (Új GenAI SDK)*\n\n{valasz}")
 
 if __name__ == "__main__":
-#    analyze_today()
-    valasz = analyze_trending_news()
-    send_telegram(f"🗞 *Napi Hírelemzés*\n\n{valasz}")
+    analyze_trending_news()
+    

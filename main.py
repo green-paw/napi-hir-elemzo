@@ -31,9 +31,8 @@ def analyze_today():
     Használj emoji-kat és Markdown formázást.
     """
 
-    # ÚJ SZINTAXIS: A kliens hívja a generálást
     response = client.models.generate_content(
-        model='gemini-2.0-flash', # Az új SDK-ban már nem kell a 'models/' előtag
+        model='gemma-3n', # Az új SDK-ban már nem kell a 'models/' előtag
         contents=prompt
     )
     

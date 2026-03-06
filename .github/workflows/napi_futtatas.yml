@@ -1,7 +1,7 @@
 name: Napi Hir Ellenorzes
 on:
   schedule:
-    - cron: '30 6 * * *' # Magyar idő szerint reggel kb. 7:30
+    - cron: '30 * * * *' # Magyar idő szerint reggel kb. 7:30
   workflow_dispatch: # Így kézzel is elindíthatod a GitHubon
 
 jobs:

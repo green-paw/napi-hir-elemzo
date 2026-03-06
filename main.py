@@ -31,6 +31,7 @@ def analyze_today():
     Minden hírnél térj ki arra:
     - Mi a puszta tény?
     - Hogyan tálalhatja ezt a 'kormányközeli' vs. 'független' média? (keretezési különbségek)
+    - Csatold a linkeket minden hír alatt.
     
     Használj Markdown formázást! Ne használj emojikat!
     """

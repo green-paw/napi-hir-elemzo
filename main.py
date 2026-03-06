@@ -77,7 +77,7 @@ def analyze_trending_news():
     1. Csak a megadott forrásokból dolgozz! Ha nincs adat, írd: "Nincs adat".
     2. Ne találj ki háttérsztorit.
     3. Tömör, egyszerű markdown.
-    4. Max 4000 karakter.
+    4. Maximum 3800 karakter lehet az egész hírösszefoglaló.
     """
 
     print(f"Elemzés indítása a Top 10 legfontosabb hír alapján (Gemini Flash Lite)...")
@@ -87,12 +87,10 @@ def analyze_trending_news():
             model='gemini-flash-lite-latest',
             contents=prompt
         )
-        print("\n=== MAI TOP HÍREK ELEMZÉSE ===\n")
-        print(response.text)
     except Exception as e:
         print(f"Hiba: {e}")
 
-    return response
+    return response.text
 
 def analyze_today():
     # Hírek lekérése
@@ -117,4 +115,4 @@ def analyze_today():
 if __name__ == "__main__":
 #    analyze_today()
     valasz = analyze_trending_news().text
-    send_telegram(f"🗞 *Napi Hírelemzés (Új GenAI SDK)*\n\n{valasz}")
+    send_telegram(f"🗞 *Napi Hírelemzés*\n\n{valasz}")

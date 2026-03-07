@@ -58,12 +58,12 @@ def analyze_single_news(news_item):
     - KRITIKUS NARRATÍVA: Mit emel ki a kritikus sajtó? Milyen hiányosságra mutatnak rá?
     - GAZDASÁGI HATÁS: Milyen pénzügyi, piaci vagy megélhetési következménye van ennek?
     - NEMZETKÖZI KONTEXTUS: Hogyan illeszkedik ez a globális folyamatokba (EU, NATO, szomszédok)?
-    - TÉNY: Mi a megtisztított, objektív valóság?
+    - TÉNY: Mi a megtisztított, objektív valóság? Egy mondatban.
 
     SZIGORÚ SZABÁLYOK: 
     - Ne használj Markdownt! 
     - Kerüld a bullshitet és a felesleges körmondatokat. 
-    - Az elemzés legyen lényegre törő, de alapos (kb. 10-15 mondat hírenként).
+    - Az elemzés legyen lényegre törő, de alapos (maximum 10 mondat hírenként).
     """
     try:
         response = client.models.generate_content(
@@ -95,8 +95,8 @@ def main():
         score = len(re.findall(r'<li>', entry.summary))
         scored_news.append({"title": entry.title, "summary": entry.summary, "score": score})
 
-    # A 7 legfontosabb hír (Map-Reduce folyamat)
-    top_news = sorted(scored_news, key=lambda x: x['score'], reverse=True)[:7]
+    # A 10 legfontosabb hír (Map-Reduce folyamat)
+    top_news = sorted(scored_news, key=lambda x: x['score'], reverse=True)[:10]
     
     full_analysis = ""
     for i, news in enumerate(top_news):

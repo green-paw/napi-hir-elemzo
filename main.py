@@ -39,7 +39,7 @@ def send_telegram_chunked(text):
         header = f"<b>🗞 Napi Mélyelemzés ({i+1}/{len(chunks)})</b>\n\n"
         payload = {"chat_id": TELEGRAM_CHAT_ID, "text": header + chunk, "parse_mode": "HTML"}
         requests.post(url, data=payload)
-        time.sleep(1)
+        time.sleep(15)
 
 def analyze_single_news(news_item, past_context):
     prompt = f"""

@@ -1,7 +1,7 @@
 name: Napi Hir Ellenorzes
 on:
   schedule:
-    - cron: '0 8 * * *'
+    - cron: '0 7,19 * * *'
   workflow_dispatch: # Így kézzel is elindíthatod a GitHubon
 
 jobs:

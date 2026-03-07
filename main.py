@@ -44,35 +44,54 @@ def send_telegram_chunked(text):
         time.sleep(1) # Kis szünet az üzenetek között
 
 def analyze_single_news(news_item):
-    """Egyetlen hír mélyelemzése."""
     prompt = f"""
     Te egy magyar médiaelemző vagy. Elemezd ezt az egy hírt mélyen:
     CÍM: {news_item['title']}
     FORRÁSOK: {news_item['summary']}
 
-    Mutasd be a kormányközeli és a kritikus narratívát:
-    1. KONZERVATÍV NARRATÍVA: Mi a keretezés?
-    2. KRITIKUS NARRATÍVA: Mit emelnek ki?
-    3. TÉNY: Mi a közös alap?
+    FELADAT ÉS SZABÁLYOK:
+    1. SZŰRÉS: Ha a hír bulvár, technikai jellegű, sport, vagy tisztán kattintásvadász (clickbait), válaszolj ennyit: "SKIP".
+    2. MANIPULÁCIÓ SZŰRÉSE: Távolíts el minden érzelmi töltetű jelzőt és manipulatív fordulatot. Csak a száraz tényekre és összefüggésekre koncentrálj.
+    
+    STRUKTÚRA (Elemezd részletesen):
+    - KONZERVATÍV NARRATÍVA: Hogyan keretezik a kormányközeli lapok? Mi a stratégiai üzenetük?
+    - KRITIKUS NARRATÍVA: Mit emel ki a kritikus sajtó? Milyen hiányosságra mutatnak rá?
+    - GAZDASÁGI HATÁS: Milyen pénzügyi, piaci vagy megélhetési következménye van ennek?
+    - NEMZETKÖZI KONTEXTUS: Hogyan illeszkedik ez a globális folyamatokba (EU, NATO, szomszédok)?
+    - TÉNY: Mi a megtisztított, objektív valóság?
 
-    SZIGORÚ SZABÁLY: Csak a megadott adatokból dolgozz. Ne használj Markdownt!
-    Válaszolj tömören, 4-5 mondatban összesen.
+    SZIGORÚ SZABÁLYOK: 
+    - Ne használj Markdownt! 
+    - Kerüld a bullshitet és a felesleges körmondatokat. 
+    - Az elemzés legyen lényegre törő, de alapos (kb. 10-15 mondat hírenként).
     """
     try:
         response = client.models.generate_content(
             model='gemini-flash-lite-latest',
             contents=prompt
         )
-        return f"📌 {news_item['title'].upper()}\n{response.text}\n\n"
+        valasz = response.text.strip()
+        
+        if "SKIP" in valasz or len(valasz) < 50:
+            return ""
+            
+        return f"📌 {news_item['title'].upper()}\n{valasz}\n\n"
     except Exception as e:
-        return f"❌ Hiba az elemzés során ({news_item['title'][:20]}): {e}\n\n"
+        return f"❌ Hiba: {e}\n\n"
 
 def main():
     print("Hírek begyűjtése...")
     feed = feedparser.parse("https://news.google.com/rss?hl=hu&gl=HU&ceid=HU:hu")
     
+    # Tiltólista a nem kívánt kategóriákhoz
+    blacklist = ["foci", "bajnokság", "mérkőzés", "celeb", "vlog", "okostelefon", "teszt", "recept", "horoszkóp", "bulvár"]
+    
     scored_news = []
     for entry in feed.entries:
+        # Cím ellenőrzése a tiltólistával
+        if any(word in entry.title.lower() for word in blacklist):
+            continue
+            
         score = len(re.findall(r'<li>', entry.summary))
         scored_news.append({"title": entry.title, "summary": entry.summary, "score": score})
 

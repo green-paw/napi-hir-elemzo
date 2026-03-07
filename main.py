@@ -1,23 +1,23 @@
-import feedparser
-from google import genai
-import requests
-import re
 import os
+import feedparser
+import re
+import time
+import requests
+from google import genai
 
-# Beállítások
+# --- BEÁLLÍTÁSOK ---
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-# Az új kliens inicializálása
 client = genai.Client(api_key=GOOGLE_API_KEY)
 
-def send_telegram(text):
+def send_telegram_chunked(text):
+    """Szétvágja az üzenetet és elküldi több részletben, ha szükséges."""
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    MAX_LENGTH = 4000 
+    MAX_LENGTH = 3900 # Biztonsági ráhagyással
     
-    # Tisztítsuk meg a szöveget a biztonság kedvéért (Markdown karakterek eltávolítása)
-    # Ha a Gemini mégis tenne bele csillagokat, itt kiszedjük
+    # Tisztítás a formázási hibák elkerülésére
     clean_text = text.replace('*', '').replace('_', '').replace('`', '')
 
     chunks = []
@@ -25,80 +25,70 @@ def send_telegram(text):
         if len(clean_text) <= MAX_LENGTH:
             chunks.append(clean_text)
             break
-        
         split_at = clean_text.rfind('\n', 0, MAX_LENGTH)
-        if split_at == -1:
-            split_at = MAX_LENGTH
-        
+        if split_at == -1: split_at = MAX_LENGTH
         chunks.append(clean_text[:split_at])
         clean_text = clean_text[split_at:].lstrip()
 
     for i, chunk in enumerate(chunks):
-        # HTML formázást használunk a vastagításhoz, mert az ritkábban törik el
-        header = f"<b>🗞 Napi Top Hírelemzés ({i+1}/{len(chunks)})</b>\n\n"
-        
+        header = f"<b>🗞 Napi Hírelemzés ({i+1}/{len(chunks)})</b>\n\n"
         payload = {
             "chat_id": TELEGRAM_CHAT_ID,
             "text": header + chunk,
-            "parse_mode": "HTML" # Markdown helyett HTML!
+            "parse_mode": "HTML"
         }
-        
-        response = requests.post(url, data=payload)
-        
-        # Végső mentőöv: ha a HTML is elszállna, küldjük el tök sima szövegként
-        if response.status_code != 200:
+        resp = requests.post(url, data=payload)
+        if resp.status_code != 200: # Fallback ha a HTML elszállna
             del payload["parse_mode"]
-            payload["text"] = chunk # Fejléc nélkül, csak a nyers szöveg
             requests.post(url, data=payload)
+        time.sleep(1) # Kis szünet az üzenetek között
 
-def analyze_trending_news():
-    feed = feedparser.parse("https://news.google.com/rss?hl=hu&gl=HU&ceid=HU:hu")
-    
-    scored_news = []
-    for entry in feed.entries:
-        # Relevancia pontszám a források száma alapján
-        source_count = len(re.findall(r'<li>', entry.summary))
-        scored_news.append({
-            "title": entry.title,
-            "summary": entry.summary,
-            "score": source_count
-        })
-
-    top_news = sorted(scored_news, key=lambda x: x['score'], reverse=True)[:10]
-
-    context = ""
-    for i, news in enumerate(top_news, 1):
-        context += f"{i}. HÍR: {news['title']}\nFORRÁSOK: {news['summary']}\n\n"
-
+def analyze_single_news(news_item):
+    """Egyetlen hír mélyelemzése."""
     prompt = f"""
-    Te egy magyar médiaelemző szoftver vagy. Az alábbi 10 hír ma a legmeghatározóbb a magyar sajtóban (relevancia szerint rangsorolva):
-    {context}
+    Te egy magyar médiaelemző vagy. Elemezd ezt az egy hírt mélyen:
+    CÍM: {news_item['title']}
+    FORRÁSOK: {news_item['summary']}
 
-    FELADAT (Narratíva-rekonstrukció):
-    Válaszd ki a listából azokat, amelyeknek komoly politikai vagy gazdasági súlya van (hagyd ki a bulvárt, ha van benne).
-    Mutasd be a két pólust:
+    Mutasd be a kormányközeli és a kritikus narratívát:
+    1. KONZERVATÍV NARRATÍVA: Mi a keretezés?
+    2. KRITIKUS NARRATÍVA: Mit emelnek ki?
+    3. TÉNY: Mi a közös alap?
 
-    📌 [Hír címe]
-    - Jobb oldal: Hogyan keretezik? Kulcsszavak?
-    - Bal oldal: Mit emelnek ki/mit kritizálnak?
-    - KÖZÖS METSZET: Mi a puszta tény?
-
-    SZIGORÚ SZABÁLYOK:
-    1. Csak a megadott forrásokból dolgozz! Ha nincs adat, írd: "Nincs adat".
-    2. Ne találj ki háttérsztorit.
-    3. Tömör, egyszerű megfogalmazás, de a lényeg legyen benne.
-    4. Ne használj semmilyen Markdown formázást (ne legyenek csillagok, kettőskeresztek). Használj sima kötőjeleket a listákhoz és nagybetűket a kiemeléshez.
+    SZIGORÚ SZABÁLY: Csak a megadott adatokból dolgozz. Ne használj Markdownt!
+    Válaszolj tömören, 4-5 mondatban összesen.
     """
-
     try:
         response = client.models.generate_content(
             model='gemini-flash-lite-latest',
             contents=prompt
         )
-        send_telegram(response.text)
+        return f"📌 {news_item['title'].upper()}\n{response.text}\n\n"
     except Exception as e:
-        print(f"Hiba az AI folyamatban: {e}")
+        return f"❌ Hiba az elemzés során ({news_item['title'][:20]}): {e}\n\n"
+
+def main():
+    print("Hírek begyűjtése...")
+    feed = feedparser.parse("https://news.google.com/rss?hl=hu&gl=HU&ceid=HU:hu")
+    
+    scored_news = []
+    for entry in feed.entries:
+        score = len(re.findall(r'<li>', entry.summary))
+        scored_news.append({"title": entry.title, "summary": entry.summary, "score": score})
+
+    # A 7 legfontosabb hír (Map-Reduce folyamat)
+    top_news = sorted(scored_news, key=lambda x: x['score'], reverse=True)[:7]
+    
+    full_analysis = ""
+    for i, news in enumerate(top_news):
+        print(f"Elemzés: {i+1}/{len(top_news)}")
+        analysis = analyze_single_news(news)
+        full_analysis += analysis
+        time.sleep(3) # Kvóta-védelem (RPM limit miatt)
+
+    if full_analysis:
+        send_telegram_chunked(full_analysis)
+        print("Kész! Üzenetek elküldve.")
 
 if __name__ == "__main__":
-    analyze_trending_news()
-    
+    main()

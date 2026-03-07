@@ -8,7 +8,7 @@ from google import genai
 from datetime import datetime
 
 # --- BEÁLLÍTÁSOK ---
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_PAID_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 HISTORY_FILE = "history.json"
@@ -68,7 +68,7 @@ def analyze_single_news(news_item, past_context):
     - Az elemzés legyen lényegre törő, de alapos (maximum 10 mondat hírenként).
     """
     try:
-        response = client.models.generate_content(model='gemini-flash-lite-latest', contents=prompt)
+        response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
         return response.text.strip()
     except Exception as e:
         return f"Hiba: {e}"

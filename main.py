@@ -7,11 +7,14 @@ import requests
 from google import genai
 from datetime import datetime
 
-# --- BEÁLLÍTÁSOK ---
+# --- KONFIGURÁCIÓ ---
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_PAID_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 HISTORY_FILE = "history.json"
+
+# A 2.0 Flash modell használata (gyors és okos)
+MODEL_ID = "gemini-2.0-flash" 
 
 client = genai.Client(api_key=GOOGLE_API_KEY)
 
@@ -24,10 +27,10 @@ def load_history():
     return []
 
 def save_history(history, new_entries):
-    # Az utolsó 15 elemzést tároljuk el
+    # Megnövelt memória: az utolsó 30 elemzést tároljuk (ebből válogatunk később)
     combined = history + new_entries
     with open(HISTORY_FILE, "w", encoding="utf-8") as f:
-        json.dump(combined[-15:], f, ensure_ascii=False, indent=2)
+        json.dump(combined[-30:], f, ensure_ascii=False, indent=2)
 
 def send_telegram_chunked(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -39,47 +42,45 @@ def send_telegram_chunked(text):
         header = f"<b>🗞 Napi Mélyelemzés ({i+1}/{len(chunks)})</b>\n\n"
         payload = {"chat_id": TELEGRAM_CHAT_ID, "text": header + chunk, "parse_mode": "HTML"}
         requests.post(url, data=payload)
-        time.sleep(15)
+        time.sleep(0.5) # Gyorsabb küldés
 
 def analyze_single_news(news_item, past_context):
     prompt = f"""
-    Te egy szigorú, tényalapú magyar médiaelemző vagy. 
+    Te egy vezető magyar média-stratégiai elemző vagy. 
     HÍR: {news_item['title']}
     FORRÁSOK: {news_item['summary']}
     
-    ELŐZMÉNYEK (Múltbeli hírek):
+    KONTEXTUS (Az elmúlt napok eseményei):
     {past_context}
 
-    FELADAT ÉS SZIGORÚ SZABÁLYOK:
-    1. TILOS A FELTÉTELEZÉS: Ne használd a "valószínűleg", "vélhetően", "mondhatnák" fordulatokat. 
-    2. HA NINCS ADAT: Ha a megadott forrásban egy oldal nem szólal meg, írd: "Nincs fellelhető releváns narratíva." Ne találd ki, mit mondanának!
-    3. ÖSSZEHASONLÍTÁS: Ha a hír kapcsolódik az előzményekhez, mutass rá a változásra vagy ellentmondásra. Ha nem kapcsolódik, hagyd ki ezt a részt.
-    4. STRUKTÚRA:
-       - KONZERVATÍV NARRATÍVA: (Csak ha van adat)
-       - KRITIKUS NARRATÍVA: (Csak ha van adat)
-       - GAZDASÁGI/NEMZETKÖZI HATÁS: (Száraz tények)
-       - TÉNY: (Manipulációmentes mag)
-    5. SZŰRÉS: Ha a hír bulvár, technikai jellegű, sport, vagy tisztán kattintásvadász (clickbait), válaszolj ennyit: "SKIP".
-    6. MANIPULÁCIÓ SZŰRÉSE: Távolíts el minden érzelmi töltetű jelzőt és manipulatív fordulatot. Csak a száraz tényekre és összefüggésekre koncentrálj.
+    FELADAT: 
+    Elemezd a hírt száraz, tényalapú stílusban. TILOS a feltételezés (pl. "mondhatnák").
+    Ha nincs információ egy oldalról, írd le: "Nincs releváns narratíva."
 
-    STÍLUS:
-    - Ne használj Markdownt! 
-    - Kerüld a bullshitet és a felesleges körmondatokat. 
-    - Az elemzés legyen lényegre törő, de alapos (maximum 10 mondat hírenként).
+    SZEMPONTOK:
+    - KONZERVATÍV NARRATÍVA: Stratégiai keretezés és kulcsszavak.
+    - KRITIKUS NARRATÍVA: Ellenérvek és hiányolt részletek.
+    - GAZDASÁGI / NEMZETKÖZI HATÁS: Konkrét következmények (EU, piacok, forint).
+    - ÖSSZEFÜGGÉS: Hogyan változott a helyzet az előzményekben látottakhoz képest? (Ellentmondás vagy folytatás?)
+    - TÉNY: A manipulációtól megtisztított mag.
+
+    STÍLUS: Max 15-20 mondat, strukturált, professzionális szöveg. Ne használj Markdownt!
     """
     try:
-        response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
+        # Nincs szükség hosszú várakozásra a fizetős tier miatt
+        response = client.models.generate_content(model=MODEL_ID, contents=prompt)
         return response.text.strip()
     except Exception as e:
-        return f"Hiba: {e}"
+        print(f"Hiba az elemzésnél: {e}")
+        return "SKIP"
 
 def main():
     history = load_history()
-    # Az utolsó 5 elemzést adjuk át kontextusnak
-    past_context = "\n".join([f"- {h['date']}: {h['title']}" for h in history[-5:]])
+    # Megnövelt kontextus: Az utolsó 10 hír címét és lényegét adjuk át
+    past_context = "\n".join([f"- {h['date']}: {h['title']}" for h in history[-10:]])
     
     feed = feedparser.parse("https://news.google.com/rss?hl=hu&gl=HU&ceid=HU:hu")
-    blacklist = ["foci", "bajnokság", "celeb", "horoszkóp", "bulvár", "recept"]
+    blacklist = ["foci", "bajnokság", "celeb", "horoszkóp", "bulvár", "recept", "okostelefon"]
     
     scored_news = []
     for entry in feed.entries:
@@ -87,25 +88,31 @@ def main():
         score = len(re.findall(r'<li>', entry.summary))
         scored_news.append({"title": entry.title, "summary": entry.summary, "score": score})
 
-    top_news = sorted(scored_news, key=lambda x: x['score'], reverse=True)[:6]
+    # Most már bátran elemezhetünk 8-10 hírt is
+    top_news = sorted(scored_news, key=lambda x: x['score'], reverse=True)[:8]
     
     new_history_entries = []
     full_message = ""
     
-    for news in top_news:
+    for i, news in enumerate(top_news):
+        print(f"Elemzés ({i+1}/{len(top_news)}): {news['title']}")
         analysis = analyze_single_news(news, past_context)
-        if "SKIP" not in analysis:
+        
+        if analysis and "SKIP" not in analysis:
             full_message += f"📌 {news['title'].upper()}\n{analysis}\n\n"
             new_history_entries.append({
-                "date": datetime.now().strftime("%Y-%m-%d"),
+                "date": datetime.now().strftime("%m.%d %H:%M"),
                 "title": news['title'],
-                "summary": analysis[:200] # Csak rövid kivonat a memóriához
+                "summary": analysis[:300] # Hosszabb kivonat a memóriához
             })
-        time.sleep(3)
+        
+        # Csak minimális szünet a biztonság kedvéért
+        time.sleep(1.5)
 
     if full_message:
         send_telegram_chunked(full_message)
         save_history(history, new_history_entries)
+        print("Sikeres futás és mentés.")
 
 if __name__ == "__main__":
     main()

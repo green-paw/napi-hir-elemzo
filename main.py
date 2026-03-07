@@ -35,14 +35,45 @@ def save_history(history, new_entries):
 def send_telegram_chunked(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     MAX_LENGTH = 3900
+    
+    # Tisztítás (Markdown maradékok eltávolítása a biztonság kedvéért)
     clean_text = text.replace('*', '').replace('_', '').replace('`', '')
-    chunks = [clean_text[i:i+MAX_LENGTH] for i in range(0, len(clean_text), MAX_LENGTH)]
+
+    chunks = []
+    while len(clean_text) > 0:
+        if len(clean_text) <= MAX_LENGTH:
+            chunks.append(clean_text)
+            break
+        
+        # Megkeressük az utolsó sortörést a limiten belül
+        split_at = clean_text.rfind('\n', 0, MAX_LENGTH)
+        
+        # Ha nincs sortörés (nagyon ritka), akkor kénytelenek vagyunk karakterre vágni
+        if split_at == -1:
+            split_at = MAX_LENGTH
+        
+        chunks.append(clean_text[:split_at])
+        # A levágott részt kivesszük, és a maradék elejéről levágjuk a felesleges üres karaktereket
+        clean_text = clean_text[split_at:].lstrip()
 
     for i, chunk in enumerate(chunks):
         header = f"<b>🗞 Napi Mélyelemzés ({i+1}/{len(chunks)})</b>\n\n"
-        payload = {"chat_id": TELEGRAM_CHAT_ID, "text": header + chunk, "parse_mode": "HTML"}
-        requests.post(url, data=payload)
-        time.sleep(0.5) # Gyorsabb küldés
+        payload = {
+            "chat_id": TELEGRAM_CHAT_ID, 
+            "text": header + chunk, 
+            "parse_mode": "HTML"
+        }
+        
+        try:
+            resp = requests.post(url, data=payload)
+            if resp.status_code != 200:
+                # Ha a HTML formázás valamiért mégis elromlik, elküldjük nyersen
+                del payload["parse_mode"]
+                requests.post(url, data=payload)
+        except Exception as e:
+            print(f"Hiba a küldés során: {e}")
+        
+        time.sleep(0.8) # Rövid szünet az üzenetek sorrendje miatt
 
 def analyze_single_news(news_item, past_context):
     prompt = f"""

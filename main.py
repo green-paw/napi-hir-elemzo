@@ -53,18 +53,19 @@ def analyze_single_news(news_item, past_context):
     KONTEXTUS (Az elmúlt napok eseményei):
     {past_context}
 
-    FELADAT: 
-    Elemezd a hírt száraz, tényalapú stílusban. TILOS a feltételezés (pl. "mondhatnák").
-    Ha nincs információ egy oldalról, írd le: "Nincs releváns narratíva."
+    FELADAT ÉS SZIGORÚ SZABÁLYOK:
+    1. TILOS A FELTÉTELEZÉS: Ne használd a "valószínűleg", "vélhetően", "mondhatnák" fordulatokat. 
+    2. HA NINCS ADAT: Ha a megadott forrásban egy oldal nem szólal meg, írd: "Nincs fellelhető releváns narratíva." Ne találd ki, mit mondanának!
+    3. ÖSSZEHASONLÍTÁS: Ha a hír kapcsolódik az előzményekhez, mutass rá a változásra vagy ellentmondásra. Ha nem kapcsolódik, hagyd ki ezt a részt.
+    4. STRUKTÚRA:
+       - KONZERVATÍV NARRATÍVA: (Csak ha van adat)
+       - KRITIKUS NARRATÍVA: (Csak ha van adat)
+       - GAZDASÁGI/NEMZETKÖZI HATÁS: (Száraz tények)
+       - TÉNY: (Manipulációmentes mag)
+    5. SZŰRÉS: Ha a hír bulvár, technikai jellegű, sport, vagy tisztán kattintásvadász (clickbait), válaszolj ennyit: "SKIP".
+    6. MANIPULÁCIÓ SZŰRÉSE: Távolíts el minden érzelmi töltetű jelzőt és manipulatív fordulatot. Csak a száraz tényekre és összefüggésekre koncentrálj.
 
-    SZEMPONTOK:
-    - KONZERVATÍV NARRATÍVA: Stratégiai keretezés és kulcsszavak.
-    - KRITIKUS NARRATÍVA: Ellenérvek és hiányolt részletek.
-    - GAZDASÁGI / NEMZETKÖZI HATÁS: Konkrét következmények (EU, piacok, forint).
-    - ÖSSZEFÜGGÉS: Hogyan változott a helyzet az előzményekben látottakhoz képest? (Ellentmondás vagy folytatás?)
-    - TÉNY: A manipulációtól megtisztított mag.
-
-    STÍLUS: Max 15-20 mondat, strukturált, professzionális szöveg. Ne használj Markdownt!
+    STÍLUS: Max 15 mondat, strukturált, professzionális szöveg. Ne használj Markdownt!
     """
     try:
         # Nincs szükség hosszú várakozásra a fizetős tier miatt

@@ -8,7 +8,7 @@ from google import genai
 from datetime import datetime
 
 # --- KONFIGURÁCIÓ ---
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_PAID_KEY")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 HISTORY_FILE = "history.json"

@@ -1,24 +1,51 @@
-name: Napi Hir Ellenorzes
+name: AI News Analysis with Memory
+
 on:
   schedule:
+    # Magyar idő szerint kb. reggel 8:00 és este 20:00 (UTC 7:00 és 19:00)
     - cron: '0 7,19 * * *'
-  workflow_dispatch: # Így kézzel is elindíthatod a GitHubon
+  workflow_dispatch: # Lehetővé teszi a manuális indítást a GitHub felületén
+
+permissions:
+  contents: write  # Ez kulcsfontosságú a history.json visszamentéséhez!
 
 jobs:
-  run_script:
+  analyze_and_save:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
-      - name: Python beallitasa
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Teljes múlt lekérése a commitoláshoz
+
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      - name: Fuggosegek telepitese
-        run: pip install feedparser google-genai requests
-      - name: Script futtatasa
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install google-genai feedparser requests
+
+      - name: Run AI News Agent
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python main.py
+
+      - name: Save memory (history.json)
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # Csak akkor commitolunk, ha tényleg változott a fájl
+          if git diff --quiet history.json; then
+            echo "Nincs változás a memóriában."
+          else
+            git add history.json
+            git commit -m "Hírelőzmények frissítése (AI Memória) [skip ci]"
+            git push
+          fi

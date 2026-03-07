@@ -14,7 +14,7 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 HISTORY_FILE = "history.json"
 
 # A 2.0 Flash modell használata (gyors és okos)
-MODEL_ID = "gemini-2.0-flash" 
+MODEL_ID = "gemini-2.5-flash" 
 
 client = genai.Client(api_key=GOOGLE_API_KEY)
 

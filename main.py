@@ -6,10 +6,10 @@ import json
 import requests
 from google import genai
 from datetime import datetime
+from feedgen.feed import FeedGenerator # Ne felejtsd el hozzáadni a YAML-hez!
 
 # --- KONFIGURÁCIÓ ---
-# Fontos: Ellenőrizd, hogy a GitHub Secrets-ben GOOGLE_API_PAID_KEY néven van-e a kulcs!
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_PAID_KEY")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 HISTORY_FILE = "history.json"
@@ -29,6 +29,24 @@ def save_history(history, new_entries):
     combined = history + new_entries
     with open(HISTORY_FILE, "w", encoding="utf-8") as f:
         json.dump(combined[-40:], f, ensure_ascii=False, indent=2)
+
+def generate_rss(entries):
+    """Saját RSS feed generálása a GitHub Pages-hez."""
+    fg = FeedGenerator()
+    fg.id('ai-strat-news-hu')
+    fg.title('AI Stratégiai Hírelemzés')
+    fg.author({'name': 'Gemini AI'})
+    fg.link(href='https://news.google.com', rel='alternate')
+    fg.description('Rövidített, többoldalú napi hírelemzések')
+    
+    for entry in entries:
+        fe = fg.add_entry()
+        fe.id(entry['title'])
+        fe.title(entry['title'])
+        fe.description(entry['summary'])
+        fe.pubDate(datetime.now().astimezone())
+    
+    fg.rss_file('rss_output.xml')
 
 def send_telegram_chunked(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -50,15 +68,17 @@ def send_telegram_chunked(text):
         time.sleep(1)
 
 def ai_call(prompt, use_search=False):
-    """Általános hívás a modellhez, opcionális Google kereséssel."""
     config = {}
     if use_search:
         config = {'tools': [{'google_search': {}}]}
     
+    # Kényszerített rövidítés
+    system_instruction = "Max 4-5 rövid mondat. Csak a lényeg. Tilos a Markdown és a felesleges sallang."
+    
     try:
         response = client.models.generate_content(
             model=MODEL_ID, 
-            contents=prompt,
+            contents=system_instruction + "\n" + prompt,
             config=config
         )
         return response.text.strip()
@@ -72,38 +92,35 @@ def main():
     
     full_message = ""
     new_history_entries = []
+    rss_items = [] # Az RSS-be szánt elemek listája
 
-    # --- 1. ÁLLANDÓ HAZAI TÉMÁK (Grounding/Search használatával) ---
-    print("Állandó hazai témák elemzése...")
+    # --- 1. ÁLLANDÓ HAZAI TÉMÁK ---
+    print("Állandó hazai témák...")
     perm_topics = [
-        ("ÜZEMANYAGÁRAK", "Friss benzin/gázolaj árak Magyarországon, várható változások és olajár/forint hatás."),
-        ("POLITIKAI HELYZET", "Legfrissebb közvélemény-kutatások, pártok népszerűsége és 2026-os választási kilátások.")
+        ("ÜZEMANYAGÁRAK", "Friss benzin/gázolaj árak Magyarországon és várható változások."),
+        ("POLITIKAI HELYZET", "Legfrissebb párt népszerűségi adatok és hírek.")
     ]
     
     for title, desc in perm_topics:
-        prompt = f"Elemezd: {title}. Feladat: {desc}\nElőzmények:\n{past_context}\nSZABÁLY: Száraz tények, nulla feltételezés, nulla Markdown."
-        analysis = ai_call(prompt, use_search=True)
-        if analysis != "SKIP":
-            full_message += f"⭐ {title}\n{analysis}\n\n"
+        res = ai_call(f"Téma: {title}. Feladat: {desc}\nKontextus:\n{past_context}", use_search=True)
+        if res != "SKIP":
+            full_message += f"⭐ {title}\n{res}\n\n"
             new_history_entries.append({"date": datetime.now().strftime("%m.%d %H:%M"), "title": title})
+            rss_items.append({"title": title, "summary": res})
 
-    # --- 2. NEMZETKÖZI KITEKINTŐ (Bloomberg, Reuters, FT) ---
-    print("Nemzetközi sajtó szemlézése...")
-    intl_prompt = f"""
-    Keress rá angolul: Bloomberg, Reuters, Financial Times 'Hungary economy', 'Forint'. 
-    Foglald össze a nemzetközi befektetői hangulatot és a magyar gazdaság megítélését.
-    Előzmények:\n{past_context}\nSZABÁLY: Száraz tények, nulla Markdown.
-    """
-    intl_analysis = ai_call(intl_prompt, use_search=True)
-    if intl_analysis != "SKIP":
-        full_message += f"🌍 NEMZETKÖZI KITEKINTŐ (Bloomberg, Reuters)\n{intl_analysis}\n\n"
+    # --- 2. NEMZETKÖZI KITEKINTŐ ---
+    print("Nemzetközi szemle...")
+    intl_res = ai_call("Bloomberg, Reuters: Hungary economy & forint status.", use_search=True)
+    if intl_res != "SKIP":
+        full_message += f"🌍 NEMZETKÖZI KITEKINTŐ\n{intl_res}\n\n"
         new_history_entries.append({"date": datetime.now().strftime("%m.%d %H:%M"), "title": "Nemzetközi Kitekintő"})
+        rss_items.append({"title": "Nemzetközi Kitekintő", "summary": intl_res})
 
-    # --- 3. RSS HÍREK ELEMZÉSE ---
-    print("RSS hírek feldolgozása...")
+    # --- 3. RSS HÍREK ---
+    print("RSS feldolgozás...")
     feed = feedparser.parse("https://news.google.com/rss?hl=hu&gl=HU&ceid=HU:hu")
     blacklist = ["foci", "bajnokság", "celeb", "horoszkóp", "bulvár", "recept"]
-    avoid_words = ["benzin", "gázolaj", "üzemanyag", "választás", "közvélemény-kutatás"]
+    avoid_words = []
 
     scored_news = []
     for entry in feed.entries:
@@ -112,16 +129,17 @@ def main():
         scored_news.append({"title": entry.title, "summary": entry.summary, "score": score})
 
     for news in sorted(scored_news, key=lambda x: x['score'], reverse=True)[:5]:
-        prompt = f"Elemezd ezt a hírt: {news['title']}\nForrás: {news['summary']}\nElőzmények:\n{past_context}\nSZABÁLY: Mutasd be a kormányközeli és kritikus narratívát, a gazdasági hatást és a tényeket. Nulla Markdown."
-        analysis = ai_call(prompt)
-        if analysis != "SKIP":
-            full_message += f"📌 {news['title'].upper()}\n{analysis}\n\n"
+        res = ai_call(f"Hír: {news['title']}\nForrás: {news['summary']}\nElemezd röviden.")
+        if res != "SKIP":
+            full_message += f"📌 {news['title'].upper()}\n{res}\n\n"
             new_history_entries.append({"date": datetime.now().strftime("%m.%d %H:%M"), "title": news['title']})
+            rss_items.append({"title": news['title'], "summary": res})
         time.sleep(1)
 
     if full_message:
         send_telegram_chunked(full_message)
         save_history(history, new_history_entries)
+        generate_rss(rss_items) # RSS fájl létrehozása
         print("Kész.")
 
 if __name__ == "__main__":

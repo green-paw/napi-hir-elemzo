@@ -37,16 +37,16 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python main.py
 
-      - name: Save memory (history.json)
+      - name: Save memory and RSS
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
+          git add history.json rss_output.xml  # Itt hozzáadtuk az RSS-t is
           
-          # Csak akkor commitolunk, ha tényleg változott a fájl
-          if git diff --quiet history.json; then
-            echo "Nincs változás a memóriában."
+          # Ellenőrizzük, van-e változás, hogy ne hibázzon, ha nincs új hír
+          if git diff --quiet && git diff --staged --quiet; then
+            echo "Nincs változás."
           else
-            git add history.json
-            git commit -m "Hírelőzmények frissítése (AI Memória) [skip ci]"
+            git commit -m "Hírek és RSS frissítése [skip ci]"
             git push
           fi

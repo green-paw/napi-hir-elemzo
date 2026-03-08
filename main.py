@@ -67,18 +67,26 @@ def send_telegram_chunked(text):
         requests.post(url, data=payload)
         time.sleep(1)
 
-def ai_call(prompt, use_search=False):
-    config = {}
-    if use_search:
-        config = {'tools': [{'google_search': {}}]}
+def load_prompt():
+    """Beolvassa a rendszer-instrukciókat a prompt.txt fájlból."""
+    try:
+        with open("prompt.txt", "r", encoding="utf-8") as f:
+            return f.read().strip()
+    except Exception as e:
+        print(f"Hiba a prompt.txt beolvasásakor: {e}")
+        # Tartalék terv, ha a fájl nem elérhető
+        return "Te egy tényalapú médiaelemző vagy. Max 10 mondat, nulla Markdown."
+
+def ai_call(prompt_text, use_search=False):
+    config = {'tools': [{'google_search': {}}]} if use_search else {}
     
-    # Kényszerített rövidítés
-    system_instruction = "Max 4-5 rövid mondat. Csak a lényeg. Tilos a Markdown és a felesleges sallang."
+    # Itt olvassuk be a friss prompt.txt-t
+    system_instruction = load_prompt()
     
     try:
         response = client.models.generate_content(
             model=MODEL_ID, 
-            contents=system_instruction + "\n" + prompt,
+            contents=system_instruction + "\n\n" + prompt_text,
             config=config
         )
         return response.text.strip()

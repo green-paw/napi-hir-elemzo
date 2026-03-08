@@ -13,7 +13,7 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_PAID_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 HISTORY_FILE = "history.json"
-MODEL_ID = "gemini-2.0-flash" 
+MODEL_ID = "gemini-2.5-flash" 
 
 client = genai.Client(api_key=GOOGLE_API_KEY)
 

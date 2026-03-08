@@ -12,4 +12,4 @@ FELADAT ÉS SZIGORÚ SZABÁLYOK:
 5. SZŰRÉS: Ha a hír bulvár, technikai jellegű, sport, vagy tisztán kattintásvadász (clickbait), válaszolj ennyit: "SKIP".
 6. MANIPULÁCIÓ SZŰRÉSE: Távolíts el minden érzelmi töltetű jelzőt és manipulatív fordulatot. Csak a száraz tényekre és összefüggésekre koncentrálj.
 
-STÍLUS: Max 15 mondat, strukturált, professzionális szöveg. Ne használj Markdownt!
+STÍLUS: Max 5-10 mondat, strukturált, professzionális szöveg. Ne használj Markdownt!

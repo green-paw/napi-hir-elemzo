@@ -17,6 +17,8 @@ MODEL_ID = "gemini-2.5-flash"
 
 client = genai.Client(api_key=GOOGLE_API_KEY)
 
+system_instruction = ""
+
 def load_history():
     if os.path.exists(HISTORY_FILE):
         try:
@@ -44,6 +46,7 @@ def generate_rss(entries):
         fe.id(entry['title'])
         fe.title(entry['title'])
         fe.description(entry['summary'])
+        fe.link(href='https://github.com/green-paw/napi-hir-elemzo')
         fe.pubDate(datetime.now().astimezone())
     
     fg.rss_file('rss_output.xml')
@@ -79,10 +82,7 @@ def load_prompt():
 
 def ai_call(prompt_text, use_search=False):
     config = {'tools': [{'google_search': {}}]} if use_search else {}
-    
-    # Itt olvassuk be a friss prompt.txt-t
-    system_instruction = load_prompt()
-    
+        
     try:
         response = client.models.generate_content(
             model=MODEL_ID, 
@@ -101,6 +101,8 @@ def main():
     full_message = ""
     new_history_entries = []
     rss_items = [] # Az RSS-be szánt elemek listája
+
+    system_instruction = load_prompt()
 
     # --- 1. ÁLLANDÓ HAZAI TÉMÁK ---
     print("Állandó hazai témák...")

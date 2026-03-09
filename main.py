@@ -108,7 +108,7 @@ def main():
     print("Állandó hazai témák...")
     perm_topics = [
         ("ÜZEMANYAGÁRAK", "Friss benzin/gázolaj árak Magyarországon és várható változások."),
-        ("POLITIKAI HELYZET", "Legfrissebb párt népszerűségi adatok és hírek.")
+        ("POLITIKAI HELYZET", "Kizárólag a 2026-os választási verseny állása: friss közvélemény-kutatások, pártok közötti erőviszony-változások és kampánystratégiák.")
     ]
     
     for title, desc in perm_topics:

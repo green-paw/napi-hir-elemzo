@@ -148,7 +148,7 @@ def main():
 
     rss_instr = general_rules + " " + prompts.get("RSS", "")
     for news in sorted(scored_news, key=lambda x: x['score'], reverse=True)[:5]:
-        res = ai_call(f"Hír: {news['title']}\nForrás: {news['summary']}\nElemezd röviden.", rss_instr)
+        res = ai_call(f"Hír: {news['title']}\nForrás: {news['summary']}\nElemezd röviden.", rss_instr, use_search=False)
         if res != "SKIP":
             full_message += f"📌 {news['title'].upper()}\n{res}\n\n"
             new_history_entries.append({"date": datetime.now().strftime("%m.%d %H:%M"), "title": news['title']})

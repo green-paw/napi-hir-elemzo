@@ -70,23 +70,25 @@ def send_telegram_chunked(text):
         requests.post(url, data=payload)
         time.sleep(1)
 
-def load_prompt():
-    """Beolvassa a rendszer-instrukciókat a prompt.txt fájlból."""
+# --- ÚJ FUNKCIÓ A JSON BETÖLTÉSÉHEZ ---
+def load_prompts():
+    """Beolvassa a strukturált instrukciókat a prompts.json fájlból."""
     try:
-        with open("prompt.txt", "r", encoding="utf-8") as f:
-            return f.read().strip()
+        with open("prompts.json", "r", encoding="utf-8") as f:
+            return json.load(f)
     except Exception as e:
-        print(f"Hiba a prompt.txt beolvasásakor: {e}")
-        # Tartalék terv, ha a fájl nem elérhető
-        return "Te egy tényalapú médiaelemző vagy. Max 10 mondat, nulla Markdown."
+        print(f"Hiba a prompts.json beolvasásakor: {e}")
+        return {"GENERAL": "Te egy médiaelemző vagy.", "RSS": "Elemezd a hírt."}
 
-def ai_call(prompt_text, use_search=False):
+# --- MÓDOSÍTOTT AI_CALL ---
+def ai_call(prompt_text, system_instr, use_search=False):
     config = {'tools': [{'google_search': {}}]} if use_search else {}
         
     try:
         response = client.models.generate_content(
             model=MODEL_ID, 
-            contents=system_instruction + "\n\n" + prompt_text,
+            # Itt kapja meg a specifikus instrukciót
+            contents=system_instr + "\n\n" + prompt_text,
             config=config
         )
         return response.text.strip()
@@ -100,19 +102,23 @@ def main():
     
     full_message = ""
     new_history_entries = []
-    rss_items = [] # Az RSS-be szánt elemek listája
+    rss_items = []
 
-    system_instruction = load_prompt()
+    # Promptek betöltése
+    prompts = load_prompts()
+    general_rules = prompts.get("GENERAL", "")
 
     # --- 1. ÁLLANDÓ HAZAI TÉMÁK ---
     print("Állandó hazai témák...")
     perm_topics = [
-        ("ÜZEMANYAGÁRAK", "Friss benzin/gázolaj árak Magyarországon és várható változások."),
-        ("POLITIKAI HELYZET", "Kizárólag a 2026-os választási verseny állása: friss közvélemény-kutatások, pártok közötti erőviszony-változások és kampánystratégiák.")
+        ("ÜZEMANYAGÁRAK", "Friss benzin/gázolaj árak Magyarországon és várható változások.", "UZEMANYAG"),
+        ("POLITIKAI HELYZET", "Kizárólag a 2026-os választási verseny állása: friss közvélemény-kutatások, pártok közötti erőviszony-változások és kampánystratégiák.", "POLITIKA")
     ]
     
-    for title, desc in perm_topics:
-        res = ai_call(f"Téma: {title}. Feladat: {desc}\nKontextus:\n{past_context}", use_search=True)
+    for title, desc, p_key in perm_topics:
+        # Összefűzzük az általános szabályt a témaspecifikussal
+        current_instr = general_rules + " " + prompts.get(p_key, "")
+        res = ai_call(f"Téma: {title}. Feladat: {desc}\nKontextus:\n{past_context}", current_instr, use_search=True)
         if res != "SKIP":
             full_message += f"⭐ {title}\n{res}\n\n"
             new_history_entries.append({"date": datetime.now().strftime("%m.%d %H:%M"), "title": title})
@@ -120,7 +126,9 @@ def main():
 
     # --- 2. NEMZETKÖZI KITEKINTŐ ---
     print("Nemzetközi szemle...")
-    intl_res = ai_call("Bloomberg, Reuters: Hungary economy & forint status.", use_search=True)
+    # Itt is használhatjuk az RSS vagy GENERAL promptot
+    intl_instr = general_rules + " " + prompts.get("RSS", "") 
+    intl_res = ai_call("Bloomberg, Reuters: Hungary economy & forint status.", intl_instr, use_search=True)
     if intl_res != "SKIP":
         full_message += f"🌍 NEMZETKÖZI KITEKINTŐ\n{intl_res}\n\n"
         new_history_entries.append({"date": datetime.now().strftime("%m.%d %H:%M"), "title": "Nemzetközi Kitekintő"})
@@ -130,16 +138,17 @@ def main():
     print("RSS feldolgozás...")
     feed = feedparser.parse("https://news.google.com/rss?hl=hu&gl=HU&ceid=HU:hu")
     blacklist = ["foci", "bajnokság", "celeb", "horoszkóp", "bulvár", "recept"]
-    avoid_words = []
-
+    
     scored_news = []
     for entry in feed.entries:
-        if any(w in entry.title.lower() for w in blacklist + avoid_words): continue
-        score = len(re.findall(r'<li>', entry.summary))
+        if any(w in entry.title.lower() for w in blacklist): continue
+        # Egyszerű pontozás a leírás hossza alapján
+        score = len(entry.summary)
         scored_news.append({"title": entry.title, "summary": entry.summary, "score": score})
 
+    rss_instr = general_rules + " " + prompts.get("RSS", "")
     for news in sorted(scored_news, key=lambda x: x['score'], reverse=True)[:5]:
-        res = ai_call(f"Hír: {news['title']}\nForrás: {news['summary']}\nElemezd röviden.")
+        res = ai_call(f"Hír: {news['title']}\nForrás: {news['summary']}\nElemezd röviden.", rss_instr)
         if res != "SKIP":
             full_message += f"📌 {news['title'].upper()}\n{res}\n\n"
             new_history_entries.append({"date": datetime.now().strftime("%m.%d %H:%M"), "title": news['title']})
@@ -149,7 +158,7 @@ def main():
     if full_message:
         send_telegram_chunked(full_message)
         save_history(history, new_history_entries)
-        generate_rss(rss_items) # RSS fájl létrehozása
+        generate_rss(rss_items)
         print("Kész.")
 
 if __name__ == "__main__":

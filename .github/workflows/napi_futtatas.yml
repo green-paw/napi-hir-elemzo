@@ -3,7 +3,7 @@ name: AI News Analysis with Memory
 on:
   schedule:
     # Magyar idő szerint kb. reggel 8:00 és este 20:00 (UTC 7:00 és 19:00)
-    - cron: '0 7,19 * * *'
+    - cron: '12 6,18 * * *'
   workflow_dispatch: # Lehetővé teszi a manuális indítást a GitHub felületén
 
 permissions:

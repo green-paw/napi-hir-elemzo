@@ -41,7 +41,7 @@ def fetch_news():
             for entry in feed.entries[:10]:
                 summary = entry.get('summary', entry.get('description', ''))
                 # Tisztítás: HTML tagek eltávolítása és hossz korlátozása
-                clean_summary = re.sub('<[^<]+?>', '', summary)[:400]
+                clean_summary = re.sub('<[^<]+?>', '', summary)[:600]
                 
                 news_pool.append({
                     "id": item_id,
@@ -108,12 +108,12 @@ def summarize_event(cluster_name, ids, news_pool):
     Írj belőlük egyetlen, tárgyilagos, rövid magyar nyelvű összefoglalót. A tényeknél elfogulatlanul, csak azt írd le ami a források alapján ténylegesen történt.
     Szigorúan tilos a Markdown formázás (vastagítás, csillagok, dőlt betű)! Az egyes alpontok ne legyenek hosszabbak 2-3 mondatnál!
 
-    STRUKTÚRA:
-    HÍR CÍME
-    TÉNYEK
-    Ha van akkor KONZERVATÍV NARRATÍVA
-    Ha van akkor BALOLDALI NARRATÍVA
-    A végén tüntesd fel a forrásokat így: (Forrás: {sources_str})
+    VÁLASZ SZERKEZETE (Minta):
+    [{cluster_name.upper}]
+    [Ide jöjjenek a tények 2-3 mondatban]
+    [Konzervatív narratíva, ha van]
+    [Baloldali narratíva, ha van]
+    (Forrás: {sources_str})
     """
 
     response = safe_generate_content(prompt)

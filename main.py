@@ -60,15 +60,14 @@ def cluster_news(news_pool):
     formatted_list = "\n".join([f"ID:{i['id']} | {i['title']}" for i in news_pool])
 
     prompt = f"""
-    Te egy precíz hírszerkesztő algoritmus vagy. 
-    Kizárólag azokat a híreket csoportosítsd, amelyek ugyanarról a konkrét eseményről szólnak!
+    Te egy precíz hírszerkesztő vagy. A feladatod a hírek csoportosítása szigorú eseményalapú logika szerint.
 
-    Szabályok:
-    1. Ha két hír csak témájában hasonló (pl. mindkettő külpolitika), de különböző események, NE tedd őket egy csoportba!
-    2. Egy csoportba csak az kerülhet, ami ugyanazt a történést dolgozza fel különböző forrásokból.
-    3. Ami egyedi esemény és nincs párja, azt hagyd ki a csoportosításból (vagy tedd egyedül egy csoportba).
-    4. Szigorúan tilos "Vegyes" vagy "Külpolitikai összefoglaló" típusú gyűjtőcsoportokat létrehozni.
-    5. Csak a releváns gazdasági és politikai eseményeket tartsd meg!
+    SZABÁLYOK A CSOPORTOSÍTÁSHOZ:
+    1. KONKRÉT ESEMÉNY: Csak azokat a híreket tedd egy csoportba, amelyek TÉNYLEG ugyanarról a konkrét eseményről szólnak (pl. ugyanaz a baleset, ugyanaz a sajtótájékoztató).
+    2. TILTOTT ÖSSZEFÜGGÉSEK: Ne vonj össze híreket csak azért, mert iparági kapcsolat van köztük! 
+       - Példa: Egy afrikai bányabaleset és egy magyar akkugyár NEM egy esemény, még akkor sem, ha mindkettő az akkumulátorokról szól. Ezeket külön válaszd!
+    3. MAGYAR VONATKOZÁS: Különítsd el a magyar belpolitikai eseményeket a globális hírektől, kivéve, ha a hír közvetlenül egy magyar döntésről vagy magyar érintettségről szól.
+    4. Csak a releváns gazdasági és politikai eseményeket tartsd meg!
 
     Hírek listája:
     {formatted_list}

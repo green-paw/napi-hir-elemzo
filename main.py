@@ -8,19 +8,21 @@ from google.genai import errors
 from feedgen.feed import FeedGenerator
 from datetime import datetime
 import pytz
+import json
 
 # --- Konfiguráció inicializálása ---
 client = genai.Client(api_key=config.GOOGLE_API_KEY)
 bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
 
-def safe_generate_content(prompt):
+def safe_generate_content(prompt, manual_config):
     """Újrapróbálkozó függvény 503-as hiba esetén."""
+    config = manual_config if manual_config else {'temperature': 0.1}
     for attempt in range(3): # Max 3 próbálkozás
         try:
             response = client.models.generate_content(
                 model=config.MODEL_ID,
                 contents=prompt,
-                config={'temperature': 0.1}
+                config=config
             )
             return response.text
         except errors.ServerError as e:
@@ -77,51 +79,41 @@ def cluster_news(news_pool):
        - 6: Fontos hír (miniszteri nyilatkozat, jelentős törvénymódosítás).
        - 1-5: egyéb hírek (bulvár, balesetek, kis színes hírek, sporthírek)
     FIGYELEM: Minden hírt, ami 6 pont alatti (bulvár, balesetek, kis színes hírek, sporthírek), szigorúan dobj el! Ne listázd ki őket!
+    4. Kategorizáld a híreket.
+    KATEGÓRIÁK:
+    - HAZAI: Magyarországi esemény, vagy külföldi esemény ami KÖZVETLENÜL érinti Magyarországot (pl. EU döntés rólunk).
+    - GLOBÁLIS: Világszintű nagy hír (USA választás, világgazdaság, háborúk).
+    - EGYÉB: Fontos, de távolabbi vagy specifikusabb hírek.
+    5. A válasz CSAK egy érvényes JSON lista legyen, semmi más szöveg!
+
+    VÁLASZ FORMÁTUMA (Szigorúan):
+    [
+      {{"score": 9, "category": "HAZAI", "name": "Kamatdöntés (Budapest)", "ids": [1, 5]}},
+      {{"score": 7, "category": "GLOBÁLIS", "name": "Elnökválasztás (Washington)", "ids": [3]}}
+    ]
 
     Hírek listája:
     {formatted_list}
-
-    VÁLASZ FORMÁTUMA (Kizárólag):
-    SCORE: [pontszám] | ESEMÉNY NEVE (HELYSZÍN): [ID1, ID2]
     """
 
-    response = safe_generate_content(prompt)
+    response = safe_generate_content(prompt, {
+        'temperature': 0.0,
+        'response_mime_type': 'application/json' # Ez kényszeríti a JSON-t!
+    })
     return response
 
 def parse_clusters(ai_response):
-    clusters = []
-    # Soronként nézzük át az AI válaszát
-    lines = ai_response.strip().split('\n')
-    
-    for line in lines:
-        try:
-            # Reguláris kifejezéssel kikeressük a pontszámot, a nevet és az ID-kat
-            # Minta: SCORE: 9 | ESEMÉNY (HELYSZÍN): [1, 2]
-            match = re.search(r'SCORE:\s*(\d+)\s*\|\s*(.*?):\s*\[(.*?)\]', line)
-            
-            if match:
-                score = int(match.group(1))
-                name = match.group(2).strip()
-                # Az ID-kat listává alakítjuk
-                ids = [int(i) for i in re.findall(r'\d+', match.group(3))]
-                
-                # --- EZ A KRITIKUS SZŰRÉS ---
-                if score >= 6:
-                    clusters.append({
-                        'score': score, 
-                        'name': name, 
-                        'ids': ids
-                    })
-                else:
-                    print(f"Kiszűrve alacsony pontszám miatt ({score}): {name}")
-                    
-        except Exception as e:
-            print(f"Hiba a sor feldolgozásakor: {line} | Hiba: {e}")
-            continue
-            
-    # Rendezés: a legfontosabb (legmagasabb pontszám) legyen legelöl
-    clusters.sort(key=lambda x: x['score'], reverse=True)
-    return clusters
+    try:
+        clean_json = ai_response.strip().replace('```json', '').replace('```', '').strip()
+        clusters = json.loads(clean_json)
+        
+        filtered_clusters = [c for c in clusters if c.get('score', 0) >= 6]
+        filtered_clusters.sort(key=lambda x: x.get('score', 0), reverse=True)
+        
+        return filtered_clusters
+    except Exception as e:
+        print(f"JSON feldolgozási hiba: {e}\nAz eredeti válasz: {ai_response}")
+        return []
 
 def summarize_event(cluster_name, ids, news_pool):
     """Második fázis: Egy adott csoport híreiből készít egyetlen összefoglalót."""

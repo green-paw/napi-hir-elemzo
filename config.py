@@ -21,7 +21,7 @@ RSS_SOURCES = {
 
     # Globális - Piac és Geopolitika (Kiemelten stabil források)
     "financial_times": "https://news.google.com/rss/search?q=site:ft.com+when:24h&hl=en-US&gl=US&ceid=US:en",
-    "al_jazeera": "https://www.aljazeera.com/xml/rss/all.xml"
+    "al_jazeera": "https://www.aljazeera.com/xml/rss/all.xml",
     
     # Hazai - Jobboldali / Kormánypárti perspektíva
     "magyar_nemzet": "https://magyarnemzet.hu/feed",
@@ -32,7 +32,7 @@ RSS_SOURCES = {
     "444": "https://444.hu/feed",
 
     # Hazai - Gazdasági (Alternatív a Portfolio mellé)
-    "vg": "https://www.vg.hu/feed"
+    "vg": "https://www.vg.hu/feed",
 
     # hazai egyéb
     "telex": "https://telex.hu/rss",

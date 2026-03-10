@@ -5,9 +5,7 @@ import telebot # Feltételezve, hogy a pyTelegramBotAPI-t használod
 from google import genai
 
 # --- Konfiguráció inicializálása ---
-genai.configure(api_key=config.GOOGLE_API_KEY)
-# Figyelem: A configban lévő gemini-2.5-flash helyett javasolt a gemini-2.0-flash használata
-model = genai.GenerativeModel(config.MODEL_ID)
+client = genai.Client(api_key=config.GOOGLE_API_KEY)
 bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
 
 def fetch_news():
@@ -59,7 +57,13 @@ def cluster_news(news_pool):
     Esemény rövid neve: [ID1, ID2, ID3]
     """
 
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(
+        model=config.MODEL_ID,
+        contents=prompt,
+        config={
+            'temperature': 0.1,  # Alacsony érték a pontosabb clusteringhez
+        }
+    )
     print(f"Csoportosítás eredménye:\n{response.text}")
     
     return response.text
@@ -93,8 +97,14 @@ def summarize_event(cluster_name, ids, news_pool):
     A végén tüntesd fel a forrásokat így: (Forrás: {sources_str})
     Szigorúan tilos a Markdown formázás (vastagítás, csillagok, dőlt betű)!
     """
-    
-    response = model.generate_content(prompt)
+
+    response = client.models.generate_content(
+        model=config.MODEL_ID,
+        contents=prompt,
+        config={
+            'temperature': 0.1,  # Alacsony érték a pontosabb clusteringhez
+        }
+    )    
     return response.text
 
 def main():

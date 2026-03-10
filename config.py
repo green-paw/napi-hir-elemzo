@@ -8,8 +8,8 @@ MODEL_ID = "gemini-2.5-flash"
 
 RSS_SOURCES = {
     # Nemzetközi források (Angol)
-    "reuters": "https://www.reutersagency.com/feed/?best-topics=political-general&post_type=best",
-    "bloomberg": "https://www.bloomberg.com/feeds/bview/rss",
+    "reuters": "https://news.google.com/rss/search?q=site:reuters.com+when:24h&hl=en-US&gl=US&ceid=US:en",
+    "bloomberg": "https://feeds.bloomberg.com/markets/news.rss",
     
     # Hazai források (Magyar)
     "telex": "https://telex.hu/rss",

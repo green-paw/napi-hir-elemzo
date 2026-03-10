@@ -2,7 +2,7 @@ import config
 import feedparser
 import re
 import telebot # Feltételezve, hogy a pyTelegramBotAPI-t használod
-from google import generativeai as genai
+from google import genai
 
 # --- Konfiguráció inicializálása ---
 genai.configure(api_key=config.GOOGLE_API_KEY)

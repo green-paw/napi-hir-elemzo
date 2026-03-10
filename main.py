@@ -60,49 +60,64 @@ def cluster_news(news_pool):
     formatted_list = "\n".join([f"ID:{i['id']} | {i['title']}" for i in news_pool])
 
     prompt = f"""
-    Te egy precíz hírszerkesztő vagy. A feladatod a hírek csoportosítása szigorú eseményalapú logika szerint.
+    Te egy elit hírszerkesztő vagy, aki csak a legfontosabb gazdasági és politikai hírekre koncentrál. 
+    A feladatod a hírek csoportosítása, pontozása és a lényegtelen zaj kiszűrése.
 
     SZABÁLYOK:
     1. KONKRÉT ESEMÉNY: Csak azokat a híreket tedd egy csoportba, amelyek TÉNYLEG ugyanarról a konkrét eseményről szólnak.
-    2. HELYSZÍN ALAPÚ SZÉTVÁLASZTÁS: Ha két hír helyszíne jelentősen eltér (pl. más ország), NE vond össze őket, még ha az iparág azonos is (pl. akkumulátor ipar). Kivétel ha több ország közötti kommunikáció vagy konfliktus okán függenek össze az események.
-        Példák:
-            - akkumulátor gyár Debrecenben és Kongói bányabaleset ahol akkuhoz bányásznak anyagot két külön csoport.
-            - Magyarországon feltartóztatott Ukrán pénzszállító és az Ukrán miniszterelnök nyilatkozata az akcióról ugyanaz az csoport.
-    3. RANGSOROLÁS (SCORE): Minden csoporthoz rendelj egy 1-10 közötti pontszámot:
-        - 10: Rendkívüli esemény (háború, kormányváltás, gazdasági összeomlás).
-        - 7-9: Fontos politikai/gazdasági hír (kamatdöntés, elnöki nyilatkozat, nagyvállalati botrány).
-        - 6: Jelentősebb politikai/gazdasági hír (törvénymódosítás, fontos politikai szereplő például magyar külügyminiszter nyilatkozata).
-        - 4-5: Átlagos napi hír (útlezárás, kisebb törvénymódosítás).
-        - 1-3: Érdekesség, technikai jellegű hír.
-       Fontos: Egy egyforrásos hír is kaphat 10-est, ha a tartalma súlyos!
+    2. HELYSZÍN-ELV: Ha két hír helyszíne eltér, NE vond össze őket iparági hasonlóság miatt!
+       - TILOS: Kongói bánya + Debreceni akkugyár = KÉT KÜLÖN CSOPORT.
+       - SZABAD: Ukrán pénzszállító + Ukrán miniszteri reakció = EGY CSOPORT (közvetlen ok-okozati kapcsolat).
+    3. RANGSOROLÁS ÉS SZŰRÉS:
+       - 10: Rendkívüli (háború, kormányváltás, gazdasági krach).
+       - 7-9: Kiemelt hír (kamatdöntés, elnöki nyilatkozat).
+       - 6: Fontos hír (miniszteri nyilatkozat, jelentős törvénymódosítás).
+       - 1-5: egyéb hírek (bulvár, balesetek, kis színes hírek, sporthírek)
+    FIGYELEM: Minden hírt, ami 6 pont alatti (bulvár, balesetek, kis színes hírek, sporthírek), szigorúan dobj el! Ne listázd ki őket!
 
-    A válaszból szűrd ki az 6 fontossági pont alatti híreket, és a bulvárt.
-   
     Hírek listája:
     {formatted_list}
 
-    A válaszod formátuma szigorúan: 
-    ESEMÉNY NEVE (HELYSZÍN): [ID1, ID2]
-    
-    Példa: 
-    KAMATDÖNTÉS (BUDAPEST): [4, 8, 12]
-    BÁNYABALESET (KONGÓ): [15, 22]
+    VÁLASZ FORMÁTUMA (Kizárólag):
+    SCORE: [pontszám] | ESEMÉNY NEVE (HELYSZÍN): [ID1, ID2]
     """
 
     response = safe_generate_content(prompt)
     return response
 
 def parse_clusters(ai_response):
-    """Kinyeri az ID-kat az AI válaszából egy szótárba."""
-    clusters = {}
+    clusters = []
+    # Soronként nézzük át az AI válaszát
     lines = ai_response.strip().split('\n')
+    
     for line in lines:
-        if ':' in line and '[' in line:
-            parts = line.split(':')
-            name = parts[0].strip()
-            ids = re.findall(r'\d+', parts[1])
-            if ids:
-                clusters[name] = [int(i) for i in ids]
+        try:
+            # Reguláris kifejezéssel kikeressük a pontszámot, a nevet és az ID-kat
+            # Minta: SCORE: 9 | ESEMÉNY (HELYSZÍN): [1, 2]
+            match = re.search(r'SCORE:\s*(\d+)\s*\|\s*(.*?):\s*\[(.*?)\]', line)
+            
+            if match:
+                score = int(match.group(1))
+                name = match.group(2).strip()
+                # Az ID-kat listává alakítjuk
+                ids = [int(i) for i in re.findall(r'\d+', match.group(3))]
+                
+                # --- EZ A KRITIKUS SZŰRÉS ---
+                if score >= 6:
+                    clusters.append({
+                        'score': score, 
+                        'name': name, 
+                        'ids': ids
+                    })
+                else:
+                    print(f"Kiszűrve alacsony pontszám miatt ({score}): {name}")
+                    
+        except Exception as e:
+            print(f"Hiba a sor feldolgozásakor: {line} | Hiba: {e}")
+            continue
+            
+    # Rendezés: a legfontosabb (legmagasabb pontszám) legyen legelöl
+    clusters.sort(key=lambda x: x['score'], reverse=True)
     return clusters
 
 def summarize_event(cluster_name, ids, news_pool):
@@ -180,15 +195,11 @@ def main():
     print(f"Csoportosítás eredménye:\n{cluster_text}")
     clusters = parse_clusters(cluster_text)
 
-    # 3. Összefoglalás (Reduce)
+    #3. summarize
     final_reports = []
-    print(f"{len(clusters)} esemény összefoglalása folyamatban...")
-    for name, ids in clusters.items():
-        try:
-            report = summarize_event(name, ids, news_pool)
-            final_reports.append(f"📌 {report}")
-        except Exception as e:
-            print(f"Hiba az összefoglalásnál ({name}): {e}")
+    for item in clusters:
+        report = summarize_event(item['name'], item['ids'], news_pool)
+        final_reports.append(report)
 
     # 4. Küldés Telegramra
     full_message = "\n\n".join(final_reports)

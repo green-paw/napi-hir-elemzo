@@ -5,6 +5,9 @@ import telebot # Feltételezve, hogy a pyTelegramBotAPI-t használod
 from google import genai
 import time
 from google.genai import errors
+from feedgen.feed import FeedGenerator
+from datetime import datetime
+import pytz
 
 # --- Konfiguráció inicializálása ---
 client = genai.Client(api_key=config.GOOGLE_API_KEY)
@@ -182,6 +185,31 @@ def send_split_message(chat_id, text):
         header = f"🗞 AI HÍRELEMZÉS ({i}/{total_parts})\n\n"
         bot.send_message(chat_id, header + part)
 
+def generate_rss_file(reports, filename="rss_output.xml"):
+    """Létrehoz egy RSS feedet az összefoglalt hírekből."""
+    fg = FeedGenerator()
+    fg.id('https://github.com/your-repo/ai-news-agent')
+    fg.title('AI Hírelemző Összefoglaló')
+    fg.author({'name': 'Gemini AI Agent'})
+    fg.link(href='https://github.com/your-repo', rel='alternate')
+    fg.language('hu')
+    fg.description('Napi politikai és gazdasági összefoglalók több forrás alapján')
+
+    for report in reports:
+        # A jelentés első sorát (a címet) használjuk az RSS bejegyzés címének
+        lines = report.split('\n')
+        title = lines[0].replace('📌', '').strip()
+        content = "\n".join(lines[1:])
+
+        fe = fg.add_entry()
+        fe.id(f"{title}_{datetime.now().strftime('%Y%m%d_%H%M')}")
+        fe.title(title)
+        fe.description(content)
+        fe.pubDate(datetime.now(pytz.utc))
+
+    fg.rss_file(filename)
+    print(f"RSS feed sikeresen elmentve: {filename}")
+
 def main():
     # 1. Adatgyűjtés
     news_pool = fetch_news()
@@ -201,16 +229,23 @@ def main():
         report = summarize_event(item['name'], item['ids'], news_pool)
         final_reports.append(report)
 
-    # 4. Küldés Telegramra
-    full_message = "\n\n".join(final_reports)
+    if len(final_reports) > 0:
+        # 4. Küldés Telegramra
+        full_message = "\n\n".join(final_reports)
     
-    if full_message:
-        print("Üzenet küldése Telegramra (darabolva ha szükséges)...")
+        if full_message:
+            print("Üzenet küldése Telegramra (darabolva ha szükséges)...")
+            try:
+                send_split_message(config.TELEGRAM_CHAT_ID, full_message)
+                print("Sikeres küldés!")
+            except Exception as e:
+                print(f"Telegram hiba: {e}")
+
+        # 5. RSS output
         try:
-            send_split_message(config.TELEGRAM_CHAT_ID, full_message)
-            print("Sikeres küldés!")
+            generate_rss_file(final_reports, "rss_output.xml")
         except Exception as e:
-            print(f"Telegram hiba: {e}")
+            print(f"Hiba az RSS fájl írásakor: {e}")
     else:
         print("Nem született releváns összefoglaló.")
 

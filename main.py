@@ -68,24 +68,25 @@ def fetch_news():
     return news_pool
 
 def cluster_news(news_pool):
-    """Első fázis: Az LLM csak az ID-kat és címeket látja, és csoportokat alkot."""
-    formatted_list = "\n".join([f"ID:{i['id']} | {i['title']} | {i['summary'][:100]}" for i in news_pool])
+    formatted_list = ""
+    for n in news_pool:
+        summary_slice = n['summary'][:200].replace('\n', ' ')
+        formatted_list += f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {summary_slice}\n"
 
     prompt = f"""
     Te egy elit hírszerkesztő vagy, aki csak a legfontosabb gazdasági és politikai hírekre koncentrál. 
     A feladatod a hírek csoportosítása, pontozása és a lényegtelen zaj kiszűrése.
+    Használd a CÍMET és a KIVONATOT is az esemény pontos azonosításához és a helyszín meghatározásához.
 
     SZABÁLYOK:
     1. KONKRÉT ESEMÉNY: Csak azokat a híreket tedd egy csoportba, amelyek TÉNYLEG ugyanarról a konkrét eseményről szólnak.
     2. HELYSZÍN-ELV: Ha két hír helyszíne eltér, NE vond össze őket iparági hasonlóság miatt!
        - TILOS: Kongói bánya + Debreceni akkugyár = KÉT KÜLÖN CSOPORT.
        - SZABAD: Ukrán pénzszállító + Ukrán miniszteri reakció = EGY CSOPORT (közvetlen ok-okozati kapcsolat).
-    3. RANGSOROLÁS ÉS SZŰRÉS:
-       - 10: Rendkívüli (háború, kormányváltás, gazdasági krach).
-       - 7-9: Kiemelt hír (kamatdöntés, elnöki nyilatkozat).
-       - 6: Fontos hír (miniszteri nyilatkozat, jelentős törvénymódosítás).
-       - 1-5: egyéb hírek (bulvár, balesetek, kis színes hírek, sporthírek)
-    FIGYELEM: Minden hírt, ami 6 pont alatti (bulvár, balesetek, kis színes hírek, sporthírek), szigorúan dobj el! Ne listázd ki őket!
+    3. PONTOZÁSI LOGIKA (Minden mező 1-10):
+        - relevance: Mennyire kritikus a magyar vagy globális gazdaság/politika szempontjából.
+        - impact: Az esemény súlya (pl. háború, nagyvállalati csőd = 10; kisebb nyilatkozat = 3).
+        - novelty: Mennyire tartalmaz új, eddig ismeretlen információt.
     4. Kategorizáld a híreket.
     KATEGÓRIÁK:
     - HAZAI: Magyarországi esemény, vagy külföldi esemény ami KÖZVETLENÜL érinti Magyarországot (pl. EU döntés rólunk).
@@ -93,10 +94,18 @@ def cluster_news(news_pool):
     - EGYÉB: Fontos, de távolabbi vagy specifikusabb hírek.
     5. A válasz CSAK egy érvényes JSON lista legyen, semmi más szöveg!
 
-    VÁLASZ FORMÁTUMA (Szigorúan):
+    VÁRT JSON FORMÁTUM:
     [
-      {{"score": 9, "category": "HAZAI", "name": "Kamatdöntés (Budapest)", "ids": [1, 5]}},
-      {{"score": 7, "category": "GLOBÁLIS", "name": "Elnökválasztás (Washington)", "ids": [3]}}
+      {{
+        "name": "Esemény neve (Helyszín)",
+        "category": "HAZAI",
+        "scores": {{
+            "relevance": 9,
+            "impact": 8,
+            "novelty": 10
+        }},
+        "ids": [1, 2]
+      }}
     ]
 
     Hírek listája:
@@ -190,7 +199,7 @@ def generate_rss_file(reports, filename="rss_output.xml"):
     fg.id('https://github.com/your-repo/ai-news-agent')
     fg.title('AI Hírelemző Összefoglaló')
     fg.author({'name': 'Gemini AI Agent'})
-    fg.link(href='https://github.com/your-repo', rel='alternate')
+    fg.link(href='https://github.com/green-paw', rel='alternate')
     fg.language('hu')
     fg.description('Napi politikai és gazdasági összefoglalók több forrás alapján')
 
@@ -204,6 +213,7 @@ def generate_rss_file(reports, filename="rss_output.xml"):
         fe.id(f"{title}_{datetime.now().strftime('%Y%m%d_%H%M')}")
         fe.title(title)
         fe.description(content)
+        fe.link(href='https://github.com/green-paw')
         fe.pubDate(datetime.now(pytz.utc))
 
     fg.rss_file(filename)
@@ -229,9 +239,9 @@ def main():
         return
 
     # 2. Szétválogatás kategóriák szerint (Dictionary-k listáját kapjuk)
-    hazai = [c for c in clusters if c.get('category') == 'HAZAI']
-    globalis = [c for c in clusters if c.get('category') == 'GLOBÁLIS']
-    egyeb = [c for c in clusters if c.get('category') == 'EGYÉB']
+    hazai = [c for c in clusters if c.get('category') == 'HAZAI'][:10]
+    globalis = [c for c in clusters if c.get('category') == 'GLOBÁLIS'][:10]
+    egyeb = [c for c in clusters if c.get('category') == 'EGYÉB'][:10]
 
     final_reports = []
     

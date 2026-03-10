@@ -62,18 +62,30 @@ def cluster_news(news_pool):
     prompt = f"""
     Te egy precíz hírszerkesztő vagy. A feladatod a hírek csoportosítása szigorú eseményalapú logika szerint.
 
-    SZABÁLYOK A CSOPORTOSÍTÁSHOZ:
-    1. KONKRÉT ESEMÉNY: Csak azokat a híreket tedd egy csoportba, amelyek TÉNYLEG ugyanarról a konkrét eseményről szólnak (pl. ugyanaz a baleset, ugyanaz a sajtótájékoztató).
-    2. TILTOTT ÖSSZEFÜGGÉSEK: Ne vonj össze híreket csak azért, mert iparági kapcsolat van köztük! 
-       - Példa: Egy afrikai bányabaleset és egy magyar akkugyár NEM egy esemény, még akkor sem, ha mindkettő az akkumulátorokról szól. Ezeket külön válaszd!
-    3. MAGYAR VONATKOZÁS: Különítsd el a magyar belpolitikai eseményeket a globális hírektől, kivéve, ha a hír közvetlenül egy magyar döntésről vagy magyar érintettségről szól.
-    4. Csak a releváns gazdasági és politikai eseményeket tartsd meg!
+    SZABÁLYOK:
+    1. KONKRÉT ESEMÉNY: Csak azokat a híreket tedd egy csoportba, amelyek TÉNYLEG ugyanarról a konkrét eseményről szólnak.
+    2. HELYSZÍN ALAPÚ SZÉTVÁLASZTÁS: Ha két hír helyszíne jelentősen eltér (pl. más ország), NE vond össze őket, még ha az iparág azonos is (pl. akkumulátor ipar). Kivétel ha több ország közötti kommunikáció vagy konfliktus okán függenek össze az események.
+        Példák:
+            - akkumulátor gyár Debrecenben és Kongói bányabaleset ahol akkuhoz bányásznak anyagot két külön csoport.
+            - Magyarországon feltartóztatott Ukrán pénzszállító és az Ukrán miniszterelnök nyilatkozata az akcióról ugyanaz az csoport.
+    3. RANGSOROLÁS (SCORE): Minden csoporthoz rendelj egy 1-10 közötti pontszámot:
+        - 10: Rendkívüli esemény (háború, kormányváltás, gazdasági összeomlás).
+        - 7-9: Fontos politikai/gazdasági hír (kamatdöntés, elnöki nyilatkozat, nagyvállalati botrány).
+        - 4-6: Átlagos napi hír (útlezárás, kisebb törvénymódosítás).
+        - 1-3: Érdekesség, technikai jellegű hír.
+       Fontos: Egy egyforrásos hír is kaphat 10-est, ha a tartalma súlyos!
 
+    A válaszból szűrd ki az 5-ös fontossági pont alatti híreket, és a bulvárt.
+   
     Hírek listája:
     {formatted_list}
 
-    A válaszod formátuma szigorúan és kizárólag ennyi legyen (minden esemény új sor):
-    Esemény rövid neve: [ID1, ID2, ID3]
+    A válaszod formátuma szigorúan: 
+    ESEMÉNY NEVE (HELYSZÍN): [ID1, ID2]
+    
+    Példa: 
+    KAMATDÖNTÉS (BUDAPEST): [4, 8, 12]
+    BÁNYABALESET (KONGÓ): [15, 22]
     """
 
     response = safe_generate_content(prompt)

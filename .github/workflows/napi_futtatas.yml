@@ -30,7 +30,6 @@ jobs:
 
       - name: Run AI News Agent
         env:
-          GOOGLE_API_PAID_KEY: ${{ secrets.GOOGLE_API_PAID_KEY }} # Itt legyen ugyanaz a név!
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

@@ -62,7 +62,7 @@ def fetch_news():
 
 def cluster_news(news_pool):
     """Első fázis: Az LLM csak az ID-kat és címeket látja, és csoportokat alkot."""
-    formatted_list = "\n".join([f"ID:{i['id']} | {i['title']}" for i in news_pool])
+    formatted_list = "\n".join([f"ID:{i['id']} | {i['title']} | {i['summary'][:100]}" for i in news_pool])
 
     prompt = f"""
     Te egy elit hírszerkesztő vagy, aki csak a legfontosabb gazdasági és politikai hírekre koncentrál. 

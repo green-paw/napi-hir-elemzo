@@ -3,10 +3,30 @@ import feedparser
 import re
 import telebot # Feltételezve, hogy a pyTelegramBotAPI-t használod
 from google import genai
+import time
+from google.genai import errors
 
 # --- Konfiguráció inicializálása ---
 client = genai.Client(api_key=config.GOOGLE_API_KEY)
 bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
+
+def safe_generate_content(prompt):
+    """Újrapróbálkozó függvény 503-as hiba esetén."""
+    for attempt in range(3): # Max 3 próbálkozás
+        try:
+            response = client.models.generate_content(
+                model=config.MODEL_ID,
+                contents=prompt,
+                config={'temperature': 0.1}
+            )
+            return response.text
+        except errors.ServerError as e:
+            if "503" in str(e) or "high demand" in str(e):
+                print(f"Szerver túlterhelt, várakozás... (Próbálkozás: {attempt+1}/3)")
+                time.sleep(5) # Vár 5 másodpercet az újabb próbálkozás előtt
+            else:
+                raise e
+    return "Hiba: A szerver tartósan túlterhelt."
 
 def fetch_news():
     """Begyűjti a híreket az összes forrásból és egyedi ID-val látja el őket."""
@@ -57,13 +77,7 @@ def cluster_news(news_pool):
     Esemény rövid neve: [ID1, ID2, ID3]
     """
 
-    response = client.models.generate_content(
-        model=config.MODEL_ID,
-        contents=prompt,
-        config={
-            'temperature': 0.1,  # Alacsony érték a pontosabb clusteringhez
-        }
-    )
+    response = safe_generate_content(prompt)
     print(f"Csoportosítás eredménye:\n{response.text}")
     
     return response.text
@@ -98,13 +112,7 @@ def summarize_event(cluster_name, ids, news_pool):
     Szigorúan tilos a Markdown formázás (vastagítás, csillagok, dőlt betű)!
     """
 
-    response = client.models.generate_content(
-        model=config.MODEL_ID,
-        contents=prompt,
-        config={
-            'temperature': 0.1,  # Alacsony érték a pontosabb clusteringhez
-        }
-    )    
+    response = safe_generate_content(prompt)
     return response.text
 
 def main():

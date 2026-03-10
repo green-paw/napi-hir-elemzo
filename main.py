@@ -129,7 +129,7 @@ def main():
     # 2. Csoportosítás (Map)
     print(f"{len(news_pool)} hír elemzése és csoportosítása...")
     cluster_text = cluster_news(news_pool)
-    print(f"Csoportosítás eredménye:\n{response}")
+    print(f"Csoportosítás eredménye:\n{cluster_text}")
     clusters = parse_clusters(cluster_text)
 
     # 3. Összefoglalás (Reduce)

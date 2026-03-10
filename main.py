@@ -1,7 +1,7 @@
 import config
 import feedparser
 import re
-import telebot # Feltételezve, hogy a pyTelegramBotAPI-t használod
+import telebot
 from google import genai
 import time
 from google.genai import errors
@@ -16,13 +16,12 @@ bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
 
 def safe_generate_content(prompt, manual_config):
     """Újrapróbálkozó függvény 503-as hiba esetén."""
-    config = manual_config if manual_config else {'temperature': 0.1}
     for attempt in range(3): # Max 3 próbálkozás
         try:
             response = client.models.generate_content(
                 model=config.MODEL_ID,
                 contents=prompt,
-                config=config
+                config=manual_config if manual_config else {'temperature': 0.1}
             )
             return response.text
         except errors.ServerError as e:

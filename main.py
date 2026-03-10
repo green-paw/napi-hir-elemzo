@@ -119,6 +119,31 @@ def summarize_event(cluster_name, ids, news_pool):
     response = safe_generate_content(prompt)
     return response
 
+def send_split_message(chat_id, text):
+    """Feldarabolja az üzenetet 3900 karakterenként a legközelebbi új sornál."""
+    if len(text) <= 3900:
+        bot.send_message(chat_id, text)
+        return
+
+    while text:
+        if len(text) <= 3900:
+            bot.send_message(chat_id, text)
+            break
+        
+        # Keressük az utolsó sortörést a 3900. karakter előtt
+        split_index = text.rfind('\n', 0, 3900)
+        
+        # Ha nincs benne sortörés (ami nem valószínű), vágjuk le fixen
+        if split_index == -1:
+            split_index = 3900
+            
+        part = text[:split_index].strip()
+        if part:
+            bot.send_message(chat_id, part)
+            
+        # Folytatjuk a maradékkal
+        text = text[split_index:].strip()
+
 def main():
     # 1. Adatgyűjtés
     news_pool = fetch_news()
@@ -146,16 +171,14 @@ def main():
     full_message = "\n\n".join(final_reports)
     
     if full_message:
-        print("Üzenet küldése Telegramra...")
+        print("Üzenet küldése Telegramra (darabolva ha szükséges)...")
         try:
-            bot.send_message(config.TELEGRAM_CHAT_ID, full_message)
+            send_split_message(config.TELEGRAM_CHAT_ID, full_message)
             print("Sikeres küldés!")
         except Exception as e:
             print(f"Telegram hiba: {e}")
-            # Biztonsági mentés konzolra, ha a Telegram elszállna
-            print(full_message)
     else:
-        print("Nem született releváns összefoglaló a mai hírekből.")
+        print("Nem született releváns összefoglaló.")
 
 if __name__ == "__main__":
     main()

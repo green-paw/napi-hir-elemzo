@@ -1,165 +1,131 @@
-import os
+import config
 import feedparser
 import re
-import time
-import json
-import requests
-from google import genai
-from datetime import datetime
-from feedgen.feed import FeedGenerator # Ne felejtsd el hozzáadni a YAML-hez!
+import telebot # Feltételezve, hogy a pyTelegramBotAPI-t használod
+from google import generativeai as genai
 
-# --- KONFIGURÁCIÓ ---
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-HISTORY_FILE = "history.json"
-MODEL_ID = "gemini-2.5-flash" 
+# --- Konfiguráció inicializálása ---
+genai.configure(api_key=config.GOOGLE_API_KEY)
+# Figyelem: A configban lévő gemini-2.5-flash helyett javasolt a gemini-2.0-flash használata
+model = genai.GenerativeModel(config.MODEL_ID)
+bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
 
-client = genai.Client(api_key=GOOGLE_API_KEY)
-
-system_instruction = ""
-
-def load_history():
-    if os.path.exists(HISTORY_FILE):
+def fetch_news():
+    """Begyűjti a híreket az összes forrásból és egyedi ID-val látja el őket."""
+    news_pool = []
+    item_id = 0
+    print("Hírek lekérése az RSS forrásokból...")
+    
+    for name, url in config.RSS_SOURCES.items():
         try:
-            with open(HISTORY_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except: return []
-    return []
+            feed = feedparser.parse(url)
+            # Forrásonként az utolsó 10 hírt vesszük figyelembe
+            for entry in feed.entries[:10]:
+                summary = entry.get('summary', entry.get('description', ''))
+                # Tisztítás: HTML tagek eltávolítása és hossz korlátozása
+                clean_summary = re.sub('<[^<]+?>', '', summary)[:400]
+                
+                news_pool.append({
+                    "id": item_id,
+                    "source": name,
+                    "title": entry.title,
+                    "summary": clean_summary
+                })
+                item_id += 1
+        except Exception as e:
+            print(f"Hiba a(z) {name} forrásnál: {e}")
+            
+    return news_pool
 
-def save_history(history, new_entries):
-    combined = history + new_entries
-    with open(HISTORY_FILE, "w", encoding="utf-8") as f:
-        json.dump(combined[-40:], f, ensure_ascii=False, indent=2)
-
-def generate_rss(entries):
-    """Saját RSS feed generálása a GitHub Pages-hez."""
-    fg = FeedGenerator()
-    fg.id('ai-strat-news-hu')
-    fg.title('AI Stratégiai Hírelemzés')
-    fg.author({'name': 'Gemini AI'})
-    fg.link(href='https://news.google.com', rel='alternate')
-    fg.description('Rövidített, többoldalú napi hírelemzések')
+def cluster_news(news_pool):
+    """Első fázis: Az LLM csak az ID-kat és címeket látja, és csoportokat alkot."""
+    formatted_list = "\n".join([f"ID:{i['id']} | {i['title']}" for i in news_pool])
     
-    for entry in entries:
-        fe = fg.add_entry()
-        fe.id(entry['title'])
-        fe.title(entry['title'])
-        fe.description(entry['summary'])
-        fe.link(href='https://github.com/green-paw/napi-hir-elemzo')
-        fe.pubDate(datetime.now().astimezone())
+    prompt = f"""
+    Te egy hírszerkesztő algoritmus vagy. Csoportosítsd az azonos eseményről szóló híreket!
     
-    fg.rss_file('rss_output.xml')
+    Hírek listája:
+    {formatted_list}
+    
+    A válaszod formátuma szigorúan és kizárólag ennyi legyen (minden esemény új sor):
+    Esemény rövid neve: [ID1, ID2, ID3]
+    
+    Csak a releváns gazdasági és politikai eseményeket tartsd meg!
+    Ami nem fontos vagy nem csoportosítható, azt hagyd ki.
+    """
+    
+    response = model.generate_content(prompt)
+    return response.text
 
-def send_telegram_chunked(text):
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    MAX_LENGTH = 3900
-    clean_text = text.replace('*', '').replace('_', '').replace('`', '')
-    chunks = []
-    while len(clean_text) > 0:
-        if len(clean_text) <= MAX_LENGTH:
-            chunks.append(clean_text); break
-        split_at = clean_text.rfind('\n', 0, MAX_LENGTH)
-        if split_at == -1: split_at = MAX_LENGTH
-        chunks.append(clean_text[:split_at])
-        clean_text = clean_text[split_at:].lstrip()
+def parse_clusters(ai_response):
+    """Kinyeri az ID-kat az AI válaszából egy szótárba."""
+    clusters = {}
+    lines = ai_response.strip().split('\n')
+    for line in lines:
+        if ':' in line and '[' in line:
+            parts = line.split(':')
+            name = parts[0].strip()
+            ids = re.findall(r'\d+', parts[1])
+            if ids:
+                clusters[name] = [int(i) for i in ids]
+    return clusters
 
-    for i, chunk in enumerate(chunks):
-        header = f"<b>🗞 Napi Globális Mélyelemzés ({i+1}/{len(chunks)})</b>\n\n"
-        payload = {"chat_id": TELEGRAM_CHAT_ID, "text": header + chunk, "parse_mode": "HTML"}
-        requests.post(url, data=payload)
-        time.sleep(1)
-
-# --- ÚJ FUNKCIÓ A JSON BETÖLTÉSÉHEZ ---
-def load_prompts():
-    """Beolvassa a strukturált instrukciókat a prompts.json fájlból."""
-    try:
-        with open("prompts.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"Hiba a prompts.json beolvasásakor: {e}")
-        return {"GENERAL": "Te egy médiaelemző vagy.", "RSS": "Elemezd a hírt."}
-
-# --- MÓDOSÍTOTT AI_CALL ---
-def ai_call(prompt_text, system_instr, use_search=False):
-    config = {'tools': [{'google_search': {}}]} if use_search else {}
-        
-    try:
-        response = client.models.generate_content(
-            model=MODEL_ID, 
-            # Itt kapja meg a specifikus instrukciót
-            contents=system_instr + "\n\n" + prompt_text,
-            config=config
-        )
-        return response.text.strip()
-    except Exception as e:
-        print(f"AI Hiba: {e}")
-        return "SKIP"
+def summarize_event(cluster_name, ids, news_pool):
+    """Második fázis: Egy adott csoport híreiből készít egyetlen összefoglalót."""
+    relevant_news = [n for n in news_pool if n['id'] in ids]
+    sources_set = set([n['source'] for n in relevant_news])
+    sources_str = ", ".join(sources_set)
+    
+    combined_text = "\n".join([f"{n['title']}: {n['summary']}" for n in relevant_news])
+    
+    prompt = f"""
+    Az alábbi hírek ugyanarról az eseményről szólnak ({cluster_name}):
+    {combined_text}
+    
+    Írj belőlük egyetlen, tárgyilagos, rövid magyar nyelvű összefoglalót (max 3 mondat).
+    A végén tüntesd fel a forrásokat így: (Forrás: {sources_str})
+    Szigorúan tilos a Markdown formázás (vastagítás, csillagok, dőlt betű)!
+    """
+    
+    response = model.generate_content(prompt)
+    return response.text
 
 def main():
-    history = load_history()
-    past_context = "\n".join([f"- {h['date']}: {h['title']}" for h in history[-15:]])
+    # 1. Adatgyűjtés
+    news_pool = fetch_news()
+    if not news_pool:
+        print("Nem sikerült híreket beolvasni.")
+        return
+
+    # 2. Csoportosítás (Map)
+    print(f"{len(news_pool)} hír elemzése és csoportosítása...")
+    cluster_text = cluster_news(news_pool)
+    clusters = parse_clusters(cluster_text)
+
+    # 3. Összefoglalás (Reduce)
+    final_reports = []
+    print(f"{len(clusters)} esemény összefoglalása folyamatban...")
+    for name, ids in clusters.items():
+        try:
+            report = summarize_event(name, ids, news_pool)
+            final_reports.append(f"📌 {report}")
+        except Exception as e:
+            print(f"Hiba az összefoglalásnál ({name}): {e}")
+
+    # 4. Küldés Telegramra
+    full_message = "\n\n".join(final_reports)
     
-    full_message = ""
-    new_history_entries = []
-    rss_items = []
-
-    # Promptek betöltése
-    prompts = load_prompts()
-    general_rules = prompts.get("GENERAL", "")
-
-    # --- 1. ÁLLANDÓ HAZAI TÉMÁK ---
-    print("Állandó hazai témák...")
-    perm_topics = [
-        ("ÜZEMANYAGÁRAK", "Friss benzin/gázolaj árak Magyarországon és várható változások.", "UZEMANYAG"),
-        ("POLITIKAI HELYZET", "Kizárólag a 2026-os választási verseny állása: friss közvélemény-kutatások, pártok közötti erőviszony-változások és kampánystratégiák.", "POLITIKA")
-    ]
-    
-    for title, desc, p_key in perm_topics:
-        # Összefűzzük az általános szabályt a témaspecifikussal
-        current_instr = general_rules + " " + prompts.get(p_key, "")
-        res = ai_call(f"Téma: {title}. Feladat: {desc}\nKontextus:\n{past_context}", current_instr, use_search=True)
-        if res != "SKIP":
-            full_message += f"⭐ {title}\n{res}\n\n"
-            new_history_entries.append({"date": datetime.now().strftime("%m.%d %H:%M"), "title": title})
-            rss_items.append({"title": title, "summary": res})
-
-    # --- 2. NEMZETKÖZI KITEKINTŐ ---
-    print("Nemzetközi szemle...")
-    # Itt is használhatjuk az RSS vagy GENERAL promptot
-    intl_instr = general_rules + " " + prompts.get("RSS", "") 
-    intl_res = ai_call("Bloomberg, Reuters: Hungary economy & forint status.", intl_instr, use_search=True)
-    if intl_res != "SKIP":
-        full_message += f"🌍 NEMZETKÖZI KITEKINTŐ\n{intl_res}\n\n"
-        new_history_entries.append({"date": datetime.now().strftime("%m.%d %H:%M"), "title": "Nemzetközi Kitekintő"})
-        rss_items.append({"title": "Nemzetközi Kitekintő", "summary": intl_res})
-
-    # --- 3. RSS HÍREK ---
-    print("RSS feldolgozás...")
-    feed = feedparser.parse("https://news.google.com/rss?hl=hu&gl=HU&ceid=HU:hu")
-    blacklist = ["foci", "bajnokság", "celeb", "horoszkóp", "bulvár", "recept"]
-    
-    scored_news = []
-    for entry in feed.entries:
-        if any(w in entry.title.lower() for w in blacklist): continue
-        # Egyszerű pontozás a leírás hossza alapján
-        score = len(entry.summary)
-        scored_news.append({"title": entry.title, "summary": entry.summary, "score": score})
-
-    rss_instr = general_rules + " " + prompts.get("RSS", "")
-    for news in sorted(scored_news, key=lambda x: x['score'], reverse=True)[:5]:
-        res = ai_call(f"Hír: {news['title']}\nForrás: {news['summary']}\nElemezd röviden.", rss_instr, use_search=False)
-        if res != "SKIP":
-            full_message += f"📌 {news['title'].upper()}\n{res}\n\n"
-            new_history_entries.append({"date": datetime.now().strftime("%m.%d %H:%M"), "title": news['title']})
-            rss_items.append({"title": news['title'], "summary": res})
-        time.sleep(1)
-
     if full_message:
-        send_telegram_chunked(full_message)
-        save_history(history, new_history_entries)
-        generate_rss(rss_items)
-        print("Kész.")
+        print("Üzenet küldése Telegramra...")
+        try:
+            bot.send_message(config.TELEGRAM_CHAT_ID, full_message)
+            print("Sikeres küldés!")
+        except Exception as e:
+            print(f"Telegram hiba: {e}")
+            # Biztonsági mentés konzolra, ha a Telegram elszállna
+            print(full_message)
+    else:
+        print("Nem született releváns összefoglaló a mai hírekből.")
 
 if __name__ == "__main__":
     main()

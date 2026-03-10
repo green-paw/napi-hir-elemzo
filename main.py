@@ -104,20 +104,14 @@ def summarize_event(cluster_name, ids, news_pool):
     prompt = f"""
     Az alábbi hírek ugyanarról az eseményről szólnak ({cluster_name}):
     {combined_text}
-    
-    Írj belőlük egyetlen, tárgyilagos, rövid magyar nyelvű összefoglalót. A tényeknél elfogulatlanul, csak azt írd le ami a források alapján ténylegesen történt.
-    Szigorúan tilos a Markdown formázás (vastagítás, csillagok, dőlt betű)! Az egyes alpontok ne legyenek hosszabbak 2-3 mondatnál!
 
-    VÁLASZ SZERKEZETE (Minta):
-    [{cluster_name.upper}]
-    [Ide jöjjenek a tények 2-3 mondatban]
-    [Konzervatív narratíva, ha van]
-    [Baloldali narratíva, ha van]
-    (Forrás: {sources_str})
+    Írj belőlük egyetlen, tárgyilagos, rövid (maximum 5 mondat), magyar nyelvű összefoglalót. Ha a források között ellentmondás van, emeld ki külön.
+    Szigorúan tilos a Markdown formázás (vastagítás, csillagok, dőlt betű)! 
     """
 
     response = safe_generate_content(prompt)
-    return response
+    final_text = f"{cluster_name.upper()}\n\n{response.strip()}\n\n(Forrás: {sources_str})"
+    return final_text
 
 def send_split_message(chat_id, text):
     """Feldarabolja az üzenetet 3900 karakterenként a legközelebbi új sornál."""

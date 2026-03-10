@@ -55,6 +55,8 @@ def cluster_news(news_pool):
     """
     
     response = model.generate_content(prompt)
+    print(f"Csoportosítás eredménye:\n{response.text}")
+    
     return response.text
 
 def parse_clusters(ai_response):

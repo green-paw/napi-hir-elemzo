@@ -71,11 +71,12 @@ def cluster_news(news_pool):
     3. RANGSOROLÁS (SCORE): Minden csoporthoz rendelj egy 1-10 közötti pontszámot:
         - 10: Rendkívüli esemény (háború, kormányváltás, gazdasági összeomlás).
         - 7-9: Fontos politikai/gazdasági hír (kamatdöntés, elnöki nyilatkozat, nagyvállalati botrány).
-        - 4-6: Átlagos napi hír (útlezárás, kisebb törvénymódosítás).
+        - 6: Jelentősebb politikai/gazdasági hír (törvénymódosítás, fontos politikai szereplő például magyar külügyminiszter nyilatkozata).
+        - 4-5: Átlagos napi hír (útlezárás, kisebb törvénymódosítás).
         - 1-3: Érdekesség, technikai jellegű hír.
        Fontos: Egy egyforrásos hír is kaphat 10-est, ha a tartalma súlyos!
 
-    A válaszból szűrd ki az 5-ös fontossági pont alatti híreket, és a bulvárt.
+    A válaszból szűrd ki az 6 fontossági pont alatti híreket, és a bulvárt.
    
     Hírek listája:
     {formatted_list}

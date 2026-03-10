@@ -106,7 +106,7 @@ def summarize_event(cluster_name, ids, news_pool):
     {combined_text}
     
     Írj belőlük egyetlen, tárgyilagos, rövid magyar nyelvű összefoglalót. A tényeknél elfogulatlanul, csak azt írd le ami a források alapján ténylegesen történt.
-    Szigorúan tilos a Markdown formázás (vastagítás, csillagok, dőlt betű)!
+    Szigorúan tilos a Markdown formázás (vastagítás, csillagok, dőlt betű)! Az egyes alpontok ne legyenek hosszabbak 2-3 mondatnál!
 
     STRUKTÚRA:
     HÍR CÍME

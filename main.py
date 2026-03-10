@@ -40,20 +40,25 @@ def fetch_news():
 def cluster_news(news_pool):
     """Első fázis: Az LLM csak az ID-kat és címeket látja, és csoportokat alkot."""
     formatted_list = "\n".join([f"ID:{i['id']} | {i['title']}" for i in news_pool])
-    
+
     prompt = f"""
-    Te egy hírszerkesztő algoritmus vagy. Csoportosítsd az azonos eseményről szóló híreket!
-    
+    Te egy precíz hírszerkesztő algoritmus vagy. 
+    Kizárólag azokat a híreket csoportosítsd, amelyek ugyanarról a konkrét eseményről szólnak!
+
+    Szabályok:
+    1. Ha két hír csak témájában hasonló (pl. mindkettő külpolitika), de különböző események, NE tedd őket egy csoportba!
+    2. Egy csoportba csak az kerülhet, ami ugyanazt a történést dolgozza fel különböző forrásokból.
+    3. Ami egyedi esemény és nincs párja, azt hagyd ki a csoportosításból (vagy tedd egyedül egy csoportba).
+    4. Szigorúan tilos "Vegyes" vagy "Külpolitikai összefoglaló" típusú gyűjtőcsoportokat létrehozni.
+    5. Csak a releváns gazdasági és politikai eseményeket tartsd meg!
+
     Hírek listája:
     {formatted_list}
-    
+
     A válaszod formátuma szigorúan és kizárólag ennyi legyen (minden esemény új sor):
     Esemény rövid neve: [ID1, ID2, ID3]
-    
-    Csak a releváns gazdasági és politikai eseményeket tartsd meg!
-    Ami nem fontos vagy nem csoportosítható, azt hagyd ki.
     """
-    
+
     response = model.generate_content(prompt)
     print(f"Csoportosítás eredménye:\n{response.text}")
     

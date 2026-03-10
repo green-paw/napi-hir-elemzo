@@ -121,14 +121,28 @@ def cluster_news(news_pool):
 def parse_clusters(ai_response):
     try:
         clean_json = ai_response.strip().replace('```json', '').replace('```', '').strip()
-        clusters = json.loads(clean_json)
+        data = json.loads(clean_json)
         
-        filtered_clusters = [c for c in clusters if c.get('score', 0) >= 6]
-        filtered_clusters.sort(key=lambda x: x.get('score', 0), reverse=True)
+        filtered = []
+        for c in data:
+            s = c.get('scores', {})
+            # Súlyozott átlag számítása: a relevancia és a hatás fontosabb, mint a novelty
+            # Képlet: (Relevancia * 0.4) + (Hatás * 0.4) + (Újdonság * 0.2)
+            weighted_score = (s.get('relevance', 0) * 0.4) + \
+                             (s.get('impact', 0) * 0.4) + \
+                             (s.get('novelty', 0) * 0.2)
+            
+            # Mentjük a kiszámolt pontot a rendezéshez
+            c['total_score'] = round(weighted_score, 1)
+            
+            # Csak akkor engedjük át, ha a súlyozott pontszám eléri a 6-ot
+            if weighted_score >= 6:
+                filtered.append(c)
         
-        return filtered_clusters
+        filtered.sort(key=lambda x: x['total_score'], reverse=True)
+        return filtered
     except Exception as e:
-        print(f"JSON feldolgozási hiba: {e}\nAz eredeti válasz: {ai_response}")
+        print(f"JSON Parse/Scoring Hiba: {e}")
         return []
 
 def summarize_event(cluster_name, ids, news_pool):

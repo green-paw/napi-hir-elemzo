@@ -125,29 +125,46 @@ def summarize_event(cluster_name, ids, news_pool):
     return final_text
 
 def send_split_message(chat_id, text):
-    """Feldarabolja az üzenetet 3900 karakterenként a legközelebbi új sornál."""
-    if len(text) <= 3900:
-        bot.send_message(chat_id, text)
+    """
+    Feldarabolja az üzenetet 3900 karakterenként a legközelebbi új sornál,
+    és minden részt ellát egy (X/Y) sorszámmal.
+    """
+    MAX_CHARS = 3900
+    
+    # Ha belefér egybe, csak a sima fejlécet kapja
+    if len(text) <= MAX_CHARS:
+        bot.send_message(chat_id, f"🗞 AI HÍRELEMZÉS (1/1)\n\n{text}")
         return
 
-    while text:
-        if len(text) <= 3900:
-            bot.send_message(chat_id, text)
+    # Kiszámoljuk a darabokat (közelítőleg)
+    # Először listába gyűjtjük a részeket, hogy tudjuk a végleges darabszámot
+    parts = []
+    temp_text = text
+    
+    while temp_text:
+        if len(temp_text) <= MAX_CHARS:
+            parts.append(temp_text.strip())
             break
         
-        # Keressük az utolsó sortörést a 3900. karakter előtt
-        split_index = text.rfind('\n', 0, 3900)
+        # Keressük az utolsó dupla sortörést (bekezdés végét) a 3900. karakter előtt
+        split_index = temp_text.rfind('\n\n', 0, MAX_CHARS)
         
-        # Ha nincs benne sortörés (ami nem valószínű), vágjuk le fixen
+        # Ha nincs dupla, keressünk sima sortörést
         if split_index == -1:
-            split_index = 3900
+            split_index = temp_text.rfind('\n', 0, MAX_CHARS)
+        
+        # Ha így sincs, vágjuk le fixen
+        if split_index == -1:
+            split_index = MAX_CHARS
             
-        part = text[:split_index].strip()
-        if part:
-            bot.send_message(chat_id, part)
-            
-        # Folytatjuk a maradékkal
-        text = text[split_index:].strip()
+        parts.append(temp_text[:split_index].strip())
+        temp_text = temp_text[split_index:].strip()
+
+    # Most elküldjük a részeket a sorszámozott fejléccel
+    total_parts = len(parts)
+    for i, part in enumerate(parts, 1):
+        header = f"🗞 AI HÍRELEMZÉS ({i}/{total_parts})\n\n"
+        bot.send_message(chat_id, header + part)
 
 def main():
     # 1. Adatgyűjtés

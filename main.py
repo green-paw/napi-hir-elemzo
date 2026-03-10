@@ -14,14 +14,22 @@ import json
 client = genai.Client(api_key=config.GOOGLE_API_KEY)
 bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
 
-def safe_generate_content(prompt, manual_config):
+def safe_generate_content(prompt, manual_config=None):
     """Újrapróbálkozó függvény 503-as hiba esetén."""
+    if manual_config is None:
+        # Ha nem adtál meg semmit, legyen ez a JSON-alapú alapértelmezett
+        current_config = {
+            'temperature': 0.1
+        }
+    else:
+        current_config = manual_config
+        
     for attempt in range(3): # Max 3 próbálkozás
         try:
             response = client.models.generate_content(
                 model=config.MODEL_ID,
                 contents=prompt,
-                config=manual_config if manual_config else {'temperature': 0.1}
+                config=current_config
             )
             return response.text
         except errors.ServerError as e:

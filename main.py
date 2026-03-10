@@ -78,9 +78,9 @@ def cluster_news(news_pool):
     """
 
     response = safe_generate_content(prompt)
-    print(f"Csoportosítás eredménye:\n{response.text}")
+    print(f"Csoportosítás eredménye:\n{response}")
     
-    return response.text
+    return response
 
 def parse_clusters(ai_response):
     """Kinyeri az ID-kat az AI válaszából egy szótárba."""
@@ -113,7 +113,7 @@ def summarize_event(cluster_name, ids, news_pool):
     """
 
     response = safe_generate_content(prompt)
-    return response.text
+    return response
 
 def main():
     # 1. Adatgyűjtés

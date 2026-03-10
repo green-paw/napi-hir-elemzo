@@ -78,8 +78,6 @@ def cluster_news(news_pool):
     """
 
     response = safe_generate_content(prompt)
-    print(f"Csoportosítás eredménye:\n{response}")
-    
     return response
 
 def parse_clusters(ai_response):
@@ -125,6 +123,7 @@ def main():
     # 2. Csoportosítás (Map)
     print(f"{len(news_pool)} hír elemzése és csoportosítása...")
     cluster_text = cluster_news(news_pool)
+    print(f"Csoportosítás eredménye:\n{response}")
     clusters = parse_clusters(cluster_text)
 
     # 3. Összefoglalás (Reduce)

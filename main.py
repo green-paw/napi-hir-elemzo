@@ -105,9 +105,15 @@ def summarize_event(cluster_name, ids, news_pool):
     Az alábbi hírek ugyanarról az eseményről szólnak ({cluster_name}):
     {combined_text}
     
-    Írj belőlük egyetlen, tárgyilagos, rövid magyar nyelvű összefoglalót (max 3 mondat).
-    A végén tüntesd fel a forrásokat így: (Forrás: {sources_str})
+    Írj belőlük egyetlen, tárgyilagos, rövid magyar nyelvű összefoglalót. A tényeknél elfogulatlanul, csak azt írd le ami a források alapján ténylegesen történt.
     Szigorúan tilos a Markdown formázás (vastagítás, csillagok, dőlt betű)!
+
+    STRUKTÚRA:
+    HÍR CÍME
+    TÉNYEK
+    Ha van akkor KONZERVATÍV NARRATÍVA
+    Ha van akkor BALOLDALI NARRATÍVA
+    A végén tüntesd fel a forrásokat így: (Forrás: {sources_str})
     """
 
     response = safe_generate_content(prompt)

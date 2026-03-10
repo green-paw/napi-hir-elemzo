@@ -203,43 +203,69 @@ def generate_rss_file(reports, filename="rss_output.xml"):
     print(f"RSS feed sikeresen elmentve: {filename}")
 
 def main():
-    # 1. Adatgyűjtés
+    print("Hírek gyűjtése...")
     news_pool = fetch_news()
+    
     if not news_pool:
-        print("Nem sikerült híreket beolvasni.")
+        print("Nem sikerült híreket letölteni.")
         return
 
-    # 2. Csoportosítás (Map)
-    print(f"{len(news_pool)} hír elemzése és csoportosítása...")
-    cluster_text = cluster_news(news_pool)
-    print(f"Csoportosítás eredménye:\n{cluster_text}")
-    clusters = parse_clusters(cluster_text)
-
-    #3. summarize
-    final_reports = []
-    for item in clusters:
-        report = summarize_event(item['name'], item['ids'], news_pool)
-        final_reports.append(report)
-
-    if len(final_reports) > 0:
-        # 4. Küldés Telegramra
-        full_message = "\n\n".join(final_reports)
+    print(f"Összesen {len(news_pool)} hír beolvasva. Csoportosítás és pontozás...")
     
-        if full_message:
-            print("Üzenet küldése Telegramra (darabolva ha szükséges)...")
-            try:
-                send_split_message(config.TELEGRAM_CHAT_ID, full_message)
-                print("Sikeres küldés!")
-            except Exception as e:
-                print(f"Telegram hiba: {e}")
+    # 1. Csoportosítás JSON formátumban
+    # A manual_config-ot itt üresen hagyjuk, hogy a JSON kényszerítést használja
+    cluster_json_raw = cluster_news(news_pool)
+    clusters = parse_clusters(cluster_json_raw)
 
-        # 5. RSS output
+    if not clusters:
+        print("Nem születtek releváns hírcsoportok (vagy JSON hiba történt).")
+        return
+
+    # 2. Szétválogatás kategóriák szerint (Dictionary-k listáját kapjuk)
+    hazai = [c for c in clusters if c.get('category') == 'HAZAI']
+    globalis = [c for c in clusters if c.get('category') == 'GLOBÁLIS']
+    egyeb = [c for c in clusters if c.get('category') == 'EGYÉB']
+
+    final_reports = []
+    
+    # Segédfüggvény a szekciók feldolgozásához és címkézéséhez
+    def process_section(section_list, section_title):
+        if section_list:
+            final_reports.append(f"--- {section_title} ({len(section_list)} esemény) ---")
+            for item in section_list:
+                # Az item['name'] és item['ids'] a JSON-ból jön
+                report = summarize_event(item['name'], item['ids'], news_pool)
+                final_reports.append(report)
+
+    # 3. Összefoglalók generálása a kért sorrendben
+    print("Összefoglalók készítése szekciónként...")
+    process_section(hazai, "MAGYARORSZÁG ÉS RELEVÁNS HÍREK")
+    process_section(globalis, "KIEMELT GLOBÁLIS ESEMÉNYEK")
+    process_section(egyeb, "EGYÉB FONTOS HÍREK A VILÁGBÓL")
+
+    # 4. Kimenetek kezelése
+    reports_count = len(clusters) # Az eredeti csoportok száma (a címek nélkül)
+    
+    if len(final_reports) > 0:
+        print(f"Kész! {reports_count} releváns esemény összefoglalva.")
+        
+        # Teljes üzenet összefűzése a Telegramhoz
+        full_message = "\n\n".join(final_reports)
+        
+        # Küldés Telegramra darabolva
+        try:
+            print("Küldés Telegramra...")
+            send_split_message(config.TELEGRAM_CHAT_ID, full_message)
+        except Exception as e:
+            print(f"Telegram hiba: {e}")
+
+        # RSS fájl mentése
         try:
             generate_rss_file(final_reports, "rss_output.xml")
         except Exception as e:
-            print(f"Hiba az RSS fájl írásakor: {e}")
+            print(f"RSS hiba: {e}")
     else:
-        print("Nem született releváns összefoglaló.")
-
+        print("A szűrési feltételeknek (Score >= 6) egyetlen hír sem felelt meg.")
+        
 if __name__ == "__main__":
     main()

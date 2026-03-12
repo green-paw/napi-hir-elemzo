@@ -121,7 +121,7 @@ def cluster_news(news_pool):
     embeddings = get_gemini_embeddings(texts)
 
     clustering = AgglomerativeClustering(
-        n_clusters=None, distance_threshold=0.35, metric='cosine', linkage='average'
+        n_clusters=None, distance_threshold=0.45, metric='cosine', linkage='average'
     ).fit(embeddings)
 
     groups = {}
@@ -129,8 +129,13 @@ def cluster_news(news_pool):
         groups.setdefault(label, []).append(news_pool[idx])
 
     final_clusters = []
-    sys_instruct = """Te egy elit hírszerkesztő vagy. Csoportosíts és pontozz! 
-    Csak az azonos eseményeket hagyd egy csoportban (Helyszín-elv!)."""
+    sys_instruct = """Te egy tapasztalt hírszerkesztő vagy. 
+    Feladatod: A megadott hírek közül válaszd ki azokat, amelyek ugyanarról az alapvető eseményről szólnak.
+    SZABÁLYOK:
+    1. Ha két hír ugyanarról a gazdasági bejelentésről vagy politikai eseményről szól, maradjanak egy csoportban, még ha más forrásból is vannak.
+    2. A 'name' mező legyen egy rövid, figyelemfelkeltő cím.
+    3. A 'category' (HAZAI/GLOBÁLIS/EGYÉB) besorolásnál a magyar vonatkozású híreket mindig jelöld HAZAI-nak.
+    4. Pontozd az eseményt a megadott szempontok szerint."""
 
     for label, items in groups.items():
         formatted_list = "\n".join([f"ID:{n['id']} | CÍM: {n['title']}" for n in items])
@@ -147,7 +152,7 @@ def parse_clusters(clusters_data):
         s = c.get('scores', {})
         score = (s.get('relevance', 0)*0.4) + (s.get('impact', 0)*0.4) + (s.get('novelty', 0)*0.2)
         c['total_score'] = round(score, 1)
-        if score >= 6: filtered.append(c)
+        if score >= 5: filtered.append(c)
     return sorted(filtered, key=lambda x: x['total_score'], reverse=True)
 
 def summarize_event(cluster_name, ids, news_pool):

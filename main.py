@@ -9,6 +9,8 @@ from feedgen.feed import FeedGenerator
 from datetime import datetime
 import pytz
 import json
+from google.genai import types
+from sklearn.cluster import AgglomerativeClustering
 
 # --- Konfiguráció inicializálása ---
 client = genai.Client(api_key=config.GOOGLE_API_KEY)
@@ -34,7 +36,7 @@ def safe_generate_content(prompt, is_json_task=False):
     for attempt in range(3): # Max 3 próbálkozás
         try:
             response = client.models.generate_content(
-                model=model,
+                model=target_model,
                 contents=prompt,
                 config=current_config
             )

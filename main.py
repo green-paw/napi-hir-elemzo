@@ -100,7 +100,7 @@ def get_gemini_embeddings(texts):
         print(f"Embedding lekérése: {i+1} - {min(i+100, len(texts))} / {len(texts)}")
         
         response = client.models.embed_content(
-            model="text-embedding-004",
+            model="gemini-embedding-001",
             contents=batch,
             config=types.EmbedContentConfig(task_type="CLUSTERING")
         )

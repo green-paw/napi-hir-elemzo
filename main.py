@@ -14,17 +14,22 @@ import json
 client = genai.Client(api_key=config.GOOGLE_API_KEY)
 bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
 
-def safe_generate_content(prompt, manual_config=None, useLite=False):
-    """Újrapróbálkozó függvény 503-as hiba esetén."""
-    if manual_config is None:
-        # Ha nem adtál meg semmit, legyen ez a JSON-alapú alapértelmezett
-        current_config = {
-            'temperature': 0.1
-        }
+def safe_generate_content(prompt, is_json_task=False):
+    """Újrapróbálkozó függvény API limitek és szerverhibák kezelésére."""
+    
+    # 1. Állapot: Klaszterezés és pontozás (Precíziós feladat)
+    if is_json_task:
+        target_model = config.MODEL_ID
+        current_config = types.GenerateContentConfig(
+            temperature=0.0,
+            response_mime_type="application/json"
+        )
+    # 2. Állapot: Összefoglaló írása (Kreatív/szöveges feladat)
     else:
-        current_config = manual_config
-
-    model = config.MODEL_LITE_ID if useLite else config.MODEL_ID
+        target_model = config.MODEL_LITE_ID
+        current_config = types.GenerateContentConfig(
+            temperature=0.1
+        )
 
     for attempt in range(3): # Max 3 próbálkozás
         try:
@@ -116,10 +121,7 @@ def cluster_news(news_pool):
     {formatted_list}
     """
 
-    response = safe_generate_content(prompt, {
-        'temperature': 0.0,
-        'response_mime_type': 'application/json' # Ez kényszeríti a JSON-t!
-    })
+    response = safe_generate_content(prompt, True)
     return response
 
 def parse_clusters(ai_response):
@@ -165,7 +167,7 @@ def summarize_event(cluster_name, ids, news_pool):
     Szigorúan tilos a Markdown formázás (vastagítás, csillagok, dőlt betű)! 
     """
 
-    response = safe_generate_content(prompt, useLite=True)
+    response = safe_generate_content(prompt)
     final_text = f"{cluster_name.upper()}\n\n{response.strip()}\n\n(Forrás: {sources_str})"
     return final_text
 

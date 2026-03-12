@@ -142,8 +142,13 @@ def cluster_news(news_pool):
         ai_response = safe_generate_content(f"Hírek:\n{formatted_list}", True, sys_instruct)
         try:
             data = json.loads(ai_response)
-            if data.get('ids'): final_clusters.append(data)
-        except: print("JSON hiba egy csoportnál.")
+            print(f"DEBUG: Csoport neve: {data.get('name')} | Hírek száma: {len(data.get('ids', []))}")
+            if data and data.get('ids'): 
+                final_clusters.append(data)
+            else:
+                print(f"FIGYELEM: Az AI üresnek ítélte ezt a csoportot: {data.get('name')}")
+        except:
+            print(f"JSON hiba. Nyers válasz: {ai_response[:100]}")
     return final_clusters
 
 def parse_clusters(clusters_data):

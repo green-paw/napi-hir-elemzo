@@ -132,9 +132,9 @@ def cluster_news(news_pool):
     ).fit(embeddings)
 
     # A cluster_news függvényben a .fit(embeddings) után:
-    print(f"--- Klaszterezési statisztika ---")
-    print(f"Talált csoportok száma: {clustering.n_clusters_}")
-    print(f"Hírek besorolása (labels): {clustering.labels_}") # Megmutatja, melyik hír melyik sorszámú csoportba került
+    #print(f"--- Klaszterezési statisztika ---")
+    #print(f"Talált csoportok száma: {clustering.n_clusters_}")
+    #print(f"Hírek besorolása (labels): {clustering.labels_}") # Megmutatja, melyik hír melyik sorszámú csoportba került
 
     groups = {}
     for idx, label in enumerate(clustering.labels_):

@@ -14,7 +14,7 @@ import json
 client = genai.Client(api_key=config.GOOGLE_API_KEY)
 bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
 
-def safe_generate_content(prompt, manual_config=None):
+def safe_generate_content(prompt, manual_config=None, useLite=None):
     """Újrapróbálkozó függvény 503-as hiba esetén."""
     if manual_config is None:
         # Ha nem adtál meg semmit, legyen ez a JSON-alapú alapértelmezett
@@ -23,11 +23,16 @@ def safe_generate_content(prompt, manual_config=None):
         }
     else:
         current_config = manual_config
-        
+
+    if useLite is None:
+        model=config.MODEL_ID
+    else
+        model=config.MODEL_LITE_ID
+    
     for attempt in range(3): # Max 3 próbálkozás
         try:
             response = client.models.generate_content(
-                model=config.MODEL_ID,
+                model=model,
                 contents=prompt,
                 config=current_config
             )
@@ -163,7 +168,7 @@ def summarize_event(cluster_name, ids, news_pool):
     Szigorúan tilos a Markdown formázás (vastagítás, csillagok, dőlt betű)! 
     """
 
-    response = safe_generate_content(prompt)
+    response = safe_generate_content(prompt, None, true)
     final_text = f"{cluster_name.upper()}\n\n{response.strip()}\n\n(Forrás: {sources_str})"
     return final_text
 

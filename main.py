@@ -126,7 +126,7 @@ def cluster_news(news_pool):
 
     clustering = AgglomerativeClustering(
         n_clusters=None,
-        distance_threshold=0.15,
+        distance_threshold=0.12,
         metric='cosine',
         linkage='complete' # Szigorúbb láncolás (average helyett)
     ).fit(embeddings)
@@ -172,7 +172,8 @@ def cluster_news(news_pool):
                 if data and data.get('ids'): 
                     final_clusters.append(data)
                 else:
-                    print(f"FIGYELEM: Az AI üresnek ítélte ezt a csoportot: {data.get('name')}")
+                    titles_str = "\n - ".join(titles)
+                    print(f"⚠️ AI elutasította a csoportot, mert ezek nem illenek össze:\n - {titles_str}")
             except:
                 print(f"JSON hiba. Nyers válasz: {ai_response[:100]}")
     return final_clusters

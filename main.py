@@ -31,7 +31,7 @@ class ClusterResult(BaseModel):
 client = genai.Client(api_key=config.GOOGLE_API_KEY)
 bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
 
-def safe_generate_content(prompt, is_json_task=False):
+def safe_generate_content(prompt, is_json_task=False, sys_instruct=None):
     """Újrapróbálkozó függvény API limitek és szerverhibák kezelésére."""
     
     if is_json_task:
@@ -39,12 +39,14 @@ def safe_generate_content(prompt, is_json_task=False):
         current_config = types.GenerateContentConfig(
             temperature=0.0,
             response_mime_type="application/json",
-            response_schema=ClusterResult
+            response_schema=ClusterResult,
+            system_instruction=sys_instruct
         )
     else:
         target_model = config.MODEL_LITE_ID
         current_config = types.GenerateContentConfig(
-            temperature=0.1
+            temperature=0.1,
+            system_instruction=sys_instruct
         )
 
     for attempt in range(5):
@@ -134,19 +136,18 @@ def cluster_news(news_pool):
             summary_slice = n['summary'][:200].replace('\n', ' ')
             formatted_list += f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {summary_slice}\n"
 
-        # A prompt sokkal rövidebb, mert a Pydantic séma leírja a formátumot!
-        prompt = f"""
-        Te egy elit hírszerkesztő vagy. A feladatod a hírek csoportosítása és pontozása.
-        
+        sys_instruct = """Te egy elit hírszerkesztő vagy. A feladatod a hírek csoportosítása és pontozása.
         SZABÁLYOK:
         1. Csak azokat a híreket tartsd meg a csoportban, amelyek TÉNYLEG ugyanarról az eseményről szólnak (Helyszín-elv!).
-        2. Ha egy hír (ID) kilóg a csoportból, egyszerűen hagyd ki az 'ids' listából.
-        
-        Hírek:
-        {formatted_list}
-        """
+        2. Ha egy hír (ID) kilóg a csoportból, egyszerűen hagyd ki az 'ids' listából."""
 
-        ai_response = safe_generate_content(prompt, is_json_task=True)
+        prompt = f"Hírek:\n{formatted_list}"
+
+        ai_response = safe_generate_content(
+            prompt,
+            is_json_task=True,
+            sys_instruct=sys_instruct
+        )
         
         try:
             # A válasz egy tiszta JSON string, egyből parse-olható
@@ -189,15 +190,13 @@ def summarize_event(cluster_name, ids, news_pool):
     
     combined_text = "\n".join([f"{n['title']}: {n['summary']}" for n in relevant_news])
     
-    prompt = f"""
-    Az alábbi hírek ugyanarról az eseményről szólnak ({cluster_name}):
-    {combined_text}
+    sys_instruct = """Írj a kapott hírekből egyetlen, tárgyilagos, rövid (max 5 mondat), magyar nyelvű összefoglalót! 
+    Ha a források között ellentmondás van, emeld ki külön. 
+    Szigorúan tilos a Markdown formázás (vastagítás, csillagok, dőlt betű)!"""
 
-    Írj belőlük egyetlen, tárgyilagos, rövid (maximum 5 mondat), magyar nyelvű összefoglalót. Ha a források között ellentmondás van, emeld ki külön.
-    Szigorúan tilos a Markdown formázás (vastagítás, csillagok, dőlt betű)! 
-    """
+    prompt = f"Az alábbi hírek ugyanarról az eseményről szólnak ({cluster_name}):\n{combined_text}"
 
-    response = safe_generate_content(prompt)
+    response = safe_generate_content(prompt, sys_instruct=sys_instruct)
     final_text = f"{cluster_name.upper()}\n\n{response.strip()}\n\n(Forrás: {sources_str})"
     return final_text
 

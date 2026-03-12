@@ -55,6 +55,7 @@ def safe_generate_content(prompt, is_json_task=False, schema=None):
                 contents=prompt,
                 config=current_config
             )
+            print(f"model: {target_model}, input tokens: {response.usage_metadata.prompt_token_count}, output tokens: {response.usage_metadata.candidates_token_count}")
             return response.text
         except errors.APIError as e:
             error_msg = str(e).lower()

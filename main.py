@@ -91,12 +91,28 @@ def fetch_news():
     return news_pool
 
 def get_gemini_embeddings(texts):
-    response = client.models.embed_content(
-        model="text-embedding-004",
-        contents=texts,
-        config=types.EmbedContentConfig(task_type="CLUSTERING")
-    )
-    return [embedding.values for embedding in response.embeddings]
+    """Vektorok lekérése 100-as csomagokban (Batch limit kezelése)."""
+    all_embeddings = []
+    
+    # 100-asával daraboljuk a listát
+    for i in range(0, len(texts), 100):
+        batch = texts[i:i + 100]
+        print(f"Embedding lekérése: {i+1} - {min(i+100, len(texts))} / {len(texts)}")
+        
+        response = client.models.embed_content(
+            model="text-embedding-004",
+            contents=batch,
+            config=types.EmbedContentConfig(task_type="CLUSTERING")
+        )
+        
+        # A batch eredményeit hozzáadjuk a fő listához
+        all_embeddings.extend([embedding.values for embedding in response.embeddings])
+        
+        # Rövid szünet a biztonság kedvéért (Rate limit védelem)
+        if len(texts) > 100:
+            time.sleep(1)
+            
+    return all_embeddings
 
 def cluster_news(news_pool):
     if not news_pool: return []

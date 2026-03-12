@@ -31,7 +31,7 @@ class ClusterResult(BaseModel):
 client = genai.Client(api_key=config.GOOGLE_API_KEY)
 bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
 
-def safe_generate_content(prompt, is_json_task=False, schema=None):
+def safe_generate_content(prompt, is_json_task=False):
     """Újrapróbálkozó függvény API limitek és szerverhibák kezelésére."""
     
     if is_json_task:
@@ -39,7 +39,7 @@ def safe_generate_content(prompt, is_json_task=False, schema=None):
         current_config = types.GenerateContentConfig(
             temperature=0.0,
             response_mime_type="application/json",
-            response_schema=schema # Pydantic séma átadása
+            response_schema=ClusterResult
         )
     else:
         target_model = config.MODEL_LITE_ID
@@ -146,7 +146,7 @@ def cluster_news(news_pool):
         {formatted_list}
         """
 
-        ai_response = safe_generate_content(prompt, is_json_task=True, schema=ClusterResult)
+        ai_response = safe_generate_content(prompt, is_json_task=True)
         
         try:
             # A válasz egy tiszta JSON string, egyből parse-olható

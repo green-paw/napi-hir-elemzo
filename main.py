@@ -11,11 +11,61 @@ import pytz
 import json
 from google.genai import types
 from sklearn.cluster import AgglomerativeClustering
+from pydantic import BaseModel, Field
+from typing import List
+
+class Scores(BaseModel):
+    relevance: int = Field(description="Mennyire kritikus a magyar/globális gazdaság szempontjából (1-10)")
+    impact: int = Field(description="Az esemény súlya (1-10)")
+    novelty: int = Field(description="Mennyire tartalmaz új információt (1-10)")
+
+class ClusterResult(BaseModel):
+    name: str = Field(description="Esemény neve és helyszíne")
+    category: str = Field(description="Kategória: HAZAI, GLOBÁLIS vagy EGYÉB")
+    scores: Scores
+    ids: List[int] = Field(description="Az összeillő hírek ID-jainak listája")
 
 # --- Konfiguráció inicializálása ---
 client = genai.Client(api_key=config.GOOGLE_API_KEY)
 bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
 
+def safe_generate_content(prompt, is_json_task=False):
+    """Újrapróbálkozó függvény API limitek és szerverhibák kezelésére."""
+    
+    if is_json_task:
+        target_model = config.MODEL_ID
+        current_config = types.GenerateContentConfig(
+            temperature=0.0,
+            response_mime_type="application/json",
+            response_schema=ClusterResult
+        )
+    else:
+        target_model = config.MODEL_LITE_ID
+        current_config = types.GenerateContentConfig(
+            temperature=0.1
+        )
+    
+    for attempt in range(5):
+        try:
+            time.sleep(2)
+            response = client.models.generate_content(
+                model=target_model,
+                contents=prompt,
+                config=current_config
+            )
+            print(f"model: {target_model}, input tokens: {response.usage_metadata.prompt_token_count}, output tokens: {response.usage_metadata.candidates_token_count}")
+            return response.text
+        except errors.APIError as e:
+            error_msg = str(e).lower()
+            if "429" in error_msg or "503" in error_msg or "quota" in error_msg:
+                wait_time = (attempt + 1) * 10 
+                print(f"API Limit/Túlterhelés. Várakozás {wait_time}mp... (Próbálkozás: {attempt+1}/5)")
+                time.sleep(wait_time)
+            else:
+                raise e
+                
+    return "Hiba: A szerver tartósan túlterhelt."
+    
 def safe_generate_content(prompt, is_json_task=False):
     """Újrapróbálkozó függvény API limitek és szerverhibák kezelésére."""
     
@@ -127,41 +177,20 @@ def cluster_news(news_pool):
         
         SZABÁLYOK:
         1. Csak azokat a híreket tartsd meg a csoportban, amelyek TÉNYLEG ugyanarról az eseményről szólnak (Helyszín-elv!).
-        2. PONTOZÁSI LOGIKA (Minden mező 1-10):
-            - relevance: Mennyire kritikus a magyar vagy globális gazdaság/politika szempontjából.
-            - impact: Az esemény súlya (pl. háború, nagyvállalati csőd = 10; kisebb nyilatkozat = 3).
-            - novelty: Mennyire tartalmaz új, eddig ismeretlen információt.
-        3. Kategorizáld a híreket.
-            KATEGÓRIÁK:
-            - HAZAI: Magyarországi esemény, vagy külföldi esemény ami KÖZVETLENÜL érinti Magyarországot (pl. EU döntés rólunk).
-            - GLOBÁLIS: Világszintű nagy hír (USA választás, világgazdaság, háborúk).
-            - EGYÉB: Fontos, de távolabbi vagy specifikusabb hírek.
-        4. A válasz CSAK egy érvényes JSON objektum legyen!
-        
-        VÁRT JSON FORMÁTUM:
-        {{
-            "name": "Esemény neve",
-            "category": "HAZAI",
-            "scores": {{"relevance": 9, "impact": 8, "novelty": 10}},
-            "ids": [ide jönnek az egyező ID-k]
-        }}
-        
+        2. Ha egy hír (ID) kilóg a csoportból, egyszerűen hagyd ki az 'ids' listából.        
+
         Hírek:
         {formatted_list}
         """
 
-        # Az új, egyszerűsített hívás: is_json_task=True kényszeríti a JSON-t és a sima Flash modellt
         ai_response = safe_generate_content(prompt, is_json_task=True)
-        
         try:
-            # Rögtön feldolgozzuk a JSON-t
-            clean_json = ai_response.strip().replace('```json', '').replace('```', '').strip()
-            cluster_data = json.loads(clean_json)
+            cluster_data = json.loads(ai_response) 
             if cluster_data and cluster_data.get('ids'):
                 final_clusters.append(cluster_data)
         except Exception as e:
             print(f"Hiba a csoport feldolgozásánál: {e}")
-
+            
     # A régi parse_clusters miatt visszaalakítjuk stringgé a teljes listát
     return json.dumps(final_clusters)
     

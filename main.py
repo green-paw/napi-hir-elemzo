@@ -104,7 +104,7 @@ def get_gemini_embeddings(texts):
         batch = texts[i:i + 100]
         
         response = client.models.embed_content(
-            model="text-embedding-004",
+            model="gemini-embedding-001",
             contents=batch,
             config=types.EmbedContentConfig(task_type="CLUSTERING")
         )

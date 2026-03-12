@@ -188,13 +188,44 @@ def summarize_event(cluster_name, ids, news_pool):
     return f"{cluster_name.upper()}\n\n{response.strip()}\n\n(Forrás: {sources})"
 
 def send_split_message(chat_id, text):
-    MAX = 3900
-    if len(text) <= MAX:
+    """
+    Feldarabolja az üzenetet ~3900 karakterenként a legközelebbi új sornál,
+    hogy ne vágja el a szavakat vagy mondatokat.
+    """
+    MAX_CHARS = 3900
+    
+    # Ha belefér egybe, nem daraboljuk
+    if len(text) <= MAX_CHARS:
         bot.send_message(chat_id, f"🗞 AI HÍRELEMZÉS\n\n{text}")
         return
-    # Egyszerűsített darabolás
-    for i in range(0, len(text), MAX):
-        bot.send_message(chat_id, text[i:i+MAX])
+
+    parts = []
+    temp_text = text
+    
+    while temp_text:
+        if len(temp_text) <= MAX_CHARS:
+            parts.append(temp_text.strip())
+            break
+        
+        # Megkeressük az utolsó dupla sortörést (bekezdés vége) a limiten belül
+        split_index = temp_text.rfind('\n\n', 0, MAX_CHARS)
+        
+        # Ha nincs dupla, keressünk sima sortörést
+        if split_index == -1:
+            split_index = temp_text.rfind('\n', 0, MAX_CHARS)
+        
+        # Ha így sincs (nagyon hosszú egybefüggő szöveg), vágjuk le fixen
+        if split_index == -1:
+            split_index = MAX_CHARS
+            
+        parts.append(temp_text[:split_index].strip())
+        temp_text = temp_text[split_index:].strip()
+
+    # Üzenetek küldése sorszámozva
+    total_parts = len(parts)
+    for i, part in enumerate(parts, 1):
+        header = f"🗞 AI HÍRELEMZÉS ({i}/{total_parts})\n\n"
+        bot.send_message(chat_id, header + part)
 
 def main():
     news_pool = fetch_news()

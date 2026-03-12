@@ -2,20 +2,22 @@ import config
 import feedparser
 import re
 import telebot
-from google import genai
 import time
-from google.genai import errors
-from feedgen.feed import FeedGenerator
+import json
 from datetime import datetime
 import pytz
-import json
-from google.genai import types
+from feedgen.feed import FeedGenerator
+
+# Új importok az SDK-hoz, a vektorizáláshoz és a sémákhoz
+from google import genai
+from google.genai import types, errors
 from sklearn.cluster import AgglomerativeClustering
 from pydantic import BaseModel, Field
 from typing import List
 
+# --- Sémák definiálása (Structured Outputs) ---
 class Scores(BaseModel):
-    relevance: int = Field(description="Mennyire kritikus a magyar/globális gazdaság szempontjából (1-10)")
+    relevance: int = Field(description="Mennyire kritikus a magyar vagy globális gazdaság/politika szempontjából (1-10)")
     impact: int = Field(description="Az esemény súlya (1-10)")
     novelty: int = Field(description="Mennyire tartalmaz új információt (1-10)")
 
@@ -23,13 +25,13 @@ class ClusterResult(BaseModel):
     name: str = Field(description="Esemény neve és helyszíne")
     category: str = Field(description="Kategória: HAZAI, GLOBÁLIS vagy EGYÉB")
     scores: Scores
-    ids: List[int] = Field(description="Az összeillő hírek ID-jainak listája")
+    ids: List[int] = Field(description="A csoportba ténylegesen beleillő hírek ID-jai")
 
 # --- Konfiguráció inicializálása ---
 client = genai.Client(api_key=config.GOOGLE_API_KEY)
 bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
 
-def safe_generate_content(prompt, is_json_task=False):
+def safe_generate_content(prompt, is_json_task=False, schema=None):
     """Újrapróbálkozó függvény API limitek és szerverhibák kezelésére."""
     
     if is_json_task:
@@ -37,23 +39,22 @@ def safe_generate_content(prompt, is_json_task=False):
         current_config = types.GenerateContentConfig(
             temperature=0.0,
             response_mime_type="application/json",
-            response_schema=ClusterResult
+            response_schema=schema # Pydantic séma átadása
         )
     else:
         target_model = config.MODEL_LITE_ID
         current_config = types.GenerateContentConfig(
             temperature=0.1
         )
-    
+
     for attempt in range(5):
         try:
-            time.sleep(2)
+            time.sleep(2) # Rate limit védelem az ingyenes szinthez
             response = client.models.generate_content(
                 model=target_model,
                 contents=prompt,
                 config=current_config
             )
-            print(f"model: {target_model}, input tokens: {response.usage_metadata.prompt_token_count}, output tokens: {response.usage_metadata.candidates_token_count}")
             return response.text
         except errors.APIError as e:
             error_msg = str(e).lower()
@@ -61,41 +62,6 @@ def safe_generate_content(prompt, is_json_task=False):
                 wait_time = (attempt + 1) * 10 
                 print(f"API Limit/Túlterhelés. Várakozás {wait_time}mp... (Próbálkozás: {attempt+1}/5)")
                 time.sleep(wait_time)
-            else:
-                raise e
-                
-    return "Hiba: A szerver tartósan túlterhelt."
-    
-def safe_generate_content(prompt, is_json_task=False):
-    """Újrapróbálkozó függvény API limitek és szerverhibák kezelésére."""
-    
-    # 1. Állapot: Klaszterezés és pontozás (Precíziós feladat)
-    if is_json_task:
-        target_model = config.MODEL_ID
-        current_config = types.GenerateContentConfig(
-            temperature=0.0,
-            response_mime_type="application/json"
-        )
-    # 2. Állapot: Összefoglaló írása (Kreatív/szöveges feladat)
-    else:
-        target_model = config.MODEL_LITE_ID
-        current_config = types.GenerateContentConfig(
-            temperature=0.1
-        )
-
-    for attempt in range(3): # Max 3 próbálkozás
-        try:
-            response = client.models.generate_content(
-                model=target_model,
-                contents=prompt,
-                config=current_config
-            )
-            print(f"model: {target_model}, input tokens: {response.usage_metadata.prompt_token_count}, output tokens: {response.usage_metadata.candidates_token_count}")
-            return response.text
-        except errors.ServerError as e:
-            if "503" in str(e) or "high demand" in str(e):
-                print(f"Szerver túlterhelt, várakozás... (Próbálkozás: {attempt+1}/3)")
-                time.sleep(5) # Vár 5 másodpercet az újabb próbálkozás előtt
             else:
                 raise e
     return "Hiba: A szerver tartósan túlterhelt."
@@ -109,10 +75,8 @@ def fetch_news():
     for name, url in config.RSS_SOURCES.items():
         try:
             feed = feedparser.parse(url)
-            # Forrásonként az utolsó 10 hírt vesszük figyelembe
             for entry in feed.entries[:10]:
                 summary = entry.get('summary', entry.get('description', ''))
-                # Tisztítás: HTML tagek eltávolítása és hossz korlátozása
                 clean_summary = re.sub('<[^<]+?>', '', summary)[:600]
                 
                 news_pool.append({
@@ -137,12 +101,11 @@ def get_gemini_embeddings(texts):
     return [embedding.values for embedding in response.embeddings]
 
 def cluster_news(news_pool):
-    """Hibrid klaszterezés: Embedding előszűrés + LLM validáció."""
+    """Hibrid klaszterezés: Embedding előszűrés + LLM validáció sémával."""
     if not news_pool:
-        return "[]"
+        return []
 
     print("Vektorizálás...")
-    # 1. Szövegek előkészítése (Cím + Rövidített kivonat)
     texts_to_embed = [
         f"CÍM: {n['title']} KIVONAT: {n.get('summary', '')[:200].replace('\n', ' ')}" 
         for n in news_pool
@@ -150,7 +113,6 @@ def cluster_news(news_pool):
     embeddings = get_gemini_embeddings(texts_to_embed)
 
     print("Matematikai csoportosítás...")
-    # 2. Csoportok kialakítása távolság alapján (a 0.35-ös értéket később lehet finomítani)
     clustering = AgglomerativeClustering(
         n_clusters=None,
         distance_threshold=0.35,
@@ -165,112 +127,61 @@ def cluster_news(news_pool):
     final_clusters = []
     
     print(f"LLM validáció {len(groups)} csoporton...")
-    # 3. Csoportok beküldése az LLM-nek egyesével
     for label, items in groups.items():
         formatted_list = ""
         for n in items:
             summary_slice = n['summary'][:200].replace('\n', ' ')
             formatted_list += f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {summary_slice}\n"
 
+        # A prompt sokkal rövidebb, mert a Pydantic séma leírja a formátumot!
         prompt = f"""
         Te egy elit hírszerkesztő vagy. A feladatod a hírek csoportosítása és pontozása.
         
         SZABÁLYOK:
         1. Csak azokat a híreket tartsd meg a csoportban, amelyek TÉNYLEG ugyanarról az eseményről szólnak (Helyszín-elv!).
-        2. Ha egy hír (ID) kilóg a csoportból, egyszerűen hagyd ki az 'ids' listából.        
-
+        2. Ha egy hír (ID) kilóg a csoportból, egyszerűen hagyd ki az 'ids' listából.
+        
         Hírek:
         {formatted_list}
         """
 
-        ai_response = safe_generate_content(prompt, is_json_task=True)
+        ai_response = safe_generate_content(prompt, is_json_task=True, schema=ClusterResult)
+        
         try:
-            cluster_data = json.loads(ai_response) 
+            # A válasz egy tiszta JSON string, egyből parse-olható
+            cluster_data = json.loads(ai_response)
             if cluster_data and cluster_data.get('ids'):
                 final_clusters.append(cluster_data)
         except Exception as e:
             print(f"Hiba a csoport feldolgozásánál: {e}")
-            
-    # A régi parse_clusters miatt visszaalakítjuk stringgé a teljes listát
-    return json.dumps(final_clusters)
-    
-def cluster_news_old(news_pool):
-    formatted_list = ""
-    for n in news_pool:
-        summary_slice = n['summary'][:200].replace('\n', ' ')
-        formatted_list += f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {summary_slice}\n"
 
-    prompt = f"""
-    Te egy elit hírszerkesztő vagy, aki csak a legfontosabb gazdasági és politikai hírekre koncentrál. 
-    A feladatod a hírek csoportosítása, pontozása és a lényegtelen zaj kiszűrése.
-    Használd a CÍMET és a KIVONATOT is az esemény pontos azonosításához és a helyszín meghatározásához.
+    # Nincs több json.dumps()! Közvetlenül a Python listát adjuk vissza.
+    return final_clusters
 
-    SZABÁLYOK:
-    1. KONKRÉT ESEMÉNY: Csak azokat a híreket tedd egy csoportba, amelyek TÉNYLEG ugyanarról a konkrét eseményről szólnak.
-    2. HELYSZÍN-ELV: Ha két hír helyszíne eltér, NE vond össze őket iparági hasonlóság miatt!
-       - TILOS: Kongói bánya + Debreceni akkugyár = KÉT KÜLÖN CSOPORT.
-       - SZABAD: Ukrán pénzszállító + Ukrán miniszteri reakció = EGY CSOPORT (közvetlen ok-okozati kapcsolat).
-    3. PONTOZÁSI LOGIKA (Minden mező 1-10):
-        - relevance: Mennyire kritikus a magyar vagy globális gazdaság/politika szempontjából.
-        - impact: Az esemény súlya (pl. háború, nagyvállalati csőd = 10; kisebb nyilatkozat = 3).
-        - novelty: Mennyire tartalmaz új, eddig ismeretlen információt.
-    4. Kategorizáld a híreket.
-    KATEGÓRIÁK:
-    - HAZAI: Magyarországi esemény, vagy külföldi esemény ami KÖZVETLENÜL érinti Magyarországot (pl. EU döntés rólunk).
-    - GLOBÁLIS: Világszintű nagy hír (USA választás, világgazdaság, háborúk).
-    - EGYÉB: Fontos, de távolabbi vagy specifikusabb hírek.
-    5. A válasz CSAK egy érvényes JSON lista legyen, semmi más szöveg!
-
-    VÁRT JSON FORMÁTUM:
-    [
-      {{
-        "name": "Esemény neve (Helyszín)",
-        "category": "HAZAI",
-        "scores": {{
-            "relevance": 9,
-            "impact": 8,
-            "novelty": 10
-        }},
-        "ids": [1, 2]
-      }}
-    ]
-
-    Hírek listája:
-    {formatted_list}
-    """
-
-    response = safe_generate_content(prompt, True)
-    return response
-
-def parse_clusters(ai_response):
+def parse_clusters(clusters_data):
+    """Pontozás és szűrés a kész Python listán."""
     try:
-        clean_json = ai_response.strip().replace('```json', '').replace('```', '').strip()
-        data = json.loads(clean_json)
-        
         filtered = []
-        for c in data:
+        # Itt már egy kész dict listát kapunk a json string helyett
+        for c in clusters_data:
             s = c.get('scores', {})
-            # Súlyozott átlag számítása: a relevancia és a hatás fontosabb, mint a novelty
-            # Képlet: (Relevancia * 0.4) + (Hatás * 0.4) + (Újdonság * 0.2)
             weighted_score = (s.get('relevance', 0) * 0.4) + \
                              (s.get('impact', 0) * 0.4) + \
                              (s.get('novelty', 0) * 0.2)
             
-            # Mentjük a kiszámolt pontot a rendezéshez
             c['total_score'] = round(weighted_score, 1)
             
-            # Csak akkor engedjük át, ha a súlyozott pontszám eléri a 6-ot
             if weighted_score >= 6:
                 filtered.append(c)
         
         filtered.sort(key=lambda x: x['total_score'], reverse=True)
         return filtered
     except Exception as e:
-        print(f"JSON Parse/Scoring Hiba: {e}")
+        print(f"Scoring Hiba: {e}")
         return []
 
 def summarize_event(cluster_name, ids, news_pool):
-    """Második fázis: Egy adott csoport híreiből készít egyetlen összefoglalót."""
+    """Lite modelles összefoglaló generálás."""
     relevant_news = [n for n in news_pool if n['id'] in ids]
     sources_set = set([n['source'] for n in relevant_news])
     sources_str = ", ".join(sources_set)
@@ -290,49 +201,35 @@ def summarize_event(cluster_name, ids, news_pool):
     return final_text
 
 def send_split_message(chat_id, text):
-    """
-    Feldarabolja az üzenetet 3900 karakterenként a legközelebbi új sornál,
-    és minden részt ellát egy (X/Y) sorszámmal.
-    """
+    """Feldarabolja az üzenetet Telegramra."""
     MAX_CHARS = 3900
-    
-    # Ha belefér egybe, csak a sima fejlécet kapja
     if len(text) <= MAX_CHARS:
         bot.send_message(chat_id, f"🗞 AI HÍRELEMZÉS (1/1)\n\n{text}")
         return
 
-    # Kiszámoljuk a darabokat (közelítőleg)
-    # Először listába gyűjtjük a részeket, hogy tudjuk a végleges darabszámot
     parts = []
     temp_text = text
-    
     while temp_text:
         if len(temp_text) <= MAX_CHARS:
             parts.append(temp_text.strip())
             break
         
-        # Keressük az utolsó dupla sortörést (bekezdés végét) a 3900. karakter előtt
         split_index = temp_text.rfind('\n\n', 0, MAX_CHARS)
-        
-        # Ha nincs dupla, keressünk sima sortörést
         if split_index == -1:
             split_index = temp_text.rfind('\n', 0, MAX_CHARS)
-        
-        # Ha így sincs, vágjuk le fixen
         if split_index == -1:
             split_index = MAX_CHARS
             
         parts.append(temp_text[:split_index].strip())
         temp_text = temp_text[split_index:].strip()
 
-    # Most elküldjük a részeket a sorszámozott fejléccel
     total_parts = len(parts)
     for i, part in enumerate(parts, 1):
         header = f"🗞 AI HÍRELEMZÉS ({i}/{total_parts})\n\n"
         bot.send_message(chat_id, header + part)
 
 def generate_rss_file(reports, filename="rss_output.xml"):
-    """Létrehoz egy RSS feedet az összefoglalt hírekből."""
+    """RSS feed generálása."""
     fg = FeedGenerator()
     fg.id('https://github.com/your-repo/ai-news-agent')
     fg.title('AI Hírelemző Összefoglaló')
@@ -342,7 +239,6 @@ def generate_rss_file(reports, filename="rss_output.xml"):
     fg.description('Napi politikai és gazdasági összefoglalók több forrás alapján')
 
     for report in reports:
-        # A jelentés első sorát (a címet) használjuk az RSS bejegyzés címének
         lines = report.split('\n')
         title = lines[0].replace('📌', '').strip()
         content = "\n".join(lines[1:])
@@ -367,54 +263,44 @@ def main():
 
     print(f"Összesen {len(news_pool)} hír beolvasva. Csoportosítás és pontozás...")
     
-    # 1. Csoportosítás JSON formátumban
-    # A manual_config-ot itt üresen hagyjuk, hogy a JSON kényszerítést használja
-    cluster_json_raw = cluster_news(news_pool)
-    clusters = parse_clusters(cluster_json_raw)
+    # Közvetlenül megkapjuk a listát
+    raw_clusters = cluster_news(news_pool)
+    clusters = parse_clusters(raw_clusters)
 
     if not clusters:
-        print("Nem születtek releváns hírcsoportok (vagy JSON hiba történt).")
+        print("Nem születtek releváns hírcsoportok.")
         return
 
-    # 2. Szétválogatás kategóriák szerint (Dictionary-k listáját kapjuk)
     hazai = [c for c in clusters if c.get('category') == 'HAZAI'][:10]
     globalis = [c for c in clusters if c.get('category') == 'GLOBÁLIS'][:10]
     egyeb = [c for c in clusters if c.get('category') == 'EGYÉB'][:10]
 
     final_reports = []
     
-    # Segédfüggvény a szekciók feldolgozásához és címkézéséhez
     def process_section(section_list, section_title):
         if section_list:
             final_reports.append(f"--- {section_title} ({len(section_list)} esemény) ---")
             for item in section_list:
-                # Az item['name'] és item['ids'] a JSON-ból jön
                 report = summarize_event(item['name'], item['ids'], news_pool)
                 final_reports.append(report)
 
-    # 3. Összefoglalók generálása a kért sorrendben
     print("Összefoglalók készítése szekciónként...")
     process_section(hazai, "MAGYARORSZÁG ÉS RELEVÁNS HÍREK")
     process_section(globalis, "KIEMELT GLOBÁLIS ESEMÉNYEK")
     process_section(egyeb, "EGYÉB FONTOS HÍREK A VILÁGBÓL")
 
-    # 4. Kimenetek kezelése
-    reports_count = len(clusters) # Az eredeti csoportok száma (a címek nélkül)
+    reports_count = len(clusters)
     
     if len(final_reports) > 0:
         print(f"Kész! {reports_count} releváns esemény összefoglalva.")
-        
-        # Teljes üzenet összefűzése a Telegramhoz
         full_message = "\n\n".join(final_reports)
         
-        # Küldés Telegramra darabolva
         try:
             print("Küldés Telegramra...")
             send_split_message(config.TELEGRAM_CHAT_ID, full_message)
         except Exception as e:
             print(f"Telegram hiba: {e}")
 
-        # RSS fájl mentése
         try:
             generate_rss_file(final_reports, "rss_output.xml")
         except Exception as e:

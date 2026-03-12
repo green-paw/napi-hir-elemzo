@@ -122,7 +122,7 @@ def cluster_news(news_pool):
 
     clustering = AgglomerativeClustering(
         n_clusters=None,
-        distance_threshold=0.3, # Szigorúbb küszöb (0.35 helyett)
+        distance_threshold=0.15,
         metric='cosine',
         linkage='complete' # Szigorúbb láncolás (average helyett)
     ).fit(embeddings)

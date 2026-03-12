@@ -27,7 +27,10 @@ class ClusterResult(BaseModel):
     ids: List[int] = Field(description="A csoportba ténylegesen beleillő hírek ID-jai")
 
 # --- Konfiguráció inicializálása ---
-client = genai.Client(api_key=config.GOOGLE_API_KEY)
+client = genai.Client(
+    api_key=config.GOOGLE_API_KEY, 
+    http_options={'api_version': 'v1beta'}
+)
 bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
 
 def smart_truncate(text, max_length=600):
@@ -99,10 +102,9 @@ def get_gemini_embeddings(texts):
     # 100-asával daraboljuk a listát
     for i in range(0, len(texts), 100):
         batch = texts[i:i + 100]
-        print(f"Embedding lekérése: {i+1} - {min(i+100, len(texts))} / {len(texts)}")
         
         response = client.models.embed_content(
-            model="gemini-embedding-001",
+            model="text-embedding-004",
             contents=batch,
             config=types.EmbedContentConfig(task_type="CLUSTERING")
         )
@@ -147,12 +149,20 @@ def cluster_news(news_pool):
     3. A 'category' (HAZAI/GLOBÁLIS/EGYÉB) besorolásnál a magyar vonatkozású híreket mindig jelöld HAZAI-nak.
     4. Pontozd az eseményt a megadott szempontok szerint."""
 
+    i = 0
     for label, items in groups.items():
         # SZŰRÉS: Ha csak 1 hír van a matematikai csoportban, eldobjuk
         if len(items) < 2:
             continue
             
         formatted_list = "\n".join([f"ID:{n['id']} | CÍM: {n['title']}" for n in items])
+
+        if i == 5:
+            i = 0
+            time.sleep(2)
+            print("...")
+        else:
+            i = i + 1 
         ai_response = safe_generate_content(f"Hírek:\n{formatted_list}", True, sys_instruct)
 
         if ai_response and isinstance(ai_response, str): # Ellenőrizzük, hogy string-e

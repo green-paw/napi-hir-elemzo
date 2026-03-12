@@ -122,11 +122,16 @@ def cluster_news(news_pool):
 
     clustering = AgglomerativeClustering(
         n_clusters=None,
-        distance_threshold=0.22, # Szigorúbb küszöb (0.35 helyett)
+        distance_threshold=0.3, # Szigorúbb küszöb (0.35 helyett)
         metric='cosine',
         linkage='complete' # Szigorúbb láncolás (average helyett)
     ).fit(embeddings)
-    
+
+    # A cluster_news függvényben a .fit(embeddings) után:
+    print(f"--- Klaszterezési statisztika ---")
+    print(f"Talált csoportok száma: {clustering.n_clusters_}")
+    print(f"Hírek besorolása (labels): {clustering.labels_}") # Megmutatja, melyik hír melyik sorszámú csoportba került
+
     groups = {}
     for idx, label in enumerate(clustering.labels_):
         groups.setdefault(label, []).append(news_pool[idx])

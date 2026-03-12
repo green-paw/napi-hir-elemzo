@@ -203,12 +203,16 @@ def main():
     if not clusters: return
 
     final_reports = []
+
     for cat, title in [('HAZAI', 'MAGYARORSZÁG'), ('GLOBÁLIS', 'VILÁGHÍREK'), ('EGYÉB', 'EGYÉB')]:
         items = [c for c in clusters if c.get('category') == cat][:10]
         if items:
             final_reports.append(f"--- {title} ---")
             for item in items:
-                final_reports.append(summarize_event(item['name'], item['ids'], news_pool))
+                # Opcionális: írjuk ki a pontszámot a debug kedvéért
+                report = summarize_event(item['name'], item['ids'], news_pool)
+                final_reports.append(f"Score: {item['total_score']}\n{report}") # Ha látni akarod a pontot
+                #final_reports.append(report)
 
     if final_reports:
         send_split_message(config.TELEGRAM_CHAT_ID, "\n\n".join(final_reports))

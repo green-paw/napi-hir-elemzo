@@ -125,8 +125,15 @@ def cluster_news(news_pool):
         
         SZABÁLYOK:
         1. Csak azokat a híreket tartsd meg a csoportban, amelyek TÉNYLEG ugyanarról az eseményről szólnak (Helyszín-elv!).
-        2. Pontozás (1-10): relevance, impact, novelty.
-        3. KATEGÓRIÁK: HAZAI, GLOBÁLIS vagy EGYÉB.
+        2. PONTOZÁSI LOGIKA (Minden mező 1-10):
+            - relevance: Mennyire kritikus a magyar vagy globális gazdaság/politika szempontjából.
+            - impact: Az esemény súlya (pl. háború, nagyvállalati csőd = 10; kisebb nyilatkozat = 3).
+            - novelty: Mennyire tartalmaz új, eddig ismeretlen információt.
+        3. Kategorizáld a híreket.
+            KATEGÓRIÁK:
+            - HAZAI: Magyarországi esemény, vagy külföldi esemény ami KÖZVETLENÜL érinti Magyarországot (pl. EU döntés rólunk).
+            - GLOBÁLIS: Világszintű nagy hír (USA választás, világgazdaság, háborúk).
+            - EGYÉB: Fontos, de távolabbi vagy specifikusabb hírek.
         4. A válasz CSAK egy érvényes JSON objektum legyen!
         
         VÁRT JSON FORMÁTUM:

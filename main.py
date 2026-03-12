@@ -31,6 +31,8 @@ def safe_generate_content(prompt, manual_config=None):
                 contents=prompt,
                 config=current_config
             )
+            print("input tokens:", response.usage_metadata.prompt_token_count)
+            print("output tokens:", response.usage_metadata.candidates_token_count)
             return response.text
         except errors.ServerError as e:
             if "503" in str(e) or "high demand" in str(e):

@@ -38,8 +38,7 @@ def safe_generate_content(prompt, is_json_task=False):
                 contents=prompt,
                 config=current_config
             )
-            print("input tokens:", response.usage_metadata.prompt_token_count)
-            print("output tokens:", response.usage_metadata.candidates_token_count)
+            print(f"model: {target_model}, input tokens: {response.usage_metadata.prompt_token_count}, output tokens: {response.usage_metadata.candidates_token_count}")
             return response.text
         except errors.ServerError as e:
             if "503" in str(e) or "high demand" in str(e):
@@ -76,7 +75,88 @@ def fetch_news():
             
     return news_pool
 
+def get_gemini_embeddings(texts):
+    """Vektorok lekérése a Gemini text-embedding-004 modellel."""
+    response = client.models.embed_content(
+        model="text-embedding-004",
+        contents=texts,
+        config=types.EmbedContentConfig(task_type="CLUSTERING")
+    )
+    return [embedding.values for embedding in response.embeddings]
+
 def cluster_news(news_pool):
+    """Hibrid klaszterezés: Embedding előszűrés + LLM validáció."""
+    if not news_pool:
+        return "[]"
+
+    print("Vektorizálás...")
+    # 1. Szövegek előkészítése (Cím + Rövidített kivonat)
+    texts_to_embed = [
+        f"CÍM: {n['title']} KIVONAT: {n.get('summary', '')[:200].replace('\n', ' ')}" 
+        for n in news_pool
+    ]
+    embeddings = get_gemini_embeddings(texts_to_embed)
+
+    print("Matematikai csoportosítás...")
+    # 2. Csoportok kialakítása távolság alapján (a 0.35-ös értéket később lehet finomítani)
+    clustering = AgglomerativeClustering(
+        n_clusters=None,
+        distance_threshold=0.35,
+        metric='cosine',
+        linkage='average'
+    ).fit(embeddings)
+
+    groups = {}
+    for idx, label in enumerate(clustering.labels_):
+        groups.setdefault(label, []).append(news_pool[idx])
+
+    final_clusters = []
+    
+    print(f"LLM validáció {len(groups)} csoporton...")
+    # 3. Csoportok beküldése az LLM-nek egyesével
+    for label, items in groups.items():
+        formatted_list = ""
+        for n in items:
+            summary_slice = n['summary'][:200].replace('\n', ' ')
+            formatted_list += f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {summary_slice}\n"
+
+        prompt = f"""
+        Te egy elit hírszerkesztő vagy. A feladatod a hírek csoportosítása és pontozása.
+        
+        SZABÁLYOK:
+        1. Csak azokat a híreket tartsd meg a csoportban, amelyek TÉNYLEG ugyanarról az eseményről szólnak (Helyszín-elv!).
+        2. Pontozás (1-10): relevance, impact, novelty.
+        3. KATEGÓRIÁK: HAZAI, GLOBÁLIS vagy EGYÉB.
+        4. A válasz CSAK egy érvényes JSON objektum legyen!
+        
+        VÁRT JSON FORMÁTUM:
+        {{
+            "name": "Esemény neve",
+            "category": "HAZAI",
+            "scores": {{"relevance": 9, "impact": 8, "novelty": 10}},
+            "ids": [ide jönnek az egyező ID-k]
+        }}
+        
+        Hírek:
+        {formatted_list}
+        """
+
+        # Az új, egyszerűsített hívás: is_json_task=True kényszeríti a JSON-t és a sima Flash modellt
+        ai_response = safe_generate_content(prompt, is_json_task=True)
+        
+        try:
+            # Rögtön feldolgozzuk a JSON-t
+            clean_json = ai_response.strip().replace('```json', '').replace('```', '').strip()
+            cluster_data = json.loads(clean_json)
+            if cluster_data and cluster_data.get('ids'):
+                final_clusters.append(cluster_data)
+        except Exception as e:
+            print(f"Hiba a csoport feldolgozásánál: {e}")
+
+    # A régi parse_clusters miatt visszaalakítjuk stringgé a teljes listát
+    return json.dumps(final_clusters)
+    
+def cluster_news_old(news_pool):
     formatted_list = ""
     for n in news_pool:
         summary_slice = n['summary'][:200].replace('\n', ' ')

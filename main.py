@@ -68,7 +68,9 @@ def safe_generate_content(prompt, is_json_task=False, sys_instruct=None):
                 print(f"Limit hiba, várás: {wait_time}s...")
                 time.sleep(wait_time)
             else: raise e
-    return "Hiba: A szerver tartósan túlterhelt."
+    if is_json_task:
+        return "{}" # Üres JSON objektum, hogy a json.loads ne omoljon össze
+    return "Hiba: A tartalom generálása sikertelen."
 
 def fetch_news():
     news_pool = []
@@ -146,17 +148,23 @@ def cluster_news(news_pool):
     4. Pontozd az eseményt a megadott szempontok szerint."""
 
     for label, items in groups.items():
+        # SZŰRÉS: Ha csak 1 hír van a matematikai csoportban, eldobjuk
+        if len(items) < 2:
+            continue
+            
         formatted_list = "\n".join([f"ID:{n['id']} | CÍM: {n['title']}" for n in items])
         ai_response = safe_generate_content(f"Hírek:\n{formatted_list}", True, sys_instruct)
-        try:
-            data = json.loads(ai_response)
-            print(f"DEBUG: Csoport neve: {data.get('name')} | Hírek száma: {len(data.get('ids', []))}")
-            if data and data.get('ids'): 
-                final_clusters.append(data)
-            else:
-                print(f"FIGYELEM: Az AI üresnek ítélte ezt a csoportot: {data.get('name')}")
-        except:
-            print(f"JSON hiba. Nyers válasz: {ai_response[:100]}")
+
+        if ai_response and isinstance(ai_response, str): # Ellenőrizzük, hogy string-e
+            try:
+                data = json.loads(ai_response)
+                print(f"DEBUG: Csoport neve: {data.get('name')} | Hírek száma: {len(data.get('ids', []))}")
+                if data and data.get('ids'): 
+                    final_clusters.append(data)
+                else:
+                    print(f"FIGYELEM: Az AI üresnek ítélte ezt a csoportot: {data.get('name')}")
+            except:
+                print(f"JSON hiba. Nyers válasz: {ai_response[:100]}")
     return final_clusters
 
 def parse_clusters(clusters_data):

@@ -121,9 +121,12 @@ def cluster_news(news_pool):
     embeddings = get_gemini_embeddings(texts)
 
     clustering = AgglomerativeClustering(
-        n_clusters=None, distance_threshold=0.45, metric='cosine', linkage='average'
+        n_clusters=None,
+        distance_threshold=0.22, # Szigorúbb küszöb (0.35 helyett)
+        metric='cosine',
+        linkage='complete' # Szigorúbb láncolás (average helyett)
     ).fit(embeddings)
-
+    
     groups = {}
     for idx, label in enumerate(clustering.labels_):
         groups.setdefault(label, []).append(news_pool[idx])

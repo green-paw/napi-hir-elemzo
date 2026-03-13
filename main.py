@@ -1,4 +1,6 @@
 import config
+import output_handler
+
 import feedparser
 import re
 import telebot
@@ -198,66 +200,42 @@ def summarize_event(cluster_name, ids, news_pool):
     response = safe_generate_content(prompt, sys_instruct=sys_instruct)
     return f"{cluster_name.upper()}\n\n{response.strip()}\n\n(Forrás: {sources})"
 
-def send_split_message(chat_id, text):
-    """
-    Feldarabolja az üzenetet ~3900 karakterenként a legközelebbi új sornál,
-    hogy ne vágja el a szavakat vagy mondatokat.
-    """
-    MAX_CHARS = 3900
-    
-    # Ha belefér egybe, nem daraboljuk
-    if len(text) <= MAX_CHARS:
-        bot.send_message(chat_id, f"🗞 AI HÍRELEMZÉS\n\n{text}")
-        return
-
-    parts = []
-    temp_text = text
-    
-    while temp_text:
-        if len(temp_text) <= MAX_CHARS:
-            parts.append(temp_text.strip())
-            break
-        
-        # Megkeressük az utolsó dupla sortörést (bekezdés vége) a limiten belül
-        split_index = temp_text.rfind('\n\n', 0, MAX_CHARS)
-        
-        # Ha nincs dupla, keressünk sima sortörést
-        if split_index == -1:
-            split_index = temp_text.rfind('\n', 0, MAX_CHARS)
-        
-        # Ha így sincs (nagyon hosszú egybefüggő szöveg), vágjuk le fixen
-        if split_index == -1:
-            split_index = MAX_CHARS
-            
-        parts.append(temp_text[:split_index].strip())
-        temp_text = temp_text[split_index:].strip()
-
-    # Üzenetek küldése sorszámozva
-    total_parts = len(parts)
-    for i, part in enumerate(parts, 1):
-        header = f"🗞 AI HÍRELEMZÉS ({i}/{total_parts})\n\n"
-        bot.send_message(chat_id, header + part)
-
 def main():
     news_pool = fetch_news()
     if not news_pool: return
+    
+    # 1. Klaszterezés és validáció (egyelőre marad sorban futó)
+    # Figyelem: A cluster_news-ban a safe_generate_content-nél 
+    # állítsd be, hogy a LITE modellt használja a validáláshoz!
     clusters = parse_clusters(cluster_news(news_pool))
     if not clusters: return
 
-    final_reports = []
+    # 2. Az adatcsomag összeállítása az output_handler számára
+    final_data_package = []
+    
+    print(f"Összefoglalók készítése {len(clusters)} csoporthoz...")
+    for cluster in clusters:
+        # Összefoglaló legenerálása (Lite)
+        summary_raw = summarize_event(cluster['name'], cluster['ids'], news_pool)
+        
+        # Források kigyűjtése
+        rel_news = [n for n in news_pool if n['id'] in cluster['ids']]
+        sources_str = ", ".join(set([n['source'] for n in rel_news]))
+        
+        # Tisztítás: levágjuk a címet az összefoglaló elejéről, ha benne maradt
+        summary_clean = summary_raw.split('\n\n', 1)[-1] if '\n\n' in summary_raw else summary_raw
 
-    for cat, title in [('HAZAI', 'MAGYARORSZÁG'), ('GLOBÁLIS', 'VILÁGHÍREK'), ('EGYÉB', 'EGYÉB')]:
-        items = [c for c in clusters if c.get('category') == cat][:10]
-        if items:
-            final_reports.append(f"--- {title} ---")
-            for item in items:
-                # Opcionális: írjuk ki a pontszámot a debug kedvéért
-                report = summarize_event(item['name'], item['ids'], news_pool)
-                final_reports.append(f"Score: {item['total_score']}\n{report}") # Ha látni akarod a pontot
-                #final_reports.append(report)
+        # Az elem hozzáadása a listához
+        final_data_package.append({
+            'category': cluster.get('category', 'EGYÉB'),
+            'title': cluster['name'],
+            'summary': summary_clean.strip(),
+            'sources': sources_str,
+            'score': cluster.get('total_score', 0)
+        })
 
-    if final_reports:
-        send_split_message(config.TELEGRAM_CHAT_ID, "\n\n".join(final_reports))
+    # 3. Átadás az output handlernek a küldéshez
+    output_handler.process_and_send(final_data_package)
 
 if __name__ == "__main__":
     main()

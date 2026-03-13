@@ -147,14 +147,14 @@ def cluster_news(news_pool):
     SZABÁLYOK:
     1. Ha két hír ugyanarról a gazdasági bejelentésről vagy politikai eseményről szól, maradjanak egy csoportban, még ha más forrásból is vannak.
     2. A 'name' mező legyen egy rövid, tárgyilagos cím, SZIGORÚAN magyar nyelven! Kivéve cégnevek, azok maradjanak az eredeti formájukban.
-    3. A 'category' (HAZAI/GLOBÁLIS/EGYÉB) besorolásnál a magyar vonatkozású híreket mindig jelöld HAZAI-nak.
+    3. A 'category' (HAZAI/GLOBÁLIS/EGYÉB) besorolásnál a magyar vonatkozású híreket mindig jelöld HAZAI-nak. A világpolitika vagy gazdasági fontos hírek a GLOBÁLIS kategóriába mennek, a jelentéktelenebb külföldi hírek az EGYÉB-be.
     4. Pontozd az eseményt a megadott szempontok szerint."""
 
     i = 0
     for label, items in groups.items():
         # SZŰRÉS: Ha csak 1 hír van a matematikai csoportban, eldobjuk
-        if len(items) < 2:
-            continue
+        #if len(items) < 2:
+        #    continue
             
         # A summary elejét is odaadjuk, hogy lássa a kontextust
         formatted_list = "\n".join([f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {n['summary'][:150]}..." for n in items])
@@ -192,11 +192,22 @@ def parse_clusters(clusters_data):
 
 def summarize_event(cluster_name, ids, news_pool):
     relevant = [n for n in news_pool if n['id'] in ids]
-    sources = ", ".join(set([n['source'] for n in relevant]))
-    text = "\n".join([f"{n['title']}: {n['summary']}" for n in relevant])
+    source_count = len(relevant) # Megszámoljuk a forrásokat
     
-    sys_instruct = "Írj 5 mondatos magyar összefoglalót! Tilos a Markdown (vastagítás, dőlt betű)!"
-    prompt = f"Esemény: {cluster_name}\n\nHírek:\n{text}"
+    # Készítünk egy listát a források neveivel a promptba, hogy az AI lássa az elkülönítést
+    text_parts = []
+    for n in relevant:
+        text_parts.append(f"[{n['source']}]: {n['title']} - {n['summary']}")
+    
+    input_text = "\n".join(text_parts)
+    
+    # Dinamikus utasítás a mondatszámra
+    sys_instruct = f"""Te egy precíz hírszerkesztő vagy. 
+    Írj pontosan {source_count} mondatos magyar összefoglalót! 
+    Az összes forrást használd fel az elemzéshez, ha valamelyik irreleváns információt, érzelmi manipulációt vagy clickbaitet tartalmaz, azt említsd meg.
+    Tilos a Markdown! Csak tiszta szöveg."""
+
+    prompt = f"Esemény: {cluster_name}\n\nForrások száma: {source_count}\n\nHírek:\n{input_text}"
     
     response = safe_generate_content(prompt, sys_instruct=sys_instruct)
     return response.strip()

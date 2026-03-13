@@ -41,7 +41,7 @@ def smart_truncate(text, max_length=600):
 def safe_generate_content(prompt, is_json_task=False, sys_instruct=None):
     """Újrapróbálkozó függvény API limitek és szerverhibák kezelésére."""
     if is_json_task:
-        target_model = config.MODEL_ID
+        target_model = config.MODEL_LITE_ID
         current_config = types.GenerateContentConfig(
             temperature=0.0,
             response_mime_type="application/json",

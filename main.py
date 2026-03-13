@@ -185,9 +185,21 @@ def parse_clusters(clusters_data):
     filtered = []
     for c in clusters_data:
         s = c.get('scores', {})
-        score = (s.get('relevance', 0)*0.4) + (s.get('impact', 0)*0.4) + (s.get('novelty', 0)*0.2)
-        c['total_score'] = round(score, 1)
-        if score >= 5: filtered.append(c)
+        # 1. Alappontszám kiszámítása (1-10 skálán)
+        base_score = (s.get('relevance', 0)*0.4) + (s.get('impact', 0)*0.4) + (s.get('novelty', 0)*0.2)
+        
+        # 2. Források számának lekérése az ID listából
+        source_count = len(c.get('ids', []))
+        
+        # 3. Szorzás és kerekítés
+        # Csak akkor számolunk tovább, ha az alappontszám eléri a küszöböt
+        if base_score >= 5:
+            # Itt szorzunk a források számával
+            final_score = round(base_score * source_count, 1)
+            c['total_score'] = final_score
+            filtered.append(c)
+            
+    # A rendezés most már a felszorzott pontszám alapján történik
     return sorted(filtered, key=lambda x: x['total_score'], reverse=True)
 
 def summarize_event(cluster_name, ids, news_pool):

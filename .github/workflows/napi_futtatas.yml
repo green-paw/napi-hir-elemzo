@@ -1,12 +1,12 @@
-name: AI News Analysis with Memory
+name: AI News Analysis with HTML Archive
 
 on:
   schedule:
     - cron: '19 6,18 * * *'
-  workflow_dispatch: # Lehetővé teszi a manuális indítást a GitHub felületén
+  workflow_dispatch: # Manuális indítás lehetősége
 
 permissions:
-  contents: write  # Ez kulcsfontosságú a history.json visszamentéséhez!
+  contents: write  # Engedély az index.html visszamásolásához a repóba
 
 jobs:
   analyze_and_save:
@@ -16,7 +16,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Teljes múlt lekérése a commitoláshoz
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install google-genai feedparser requests feedgen pyTelegramBotAPI pytz scikit-learn
+          pip install google-genai feedparser requests pyTelegramBotAPI pytz scikit-learn
 
       - name: Run AI News Agent
         env:
@@ -35,16 +35,22 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python main.py
 
-      - name: Save memory and RSS
+      - name: Commit and Push HTML Archive
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add history.json rss_output.xml  # Itt hozzáadtuk az RSS-t is
           
-          # Ellenőrizzük, van-e változás, hogy ne hibázzon, ha nincs új hír
-          if git diff --quiet && git diff --staged --quiet; then
-            echo "Nincs változás."
+          # Csak az index.html-t adjuk hozzá
+          if [ -f index.html ]; then
+            git add index.html
+            
+            # Csak akkor commitolunk, ha tényleg változott a HTML
+            if git diff --quiet && git diff --staged --quiet; then
+              echo "Nincs változás a HTML fájlban."
+            else
+              git commit -m "Hírarchívum frissítése (HTML) [skip ci]"
+              git push
+            fi
           else
-            git commit -m "Hírek és RSS frissítése [skip ci]"
-            git push
+            echo "Hiba: Az index.html nem jött létre!"
           fi

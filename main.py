@@ -216,7 +216,7 @@ def main():
     print(f"Összefoglalók készítése {len(clusters)} csoporthoz...")
     for cluster in clusters:
         # Összefoglaló legenerálása (Lite)
-        summary_raw = summarize_event(cluster['name'], cluster['ids'], news_pool)
+        summary = summarize_event(cluster['name'], cluster['ids'], news_pool).strip()
         
         # Források kigyűjtése
         rel_news = [n for n in news_pool if n['id'] in cluster['ids']]
@@ -226,7 +226,7 @@ def main():
         final_data_package.append({
             'category': cluster.get('category', 'EGYÉB'),
             'title': cluster['name'],
-            'summary': summary_clean.strip(),
+            'summary': summary,
             'sources': sources_str,
             'score': cluster.get('total_score', 0)
         })

@@ -41,9 +41,11 @@ def smart_truncate(text, max_length=600):
     return truncated + "..."
 
 def safe_generate_content(prompt, is_json_task=False, sys_instruct=None):
+    target_model = config.MODEL_LITE_ID
+
     """Újrapróbálkozó függvény API limitek és szerverhibák kezelésére."""
     if is_json_task:
-        target_model = config.MODEL_LITE_ID
+        #target_model = config.MODEL_ID
         current_config = types.GenerateContentConfig(
             temperature=0.0,
             response_mime_type="application/json",
@@ -51,7 +53,6 @@ def safe_generate_content(prompt, is_json_task=False, sys_instruct=None):
             system_instruction=sys_instruct
         )
     else:
-        target_model = config.MODEL_LITE_ID
         current_config = types.GenerateContentConfig(
             temperature=0.1,
             system_instruction=sys_instruct
@@ -147,7 +148,7 @@ def cluster_news(news_pool):
     Feladatod: A megadott hírek közül válaszd ki azokat, amelyek ugyanarról az alapvető eseményről szólnak.
     SZABÁLYOK:
     1. Ha két hír ugyanarról a gazdasági bejelentésről vagy politikai eseményről szól, maradjanak egy csoportban, még ha más forrásból is vannak.
-    2. A 'name' mező legyen egy rövid, figyelemfelkeltő cím.
+    2. A 'name' mező legyen egy rövid, tárgyilagos cím, magyar nyelven.
     3. A 'category' (HAZAI/GLOBÁLIS/EGYÉB) besorolásnál a magyar vonatkozású híreket mindig jelöld HAZAI-nak.
     4. Pontozd az eseményt a megadott szempontok szerint."""
 
@@ -174,6 +175,7 @@ def cluster_news(news_pool):
                 if data and data.get('ids'): 
                     final_clusters.append(data)
                 else:
+                    titles = [n['title'] for n in items]
                     titles_str = "\n - ".join(titles)
                     print(f"⚠️ AI elutasította a csoportot, mert ezek nem illenek össze:\n - {titles_str}")
             except:
@@ -198,15 +200,13 @@ def summarize_event(cluster_name, ids, news_pool):
     prompt = f"Esemény: {cluster_name}\n\nHírek:\n{text}"
     
     response = safe_generate_content(prompt, sys_instruct=sys_instruct)
-    return f"{cluster_name.upper()}\n\n{response.strip()}\n\n(Forrás: {sources})"
+    return response.strip()
 
 def main():
     news_pool = fetch_news()
     if not news_pool: return
     
     # 1. Klaszterezés és validáció (egyelőre marad sorban futó)
-    # Figyelem: A cluster_news-ban a safe_generate_content-nél 
-    # állítsd be, hogy a LITE modellt használja a validáláshoz!
     clusters = parse_clusters(cluster_news(news_pool))
     if not clusters: return
 
@@ -222,9 +222,6 @@ def main():
         rel_news = [n for n in news_pool if n['id'] in cluster['ids']]
         sources_str = ", ".join(set([n['source'] for n in rel_news]))
         
-        # Tisztítás: levágjuk a címet az összefoglaló elejéről, ha benne maradt
-        summary_clean = summary_raw.split('\n\n', 1)[-1] if '\n\n' in summary_raw else summary_raw
-
         # Az elem hozzáadása a listához
         final_data_package.append({
             'category': cluster.get('category', 'EGYÉB'),

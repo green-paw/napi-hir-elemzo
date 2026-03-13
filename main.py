@@ -7,8 +7,6 @@ import telebot
 import time
 import json
 from datetime import datetime
-import pytz
-from feedgen.feed import FeedGenerator
 
 from google import genai
 from google.genai import types, errors

@@ -44,7 +44,7 @@ def generate_html(final_data_package):
             for item in items:
                 html_template += f"""
                 <div class="news-card">
-                    <span class="score">{item['score']}/10</span>
+                    <span class="score">{item['score']}</span>
                     <div class="title">{item['title']}</div>
                     <div class="summary">{item['summary']}</div>
                     <div class="sources">Források: {item['sources']}</div>

@@ -148,7 +148,7 @@ def cluster_news(news_pool):
     Feladatod: A megadott hírek közül válaszd ki azokat, amelyek ugyanarról az alapvető eseményről szólnak.
     SZABÁLYOK:
     1. Ha két hír ugyanarról a gazdasági bejelentésről vagy politikai eseményről szól, maradjanak egy csoportban, még ha más forrásból is vannak.
-    2. A 'name' mező legyen egy rövid, tárgyilagos cím, magyar nyelven.
+    2. A 'name' mező legyen egy rövid, tárgyilagos cím, SZIGORÚAN magyar nyelven! Kivéve cégnevek, azok maradjanak az eredeti formájukban.
     3. A 'category' (HAZAI/GLOBÁLIS/EGYÉB) besorolásnál a magyar vonatkozású híreket mindig jelöld HAZAI-nak.
     4. Pontozd az eseményt a megadott szempontok szerint."""
 
@@ -158,8 +158,9 @@ def cluster_news(news_pool):
         if len(items) < 2:
             continue
             
-        formatted_list = "\n".join([f"ID:{n['id']} | CÍM: {n['title']}" for n in items])
-
+        # A summary elejét is odaadjuk, hogy lássa a kontextust
+        formatted_list = "\n".join([f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {n['summary'][:150]}..." for n in items])
+        
         if i == 5:
             i = 0
             time.sleep(2)

@@ -145,6 +145,9 @@ def main():
     # 1. Lekérés
     raw_news = fetch_news()
     if not raw_news: return
+
+    for item in raw_news:
+        item['title'] = translate_if_needed(item['title'])
     
     # 2. Stratégiai témák kinyerése (AI Flash motor)
     titles_only = "\n".join([f"{i+1}. {n['title']}" for i, n in enumerate(raw_news)])

@@ -1,11 +1,10 @@
 import config
 import output_handler
-from gemini_handler import get_strategic_topics, validate_news_clusters, generate_event_summary
+from gemini_handler import get_strategic_topics, validate_news_clusters, generate_event_summary, get_gemini_embeddings
 
 import feedparser
 import re
 import telebot
-import time
 import json
 import math
 from datetime import datetime
@@ -54,21 +53,6 @@ def fetch_news():
                 item_id += 1
         except Exception as e: print(f"Hiba ({name}): {e}")
     return news_pool
-
-def get_gemini_embeddings(texts):
-    """Vektorok lekérése 100-as csomagokban (Batch limit kezelése)."""
-    all_embeddings = []
-    for i in range(0, len(texts), 100):
-        batch = texts[i:i + 100]
-        response = client.models.embed_content(
-            model="gemini-embedding-001", # Később érdemes lehet text-embedding-04-re váltani
-            contents=batch,
-            config=types.EmbedContentConfig(task_type="CLUSTERING")
-        )
-        all_embeddings.extend([embedding.values for embedding in response.embeddings])
-        if len(texts) > 100:
-            time.sleep(1)
-    return all_embeddings
 
 # --- ÚJ: Szemantikus szűrő matematikai alapjai ---
 def cosine_similarity(v1, v2):

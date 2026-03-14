@@ -68,31 +68,25 @@ def semantic_filter(news_pool, topics):
         return news_pool
 
     print(f"🔍 Szemantikus szűrés indítása {len(news_pool)} híren...")
-    print(f"DEBUG: Témák listája ({len(topics)} db): {topics[:3]}...") # Megnézzük, mik a témák
-
+    
     topic_embeddings = get_gemini_embeddings(topics)
-    news_texts = [f"{n['title']} {n.get('summary', '')[:200]}" for n in news_pool]
+    
+    # Próbáljuk meg CSAK a címmel, hogy élesebb legyen a különbség
+    news_texts = [n['title'] for n in news_pool] 
     news_embeddings = get_gemini_embeddings(news_texts)
 
-    # KRITIKUS ELLENŐRZÉS: Megkaptuk a vektorokat mindenre?
-    print(f"DEBUG: Vektorok száma - Témák: {len(topic_embeddings)}, Hírek: {len(news_embeddings)}")
-
     filtered_news = []
-    threshold = 0.7
+    
+    # ÚJ KÜSZÖB: Próbáljuk meg a 0.88-at
+    threshold = 0.88 
 
     for i, n_emb in enumerate(news_embeddings):
-        # Kiszámoljuk az összes hasonlóságot az adott hírre
         similarities = [cosine_similarity(n_emb, t_emb) for t_emb in topic_embeddings]
-        
-        if not similarities:
-            continue
+        if not similarities: continue
             
         max_sim = max(similarities)
         
-        # Kiíratjuk az első 3 hír eredményét, hogy lássuk a számokat
-        if i < 3:
-            print(f"DEBUG: Hír: '{news_pool[i]['title'][:40]}...' | Max sim: {max_sim:.4f}")
-
+        # Ez a rész maradhat a debughoz, amíg be nem állítod a tökéletes értéket
         if max_sim >= threshold:
             news_pool[i]['match_score'] = round(max_sim, 2)
             filtered_news.append(news_pool[i])

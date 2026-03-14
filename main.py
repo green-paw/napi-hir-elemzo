@@ -74,7 +74,7 @@ def semantic_filter(news_pool, topics):
     news_embeddings = get_gemini_embeddings(news_texts)
 
     filtered_news = []
-    threshold = 0.45  # Állítsd be szigorúbbra (pl. 0.5), ha sok a szemét
+    threshold = 0.7  # Állítsd be szigorúbbra (pl. 0.5), ha sok a szemét
 
     for i, n_emb in enumerate(news_embeddings):
         max_sim = max([cosine_similarity(n_emb, t_emb) for t_emb in topic_embeddings])

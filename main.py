@@ -64,20 +64,35 @@ def cosine_similarity(v1, v2):
     return dot_product / (magnitude1 * magnitude2)
 
 def semantic_filter(news_pool, topics):
-    """Kiejti azokat a híreket, amik nem kapcsolódnak az AI által generált fő témákhoz."""
     if not topics or not news_pool: 
         return news_pool
 
     print(f"🔍 Szemantikus szűrés indítása {len(news_pool)} híren...")
+    print(f"DEBUG: Témák listája ({len(topics)} db): {topics[:3]}...") # Megnézzük, mik a témák
+
     topic_embeddings = get_gemini_embeddings(topics)
     news_texts = [f"{n['title']} {n.get('summary', '')[:200]}" for n in news_pool]
     news_embeddings = get_gemini_embeddings(news_texts)
 
+    # KRITIKUS ELLENŐRZÉS: Megkaptuk a vektorokat mindenre?
+    print(f"DEBUG: Vektorok száma - Témák: {len(topic_embeddings)}, Hírek: {len(news_embeddings)}")
+
     filtered_news = []
-    threshold = 0.7  # Állítsd be szigorúbbra (pl. 0.5), ha sok a szemét
+    threshold = 0.7
 
     for i, n_emb in enumerate(news_embeddings):
-        max_sim = max([cosine_similarity(n_emb, t_emb) for t_emb in topic_embeddings])
+        # Kiszámoljuk az összes hasonlóságot az adott hírre
+        similarities = [cosine_similarity(n_emb, t_emb) for t_emb in topic_embeddings]
+        
+        if not similarities:
+            continue
+            
+        max_sim = max(similarities)
+        
+        # Kiíratjuk az első 3 hír eredményét, hogy lássuk a számokat
+        if i < 3:
+            print(f"DEBUG: Hír: '{news_pool[i]['title'][:40]}...' | Max sim: {max_sim:.4f}")
+
         if max_sim >= threshold:
             news_pool[i]['match_score'] = round(max_sim, 2)
             filtered_news.append(news_pool[i])
@@ -157,6 +172,8 @@ def main():
     # 3. Szemantikus szűrés (Matematika)
     filtered_news = semantic_filter(raw_news, topics)
     if not filtered_news: return
+
+    return
     
     # 4. Klaszterezés és AI validáció
     clusters = parse_clusters(cluster_news(filtered_news))

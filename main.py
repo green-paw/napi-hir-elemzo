@@ -70,14 +70,9 @@ def semantic_filter(news_pool, topics):
     print(f"🔍 Szemantikus szűrés indítása {len(news_pool)} híren...")
     
     topic_embeddings = get_gemini_embeddings(topics)
-    
-    # Próbáljuk meg CSAK a címmel, hogy élesebb legyen a különbség
     news_texts = [n['title'] for n in news_pool] 
     news_embeddings = get_gemini_embeddings(news_texts)
-
     filtered_news = []
-    
-    # ÚJ KÜSZÖB: Próbáljuk meg a 0.88-at
     threshold = 0.88 
 
     for i, n_emb in enumerate(news_embeddings):
@@ -102,7 +97,7 @@ def cluster_news(news_pool):
 
     clustering = AgglomerativeClustering(
         n_clusters=None,
-        distance_threshold=0.12,
+        distance_threshold=0.08,
         metric='cosine',
         linkage='complete'
     ).fit(embeddings)

@@ -118,3 +118,25 @@ def get_gemini_embeddings(texts):
         if len(texts) > 100:
             time.sleep(1)
     return all_embeddings
+
+def translate_if_needed(text):
+    """
+    Lefordítja a szöveget magyarra, ha az idegen nyelvű. 
+    Ha a modell üres választ ad (mert már magyar), az eredeti szöveget adja vissza.
+    """
+    sys_instruct = """Te egy fordító vagy. 
+    FELADAT:
+    1. Ha a bemeneti szöveg NEM magyar, fordítsd le magyarra.
+    2. Ha a bemeneti szöveg MÁR magyar, a válaszod legyen teljesen ÜRES!
+    
+    SZABÁLY: Csak a fordítást küldd vissza, ne fűzz hozzá semmilyen magyarázatot vagy megjegyzést!"""
+    
+    # Meghívjuk a motort a Lite modellel
+    res = _gemini_engine(text, sys_instruct, model_type="lite")
+    
+    # Ha kaptunk választ és nem csak üres karaktereket tartalmaz
+    if res and res.strip():
+        return res.strip()
+    
+    # Ha a válasz None vagy üres string, akkor az eredeti szöveget küldjük vissza
+    return text

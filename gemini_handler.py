@@ -14,7 +14,7 @@ import time
 from google.genai import errors
 
 def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schema=None):
-    model_name = "gemini-1.5-flash-lite" if model_type == "lite" else "gemini-1.5-flash"
+    model_name = "gemini-2.5-flash-lite" if model_type == "lite" else "gemini-2.5-flash"
     
     config_params = {}
     if is_json:

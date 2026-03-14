@@ -30,7 +30,7 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
                 **config_params
             )
         )
-        print(f"model: {target_model}, input tokens: {response.usage_metadata.prompt_token_count}, output tokens: {response.usage_metadata.candidates_token_count}")
+        print(f"model: {model_name}, input tokens: {response.usage_metadata.prompt_token_count}, output tokens: {response.usage_metadata.candidates_token_count}")
         return response.text
     except Exception as e:
         print(f"⚠️ Gemini hiba ({model_name}): {e}")

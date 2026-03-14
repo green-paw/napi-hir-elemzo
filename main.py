@@ -167,8 +167,6 @@ def main():
     filtered_news = semantic_filter(raw_news, topics)
     if not filtered_news: return
 
-    return
-    
     # 4. Klaszterezés és AI validáció
     clusters = parse_clusters(cluster_news(filtered_news))
     if not clusters: return

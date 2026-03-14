@@ -1,29 +1,32 @@
 import json
-import google.genai as genai
+import config  # <--- Ezt be kell importálni!
+from google import genai
 from google.genai import types
 
-# Itt inicializáld a klienst (vagy add át paraméterként)
-# client = genai.Client(api_key="YOUR_API_KEY")
+# 1. Globális kliens létrehozása itt, a handlerben
+client = genai.Client(
+    api_key=config.GOOGLE_API_KEY, 
+    http_options={'api_version': 'v1beta'}
+)
 
 def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schema=None):
     """Belső motor a Gemini API hívásokhoz."""
     model_name = "gemini-1.5-flash-lite" if model_type == "lite" else "gemini-1.5-flash"
     
-    config = {}
+    config_params = {}
     if is_json:
-        config["response_mime_type"] = "application/json"
+        config_params["response_mime_type"] = "application/json"
         if schema:
-            config["response_schema"] = schema
+            config_params["response_schema"] = schema
 
-    # Megjegyzés: A google.genai (új könyvtár) szintaxisa szerint
     try:
-        client = genai.Client(api_key="...") # Vagy használd a globális klienst
+        # 2. Itt NE hozz létre új klienst, használd a fenti globális 'client' változót!
         response = client.models.generate_content(
             model=model_name,
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction=sys_instruct,
-                **config
+                **config_params
             )
         )
         return response.text

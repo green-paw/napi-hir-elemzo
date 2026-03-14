@@ -10,9 +10,11 @@ client = genai.Client(
     http_options={'api_version': 'v1beta'}
 )
 
+import time
+from google.genai import errors
+
 def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schema=None):
-    """Belső motor a Gemini API hívásokhoz."""
-    model_name = "gemini-2.5-flash-lite" if model_type == "lite" else "gemini-2.5-flash"
+    model_name = "gemini-1.5-flash-lite" if model_type == "lite" else "gemini-1.5-flash"
     
     config_params = {}
     if is_json:
@@ -20,21 +22,36 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
         if schema:
             config_params["response_schema"] = schema
 
-    try:
-        # 2. Itt NE hozz létre új klienst, használd a fenti globális 'client' változót!
-        response = client.models.generate_content(
-            model=model_name,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=sys_instruct,
-                **config_params
+    # Újrapróbálkozási logika (maximum 5 kísérlet)
+    for attempt in range(5):
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=sys_instruct,
+                    temperature=0.0 if is_json else 0.2,
+                    **config_params
+                )
             )
-        )
-        print(f"model: {model_name}, input tokens: {response.usage_metadata.prompt_token_count}, output tokens: {response.usage_metadata.candidates_token_count}")
-        return response.text
-    except Exception as e:
-        print(f"⚠️ Gemini hiba ({model_name}): {e}")
-        return None
+            
+            usage = response.usage_metadata
+            print(f"model: {model_name}, input tokens: {usage.prompt_token_count}, output tokens: {usage.candidates_token_count}")
+            
+            return response.text
+
+        except Exception as e:
+            # Ellenőrizzük, hogy 503 (Unavailable) vagy 429 (Rate Limit) hiba történt-e
+            error_msg = str(e).lower()
+            if "503" in error_msg or "429" in error_msg or "quota" in error_msg:
+                wait_time = (attempt + 1) * 5  # Egyre többet vár: 5s, 10s, 15s...
+                print(f"⚠️ Szerver túlterhelt (503/429), várakozás {wait_time}s... (Próbálkozás: {attempt+1}/5)")
+                time.sleep(wait_time)
+            else:
+                print(f"❌ Kritikus Gemini hiba ({model_name}): {e}")
+                return None
+                
+    return None
 
 def get_strategic_topics(titles_list):
     """Flash modell: 200+ hír stratégiai átvilágítása."""

@@ -52,7 +52,12 @@ def get_strategic_topics(titles_list):
 def validate_news_clusters(cluster_data, schema):
     """Lite modell: Klaszterezett adatok validálása és pontozása."""
     sys_instruct = "Válaszd ki az azonos eseményeket, adj nekik magyar címet és kategóriát, majd pontozz."
-    return _gemini_engine(cluster_data, sys_instruct, model_type="lite", is_json=True, schema=schema)
+    res = _gemini_engine(cluster_data, sys_instruct, model_type="lite", is_json=True, schema=schema)
+    try:
+        return json.loads(res) if res else {}
+    except Exception as e:
+        print(f"⚠️ JSON dekódolási hiba a validálásnál: {e}")
+        return {}
 
 def generate_event_summary(event_name, news_contents):
     """Lite modell: Tárgyilagos összefoglaló készítése."""

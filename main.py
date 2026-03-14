@@ -28,11 +28,6 @@ class ClusterResult(BaseModel):
     scores: Scores
     ids: List[int] = Field(description="A csoportba ténylegesen beleillő hírek ID-jai")
 
-# --- Konfiguráció inicializálása ---
-client = genai.Client(
-    api_key=config.GOOGLE_API_KEY, 
-    http_options={'api_version': 'v1beta'}
-)
 bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
 
 def smart_truncate(text, max_length=600):

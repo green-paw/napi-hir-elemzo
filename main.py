@@ -147,7 +147,7 @@ def parse_clusters(clusters_data):
         source_count = len(c.get('ids', []))
         
         if base_score >= 5:
-            c['total_score'] = round(base_score * source_count, 1)
+            c['total_score'] = round(base_score, 1)
             filtered.append(c)
             
     return sorted(filtered, key=lambda x: x['total_score'], reverse=True)

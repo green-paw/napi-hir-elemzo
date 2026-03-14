@@ -1,6 +1,6 @@
 import config
 import output_handler
-from gemini_handler import get_strategic_topics, validate_news_clusters, generate_event_summary, get_gemini_embeddings
+from gemini_handler import get_strategic_topics, validate_news_clusters, generate_event_summary, get_gemini_embeddings, translate_if_needed
 
 import feedparser
 import re

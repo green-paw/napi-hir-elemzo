@@ -51,13 +51,32 @@ def get_strategic_topics(titles_list):
         return []
 
 def validate_news_clusters(cluster_data, schema):
-    """Lite modell: Klaszterezett adatok validálása és pontozása."""
-    sys_instruct = "Válaszd ki az azonos eseményeket, adj nekik magyar címet és kategóriát, majd pontozz."
+    """Lite modell: Stratégiai szempontok alapján pontozza a klasztereket."""
+    
+    sys_instruct = """Te egy tapasztalt hírszerkesztő vagy. 
+    A feladatod a hírcsoportok validálása és szigorú pontozása gazdasági és politikai szempontból.
+
+    PONTOZÁSI ÚTMUTATÓ:
+    1. RELEVANCE (1-10): 
+       - 10: Kritikus magyar gazdasági/politikai esemény, globális háborús eszkaláció.
+       - 1: Személyes történetek, bulvár, egyéni sorsok, érdekességek (pl. esküvő, celeb hír).
+       - HA A HÍR CSAK EGYÉNI SZINTŰ (hiába háborús övezet), NEM KAPHAT 4-NÉL MAGASABB PONTOT!
+
+    2. IMPACT (1-10): 
+       - 10: Milliókat érintő döntés, országos jelentőség.
+       - 1: Csak az érintett személyekre vagy egy szűk körre van hatása.
+
+    3. NOVELTY (1-10): Mennyire hoz friss, eddig nem ismert tényeket.
+
+    SZABÁLY: Ha a hír bulvár jellegű vagy emberi érdekesség (human interest), büntesd alacsony pontszámokkal minden kategóriában!"""
+
+    # Itt hívjuk meg a motort
     res = _gemini_engine(cluster_data, sys_instruct, model_type="lite", is_json=True, schema=schema)
+    
     try:
         return json.loads(res) if res else {}
     except Exception as e:
-        print(f"⚠️ JSON dekódolási hiba a validálásnál: {e}")
+        print(f"⚠️ JSON hiba: {e}")
         return {}
 
 def generate_event_summary(event_name, news_contents):

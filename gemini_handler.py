@@ -85,7 +85,10 @@ def validate_news_clusters(cluster_data, schema):
 
     3. NOVELTY (1-10): Mennyire hoz friss, eddig nem ismert tényeket.
 
-    SZABÁLY: Ha a hír bulvár jellegű vagy emberi érdekesség (human interest), büntesd alacsony pontszámokkal minden kategóriában!"""
+    SZABÁLYOK:
+    - Ha a hír bulvár jellegű vagy emberi érdekesség (human interest), büntesd alacsony pontszámokkal minden kategóriában!
+    - A 'name' mező értéke MINDEN ESETBEN magyar nyelvű legyen, akkor is, ha a források vagy a téma nemzetközi!
+    """
 
     # Itt hívjuk meg a motort
     res = _gemini_engine(cluster_data, sys_instruct, model_type="lite", is_json=True, schema=schema)

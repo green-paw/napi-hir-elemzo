@@ -2,6 +2,7 @@ import json
 import config  # <--- Ezt be kell importálni!
 from google import genai
 from google.genai import types
+import time
 
 # 1. Globális kliens létrehozása itt, a handlerben
 client = genai.Client(
@@ -59,3 +60,19 @@ def generate_event_summary(event_name, news_contents):
     prompt = f"Esemény: {event_name}\n\nForrások:\n{news_contents}"
     res = _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False)
     return res.strip() if res else "Nem sikerült összefoglalót készíteni."
+
+
+def get_gemini_embeddings(texts):
+    """Vektorok lekérése 100-as csomagokban (Batch limit kezelése)."""
+    all_embeddings = []
+    for i in range(0, len(texts), 100):
+        batch = texts[i:i + 100]
+        response = client.models.embed_content(
+            model="gemini-embedding-001", # Később érdemes lehet text-embedding-04-re váltani
+            contents=batch,
+            config=types.EmbedContentConfig(task_type="CLUSTERING")
+        )
+        all_embeddings.extend([embedding.values for embedding in response.embeddings])
+        if len(texts) > 100:
+            time.sleep(1)
+    return all_embeddings

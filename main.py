@@ -7,8 +7,9 @@ import re
 import telebot
 import json
 import math
-from datetime import datetime
 import time
+from datetime import datetime, timedelta
+import html
 
 from google import genai
 from google.genai import types, errors
@@ -30,29 +31,59 @@ class ClusterResult(BaseModel):
 
 bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
 
+def clean_news_text(entry, field='title'):
+    raw = entry.get(f"{field}_detail", {}).get('value', entry.get(field, ''))
+    if not raw: return ""
+    clean = re.sub(r'<[^>]+?>', '', html.unescape(raw))
+    return " ".join(clean.split()).strip()
+
 def smart_truncate(text, max_length=600):
     if len(text) <= max_length: return text
-    truncated = text[:max_length].rsplit(' ', 1)[0]
-    return truncated + "..."
+    return text[:max_length].rsplit(' ', 1)[0] + "..."
 
 def fetch_news():
     news_pool = []
     item_id = 0
-    print("📰 Hírek lekérése...")
+    now = datetime.now()
+    limit = timedelta(hours=48)
+    # A diagnosztika alapján összeállított feketelista
+    BLACKLIST = ["sport", "bulvár", "szórakozás", "horoszkóp", "időjárás", "recept", "életmód", "bulvar"]
+
+    print(f"📰 Hírek lekérése és szűrése ({limit.days * 24}h limit)...")
+    
     for name, url in config.RSS_SOURCES.items():
         try:
             feed = feedparser.parse(url)
-            for entry in feed.entries[:10]:
-                summary = entry.get('summary', entry.get('description', ''))
-                clean_summary = smart_truncate(re.sub('<[^<]+?>', '', summary), 600)
+            for entry in feed.entries:
+                # 1. Dátumszűrés (published_parsed használatával)
+                dt = now # Fallback, ha nincs dátum
+                if hasattr(entry, 'published_parsed'):
+                    dt = datetime.fromtimestamp(time.mktime(entry.published_parsed))
+                    if now - dt > limit:
+                        continue
+                
+                # 2. Kategória szűrés (tags alapján)
+                tags = [t.term.lower() for t in entry.get('tags', []) if hasattr(t, 'term')]
+                if any(bad in tags for bad in BLACKLIST):
+                    continue
+
+                # 3. Tisztítás és mentés
+                title = clean_news_text(entry, 'title')
+                if not title: continue
+
                 news_pool.append({
                     "id": item_id,
                     "source": name,
-                    "title": entry.title,
-                    "summary": clean_summary
+                    "title": title,
+                    "summary": smart_truncate(clean_news_text(entry, 'summary'), 600),
+                    "tags": tags,
+                    "published": dt
                 })
                 item_id += 1
-        except Exception as e: print(f"Hiba ({name}): {e}")
+        except Exception as e: 
+            print(f"⚠️ Hiba ({name}): {e}")
+            
+    print(f"✅ Kész! {len(news_pool)} releváns hír begyűjtve.")
     return news_pool
 
 # --- ÚJ: Szemantikus szűrő matematikai alapjai ---
@@ -166,12 +197,6 @@ def deep_inspect_rss():
         print("-" * 30)
 
 def main():
-
-    deep_inspect_rss()
-    return
-
-
-    
     # 1. Lekérés
     raw_news = fetch_news()
     if not raw_news: return

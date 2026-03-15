@@ -1,80 +1,54 @@
 import config
 import output_handler
-from gemini_handler import get_strategic_topics, validate_news_clusters, generate_event_summary, get_gemini_embeddings, translate_if_needed
-from rss_handler import fetch_news
-
-import feedparser
-import re
-import telebot
-import json
 import math
 import time
-from datetime import datetime, timedelta
-import html
-
-from google import genai
-from google.genai import types, errors
+from concurrent.futures import ThreadPoolExecutor # A gyors fordításhoz
 from sklearn.cluster import AgglomerativeClustering
-from pydantic import BaseModel, Field
-from typing import List
 
-# --- Sémák definiálása (Ezt a gemini_handler is látni fogja) ---
-class Scores(BaseModel):
-    relevance: int = Field(description="Mennyire kritikus a magyar vagy globális gazdaság/politika szempontjából (1-10)")
-    impact: int = Field(description="Az esemény súlya (1-10)")
-    novelty: int = Field(description="Mennyire tartalmaz új információt (1-10)")
+# Csak a szükséges handler funkciók
+from gemini_handler import (
+    get_strategic_topics, validate_news_clusters, 
+    generate_event_summary, get_gemini_embeddings, 
+    translate_if_needed
+)
+from rss_handler import fetch_news
 
-class ClusterResult(BaseModel):
-    name: str = Field(description="Esemény neve és helyszíne")
-    category: str = Field(description="Kategória: HAZAI, GLOBÁLIS vagy EGYÉB")
-    scores: Scores
-    ids: List[int] = Field(description="A csoportba ténylegesen beleillő hírek ID-jai")
-
-bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
-
-# --- ÚJ: Szemantikus szűrő matematikai alapjai ---
+# --- Szemantikus szűrő matematikai alapjai ---
 def cosine_similarity(v1, v2):
     dot_product = sum(x * y for x, y in zip(v1, v2))
-    magnitude1 = math.sqrt(sum(x * x for x in v1))
-    magnitude2 = math.sqrt(sum(x * x for x in v2))
-    if not magnitude1 or not magnitude2: return 0
-    return dot_product / (magnitude1 * magnitude2)
+    mag1 = math.sqrt(sum(x * x for x in v1))
+    mag2 = math.sqrt(sum(x * x for x in v2))
+    return dot_product / (mag1 * mag2) if mag1 and mag2 else 0
 
 def semantic_filter(news_pool, topics):
-    if not topics or not news_pool: 
-        return news_pool
-
-    print(f"🔍 Szemantikus szűrés indítása {len(news_pool)} híren...")
+    if not topics or not news_pool: return news_pool
+    print(f"🔍 Szemantikus szűrés: {len(news_pool)} hír...")
     
-    topic_embeddings = get_gemini_embeddings(topics)
-    news_texts = [n['title'] for n in news_pool] 
-    news_embeddings = get_gemini_embeddings(news_texts)
-    filtered_news = []
+    topic_embs = get_gemini_embeddings(topics)
+    # Itt használjuk ki a tags-eket is a pontossághoz!
+    news_texts = [f"[{', '.join(n['tags'])}] {n['title']}" if n['tags'] else n['title'] for n in news_pool]
+    news_embs = get_gemini_embeddings(news_texts)
+    
+    filtered = []
     threshold = 0.88 
 
-    for i, n_emb in enumerate(news_embeddings):
-        similarities = [cosine_similarity(n_emb, t_emb) for t_emb in topic_embeddings]
-        if not similarities: continue
-            
-        max_sim = max(similarities)
-        
-        # Ez a rész maradhat a debughoz, amíg be nem állítod a tökéletes értéket
+    for i, n_emb in enumerate(news_embs):
+        sims = [cosine_similarity(n_emb, t_emb) for t_emb in topic_embs]
+        max_sim = max(sims) if sims else 0
         if max_sim >= threshold:
             news_pool[i]['match_score'] = round(max_sim, 2)
-            filtered_news.append(news_pool[i])
-
-    print(f"🎯 Szűrés kész. Maradt: {len(filtered_news)} / {len(news_pool)} hír.")
-    return filtered_news
+            filtered.append(news_pool[i])
+    return filtered
 
 def cluster_news(news_pool):
     if not news_pool: return []
-    print("🧩 Hibrid klaszterezés...")
+    print(f"🧩 Klaszterezés ({len(news_pool)} hír)...")
     texts = [f"CÍM: {n['title']} KIVONAT: {n['summary'][:200]}" for n in news_pool]
     embeddings = get_gemini_embeddings(texts)
 
     clustering = AgglomerativeClustering(
         n_clusters=None,
-        distance_threshold=0.08,
+        distance_threshold=0.08, # Szigorúbb olló
         metric='cosine',
         linkage='complete'
     ).fit(embeddings)
@@ -85,18 +59,13 @@ def cluster_news(news_pool):
 
     final_clusters = []
     for label, items in groups.items():
-        formatted_list = "\n".join([f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {n['summary'][:150]}..." for n in items])
-        
-        # --- ÚJ: Itt hívjuk a gemini_handler tiszta függvényét! ---
-        data = validate_news_clusters(formatted_list, schema=ClusterResult)
+        formatted_list = "\n".join([f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {n['summary'][:150]}" for n in items])
+        # A validate_news_clusters-ben az AI már a belső pontokat is nézheti
+        data = validate_news_clusters(formatted_list) 
 
         if data and data.get('ids'):
-            print(f"✔️ Csoport elfogadva: {data.get('name')} ({len(data.get('ids'))} hír)")
             final_clusters.append(data)
-        else:
-            print(f"⚠️ AI elutasította a csoportot (Zaj vagy szétesett JSON).")
-            
-        time.sleep(1) # Kicsi szünet a rate limit miatt a cikluson belül
+        time.sleep(0.5) 
 
     return final_clusters
 
@@ -104,73 +73,44 @@ def parse_clusters(clusters_data):
     filtered = []
     for c in clusters_data:
         s = c.get('scores', {})
+        # Súlyozott pontszám
         base_score = (s.get('relevance', 0)*0.4) + (s.get('impact', 0)*0.4) + (s.get('novelty', 0)*0.2)
-        source_count = len(c.get('ids', []))
-        
         if base_score >= 5:
             c['total_score'] = round(base_score, 1)
             filtered.append(c)
-            
     return sorted(filtered, key=lambda x: x['total_score'], reverse=True)
 
-def summarize_event(cluster_name, ids, news_pool):
-    relevant = [n for n in news_pool if n['id'] in ids]
-    text_parts = [f"[{n['source']}]: {n['title']} - {n['summary']}" for n in relevant]
-    input_text = "\n".join(text_parts)
-    
-    # --- ÚJ: Letisztult hívás a gemini_handler felé (Mondatszám nélkül) ---
-    summary = generate_event_summary(cluster_name, input_text)
-    return summary
-
-def deep_inspect_rss():
-    for name, url in config.RSS_SOURCES.items():
-        print(f"=== FORRÁS: {name} ===")
-        feed = feedparser.parse(url)
-        if feed.entries:
-            entry = feed.entries[0]
-            
-            # Kilistázzuk az összes elérhető mezőt
-            fields = list(entry.keys())
-            print(f"Elérhető mezők: {fields}")
-            
-            # Ha van benne valami izgalmas, nézzünk bele
-            if 'tags' in fields:
-                print(f"Példa tag: {entry.tags[0].term if entry.tags else 'Nincs term'}")
-            if 'category' in fields:
-                print(f"Kategória: {entry.category}")
-        else:
-            print("Üres feed.")
-        print("-" * 30)
-
 def main():
-    # 1. Lekérés
+    # 1. Lekérés (rss_handler-ből, már szűrve dátumra és kategóriára)
     raw_news = fetch_news()
     if not raw_news: return
 
-    for item in raw_news:
-        item['title'] = translate_if_needed(item['title'])
-    
-    # 2. Stratégiai témák kinyerése (AI Flash motor)
+    # 2. GYORSÍTÁS: Párhuzamos fordítás
+    print(f"🌍 Fordítás indítása {len(raw_news)} hírre...")
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        titles = [n['title'] for n in raw_news]
+        translated_titles = list(executor.map(translate_if_needed, titles))
+        for i, translated in enumerate(translated_titles):
+            raw_news[i]['title'] = translated
+
+    # 3. Stratégiai témák (Csak a Top 7-et kérjük)
     titles_only = "\n".join([f"{i+1}. {n['title']}" for i, n in enumerate(raw_news)])
     topics = get_strategic_topics(titles_only)
-    print(f"💡 Napi fő témák: {', '.join(topics) if topics else 'Nem talált egyértelmű mintát.'}")
-
-    # 3. Szemantikus szűrés (Matematika)
+    
+    # 4. Szűrés és Klaszterezés
     filtered_news = semantic_filter(raw_news, topics)
     if not filtered_news: return
 
-    # 4. Klaszterezés és AI validáció
     clusters = parse_clusters(cluster_news(filtered_news))
-    if not clusters: return
-
-    # 5. Összefoglalók legenerálása és adatcsomag összeállítása
-    final_data_package = []
-    print(f"✍️ Összefoglalók készítése {len(clusters)} csoporthoz...")
     
+    # 5. Összefoglalás és küldés
+    final_data_package = []
     for cluster in clusters:
-        summary = summarize_event(cluster['name'], cluster['ids'], filtered_news)
-        rel_news = [n for n in filtered_news if n['id'] in cluster['ids']]
-        sources_str = ", ".join(set([n['source'] for n in rel_news]))
+        relevant = [n for n in filtered_news if n['id'] in cluster['ids']]
+        input_text = "\n".join([f"[{n['source']}]: {n['title']} - {n['summary']}" for n in relevant])
+        
+        summary = generate_event_summary(cluster['name'], input_text)
+        sources_str = ", ".join(set([n['source'] for n in relevant]))
         
         final_data_package.append({
             'category': cluster.get('category', 'EGYÉB'),
@@ -180,9 +120,8 @@ def main():
             'score': cluster.get('total_score', 0)
         })
 
-    # 6. Küldés Telegramra
     output_handler.process_and_send(final_data_package)
-    print("✅ Folyamat befejezve.")
+    print("✅ Kész.")
 
 if __name__ == "__main__":
     main()

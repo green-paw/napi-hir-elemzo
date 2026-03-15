@@ -123,29 +123,35 @@ def process_and_send(final_data_package):
         print("Nincs küldhető hír.")
         return
 
-    generate_html(final_data_package)
+    try:
+        generate_html(final_data_package)
+    except Exception as e:
+        print(f"❌ Hiba a HTML generálás során: {e}")
 
-    report_parts = []
-    categories = [('HAZAI', 'MAGYARORSZÁG'), ('GLOBÁLIS', 'VILÁGHÍREK'), ('EGYÉB', 'EGYÉB')]
-
-    final_data_package.sort(key=lambda x: x['score'], reverse=True)
-
-    for cat_key, cat_label in categories:
-        items = [i for i in final_data_package if i['category'] == cat_key]
-        if items:
-            report_parts.append(f"<b>--- {cat_label} ---</b>")
-            for item in items:
-                score_tag = f"<b>[{item['score']}/10]</b>"
-                sources_tg = format_sources_telegram(item['sources'])
-                
-                # Markdown tisztítása a Telegram számára
-                clean_summary = clean_markdown_for_telegram(item['summary'])
-                
-                msg = f"📌 <b>{item['title'].upper()}</b> {score_tag}\n\n{clean_summary}\n\n🔗 <i>Forrás: {sources_tg}</i>"
-                report_parts.append(msg)
-
-    full_text = "\n\n".join(report_parts)
-    send_split_message(config.TELEGRAM_CHAT_ID, full_text)
+    try:
+        report_parts = []
+        categories = [('HAZAI', 'MAGYARORSZÁG'), ('GLOBÁLIS', 'VILÁGHÍREK'), ('EGYÉB', 'EGYÉB')]
+    
+        final_data_package.sort(key=lambda x: x['score'], reverse=True)
+    
+        for cat_key, cat_label in categories:
+            items = [i for i in final_data_package if i['category'] == cat_key]
+            if items:
+                report_parts.append(f"<b>--- {cat_label} ---</b>")
+                for item in items:
+                    score_tag = f"<b>[{item['score']}/10]</b>"
+                    sources_tg = format_sources_telegram(item['sources'])
+                    
+                    # Markdown tisztítása a Telegram számára
+                    clean_summary = clean_markdown_for_telegram(item['summary'])
+                    
+                    msg = f"📌 <b>{item['title'].upper()}</b> {score_tag}\n\n{clean_summary}\n\n🔗 <i>Forrás: {sources_tg}</i>"
+                    report_parts.append(msg)
+    
+        full_text = "\n\n".join(report_parts)
+        send_split_message(config.TELEGRAM_CHAT_ID, full_text)
+    except Exception as e:
+        print(f"⚠️ Telegram küldési hiba (de a HTML kész): {e}")        
 
 def send_split_message(chat_id, text):
     MAX_CHARS = 3900

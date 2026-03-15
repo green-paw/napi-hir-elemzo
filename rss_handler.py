@@ -26,7 +26,7 @@ def fetch_news():
     news_pool = []
     item_id = 0
     now = datetime.now()
-    limit = timedelta(hours=48)
+    limit = timedelta(hours=24)
     
     # Stratégiai zajszűrő feketelista
     BLACKLIST = ["sport", "bulvár", "szórakozás", "horoszkóp", "időjárás", "recept", "életmód", "bulvar"]

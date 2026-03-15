@@ -110,13 +110,18 @@ def main():
     # 5. Összefoglalás és küldés
     final_data_package = []
     for cluster in clusters:
-        relevant = [n for n in filtered_news if n['id'] in cluster['ids']]
-        input_text = "\n".join([f"[{n['source']}]: {n['title']} - {n['summary']}" for n in relevant])
+        # Kigyűjtjük a teljes hír-objektumokat (szótárakat), nem csak szöveget!
+        relevant_news_objects = [n for n in filtered_news if n['id'] in cluster['ids']]
         
-        summary = generate_event_summary(cluster['name'], input_text)
+        if not relevant_news_objects:
+            continue
+
+        # ✅ MOST MÁR A LISTÁT ADJUK ÁT, NEM A STRINGET
+        summary = generate_event_summary(cluster['name'], relevant_news_objects)
+        
         sources_data = [
             {"name": n['source'], "url": n.get('link', '')} 
-            for n in relevant
+            for n in relevant_news_objects
         ]
         
         final_data_package.append({
@@ -126,6 +131,8 @@ def main():
             'sources': sources_data,
             'score': cluster.get('total_score', 0)
         })
+
+    output_handler.process_and_send(final_data_package)
 
     output_handler.process_and_send(final_data_package)
     print("✅ Kész.")

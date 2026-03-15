@@ -1,9 +1,6 @@
+# saját importok
 import config
 import output_handler
-import math
-import time
-from concurrent.futures import ThreadPoolExecutor # A gyors fordításhoz
-from sklearn.cluster import AgglomerativeClustering
 
 # Csak a szükséges handler funkciók
 from gemini_handler import (
@@ -13,6 +10,12 @@ from gemini_handler import (
 )
 
 from rss_handler import fetch_news
+
+# általános importok
+import math
+import time
+from concurrent.futures import ThreadPoolExecutor # A gyors fordításhoz
+from sklearn.cluster import AgglomerativeClustering
 
 # --- Szemantikus szűrő matematikai alapjai ---
 def cosine_similarity(v1, v2):

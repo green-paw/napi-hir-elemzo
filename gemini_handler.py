@@ -29,11 +29,6 @@ from google.genai import errors
 
 def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schema=None):
     model_name = "gemini-2.5-flash-lite" if model_type == "lite" else "gemini-2.5-flash"
-    
-    if is_json:
-        config_params["response_mime_type"] = "application/json"
-        if schema:
-            config_params["response_schema"] = schema
 
     # Újrapróbálkozási logika (maximum 5 kísérlet)
     for attempt in range(5):
@@ -57,16 +52,21 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
             return response.text
 
         except Exception as e:
-            # Ellenőrizzük, hogy 503 (Unavailable) vagy 429 (Rate Limit) hiba történt-e
             error_msg = str(e).lower()
-            if "503" in error_msg or "429" in error_msg or "quota" in error_msg:
-                wait_time = (attempt + 1) * 5  # Egyre többet vár: 5s, 10s, 15s...
-                print(f"⚠️ Szerver túlterhelt (503/429), várakozás {wait_time}s... (Próbálkozás: {attempt+1}/5)")
+            
+            # Csak ezeknél a hibáknál érdemes újrapróbálkozni (Network/Rate limit)
+            retry_errors = ["503", "429", "quota", "overloaded", "unavailable"]
+            
+            if any(err in error_msg for err in retry_errors):
+                wait_time = (attempt + 1) * 5
+                print(f"⚠️ Szerver túlterhelt, várakozás {wait_time}s... ({attempt+1}/5)")
                 time.sleep(wait_time)
             else:
-                print(f"❌ Kritikus Gemini hiba ({model_name}): {e}")
-                return None
-                
+                # KRITIKUS HIBA: Azonnali leállás (pl. NameError, SyntaxError, Auth error)
+                print(f"❌ KRITIKUS HIBA ({model_name}): {e}")
+                # Kényszerített leállás, hogy ne pörögjön a ciklus
+                raise SystemExit(1) 
+           
     return None
 
 def get_strategic_topics(titles_list):

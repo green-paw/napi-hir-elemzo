@@ -9,8 +9,9 @@ from sklearn.cluster import AgglomerativeClustering
 from gemini_handler import (
     get_strategic_topics, validate_news_clusters, 
     generate_event_summary, get_gemini_embeddings, 
-    translate_if_needed
+    translate_if_needed, ClusterResult
 )
+
 from rss_handler import fetch_news
 
 # --- Szemantikus szűrő matematikai alapjai ---
@@ -61,7 +62,7 @@ def cluster_news(news_pool):
     for label, items in groups.items():
         formatted_list = "\n".join([f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {n['summary'][:150]}" for n in items])
         # A validate_news_clusters-ben az AI már a belső pontokat is nézheti
-        data = validate_news_clusters(formatted_list) 
+        data = validate_news_clusters(formatted_list, schema=ClusterResult)
 
         if data and data.get('ids'):
             final_clusters.append(data)

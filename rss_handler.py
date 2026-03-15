@@ -59,6 +59,7 @@ def fetch_news():
                     "source": name,
                     "title": title,
                     "summary": smart_truncate(clean_news_text(entry, 'summary'), 600),
+                    "link": entry.link,
                     "tags": tags,
                     "published": dt
                 })

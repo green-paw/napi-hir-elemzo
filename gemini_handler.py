@@ -50,7 +50,7 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
             )
             
             usage = response.usage_metadata
-            print(f"model: {model_name}, input tokens: {usage.prompt_token_count}, output tokens: {usage.candidates_token_count}")
+            #print(f"model: {model_name}, input tokens: {usage.prompt_token_count}, output tokens: {usage.candidates_token_count}")
             
             return response.text
 

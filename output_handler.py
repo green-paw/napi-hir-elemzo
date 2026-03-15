@@ -1,9 +1,28 @@
 import telebot
 import config
+import markdown  # pip install markdown
+import re
 from datetime import datetime
 from collections import defaultdict
 
 bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
+
+def clean_markdown_for_telegram(text):
+    """
+    Átalakítja a Markdown formázást Telegram-kompatibilis HTML-re.
+    A Telegram HTML parse_mode-ja nem szereti a bonyolult HTML-t, 
+    ezért csak a legfontosabbakat alakítjuk át.
+    """
+    # 1. Vastagítás: **szöveg** -> <b>szöveg</b>
+    text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+    
+    # 2. Listajelek: * vagy - az elején -> • (bullet point)
+    text = re.sub(r'^\s*[\*\-]\s+', '• ', text, flags=re.MULTILINE)
+    
+    # 3. Felesleges Markdown maradékok (pl. # címek) eltávolítása vagy formázása
+    text = re.sub(r'^#+\s+(.*)$', r'<b>\1</b>', text, flags=re.MULTILINE)
+    
+    return text
 
 def format_sources_html(sources_list):
     """HTML formátumú linkeket gyárt a forrásokból."""
@@ -53,9 +72,10 @@ def generate_html(final_data_package):
             .category-title {{ background: #007bff; color: white; padding: 10px; border-radius: 5px; margin-top: 40px; }}
             .news-card {{ background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 5px solid #28a745; }}
             .score {{ float: right; background: #eee; padding: 5px 10px; border-radius: 15px; font-size: 0.9em; font-weight: bold; }}
-            .title {{ font-size: 1.2em; font-weight: bold; color: #2c3e50; text-transform: uppercase; }}
+            .title {{ font-size: 1.2em; font-weight: bold; color: #2c3e50; text-transform: uppercase; margin-bottom: 10px; }}
             .summary {{ margin: 15px 0; color: #555; }}
-            .sources {{ font-style: italic; font-size: 0.85em; color: #888; border-top: 1px solid #eee; padding-top: 10px; }}
+            .summary ul {{ padding-left: 20px; }}
+            .sources {{ font-style: italic; font-size: 0.85em; color: #888; border-top: 1px solid #eee; padding-top: 10px; margin-top: 15px; }}
             .sources a {{ color: #007bff; text-decoration: none; }}
             .sources a:hover {{ text-decoration: underline; }}
         </style>
@@ -76,11 +96,14 @@ def generate_html(final_data_package):
             html_template += f"<h2 class='category-title'>{cat_label}</h2>"
             for item in items:
                 sources_html = format_sources_html(item['sources'])
+                # Markdown átalakítása HTML-re a böngészőhöz
+                summary_rendered = markdown.markdown(item['summary'])
+                
                 html_template += f"""
                 <div class="news-card">
                     <span class="score">{item['score']}</span>
                     <div class="title">{item['title']}</div>
-                    <div class="summary">{item['summary']}</div>
+                    <div class="summary">{summary_rendered}</div>
                     <div class="sources">Források: {sources_html}</div>
                 </div>
                 """
@@ -115,8 +138,10 @@ def process_and_send(final_data_package):
                 score_tag = f"<b>[{item['score']}/10]</b>"
                 sources_tg = format_sources_telegram(item['sources'])
                 
-                # Itt HTML formázást használunk a Telegram üzenetben
-                msg = f"📌 <b>{item['title'].upper()}</b> {score_tag}\n\n{item['summary']}\n\n🔗 <i>Forrás: {sources_tg}</i>"
+                # Markdown tisztítása a Telegram számára
+                clean_summary = clean_markdown_for_telegram(item['summary'])
+                
+                msg = f"📌 <b>{item['title'].upper()}</b> {score_tag}\n\n{clean_summary}\n\n🔗 <i>Forrás: {sources_tg}</i>"
                 report_parts.append(msg)
 
     full_text = "\n\n".join(report_parts)
@@ -124,7 +149,6 @@ def process_and_send(final_data_package):
 
 def send_split_message(chat_id, text):
     MAX_CHARS = 3900
-    # parse_mode='HTML' kell a linkek működéséhez!
     if len(text) <= MAX_CHARS:
         bot.send_message(chat_id, f"🗞 <b>AI HÍRELEMZÉS</b>\n\n{text}", parse_mode='HTML', disable_web_page_preview=True)
         return

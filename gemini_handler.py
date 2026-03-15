@@ -30,7 +30,11 @@ from google.genai import errors
 def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schema=None):
     model_name = "gemini-2.5-flash-lite" if model_type == "lite" else "gemini-2.5-flash"
     
-    config_params = {}
+    config_params = {
+        "max_output_tokens": 600,
+        "temperature": 0.0 if is_json else 0.2
+    }
+    
     if is_json:
         config_params["response_mime_type"] = "application/json"
         if schema:
@@ -135,28 +139,35 @@ def generate_event_summary(event_name, news_items):
     ELEMEZENDŐ ADATOK:
     {chr(10).join(context_parts)}
     
-    ELVÁRT FORMÁTUM:
-    - Rövid, pontokba szedett elemzés.
-    - Kerüld a PC megfogalmazásokat, nevezd nevén a propagandát.
-    - A végén: 'VALÓSZÍNŰ VALÓSÁG' konklúzió (1 mondat).
+    ELVÁRT STRUKTÚRA ÉS FORMÁTUM:
+    1. ÖSSZEFOGLALÓ ÉS TÉNYEK: Pár mondatban foglald össze az eseményt. Csak a közös metszetet és a megkérdőjelezhetetlen tényeket írd le. Ha ellentmondás van a számokban vagy adatokban, itt jelezd.
+    
+    2. NARRATÍVÁK ÉS ELEMZÉS: 
+       - Fejtsd ki a különböző politikai oldalak (konzervatív vs. liberális) tálalási módját.
+       - KÜLÖNÖS FIGYELEM: Ha egy forrás a saját besorolásától eltérő (váratlanul kritikus vagy szokatlanul támogató) hangvételt üt meg, azt mindenképpen emeld ki!
+       - Nevezd meg a konkrét manipulációs technikákat, érzelmi hergelést vagy elhallgatásokat.
+    
+    3. VALÓSZÍNŰ VALÓSÁG: Egyetlen, lényegre törő mondat a konklúzióról.
+
+    ELVÁRÁSOK:
+    - Használj tömör, bullet-pointos formátumot az elemzésnél.
+    - Kerüld a felesleges köröket ("Fontos megjegyezni...").
+    - Használj Markdown formázást (vastagítás a kulcsszavaknál).
     """
 
-    # Itt a System Prompt: a "cinikus elemző" karakter
     system_msg = (
-        "Te egy cinikus, de szigorúan objektív politikai és gazdasági elemző vagy. "
-        "A feladatod a hírek dekonstrukciója: keresd a propagandát, a szándékos torzítást, "
-        "a hergelő nyelvhasználatot és a narratívák ütközését. "
-        "Ne udvariaskodj a forrásokkal, legyél könyörtelenül kritikus és távolságtartó. "
-        "Csak a lényegre fókuszálj, ne írj felesleges bevezetőket."
+        "Te egy tapasztalt, cinikus, de szigorúan objektív politikai és gazdasági elemző vagy. "
+        "A feladatod a hírek dekonstrukciója. Ne csak azt nézd, mit írnak, hanem azt is, hogyan. "
+        "Keresd a 'keretezési' technikákat és a politikai marketinget. "
+        "Ha egy forrás (pl. egy kormányközeli lap) kritikus hangot üt meg a saját oldalával szemben, "
+        "vagy egy független lap látványosan elfogult, azt kezeld prioritásként az elemzésben."
     )
 
-    # Használjuk a már megírt _gemini_engine-t a hibakezelés és az egységesség miatt
-    # A 'flash' modellt használjuk az elemzéshez a nagyobb kontextus miatt
+    # Az _gemini_engine hívása marad
     res = _gemini_engine(prompt, system_msg, model_type="lite")
     
     return res if res else "Nem sikerült generálni az elemzést."
-
-
+    
 def get_gemini_embeddings(texts):
     """Vektorok lekérése 100-as csomagokban (Batch limit kezelése)."""
     all_embeddings = []

@@ -71,7 +71,7 @@ def get_strategic_topics(titles_list):
     """Flash modell: 200+ hír stratégiai átvilágítása."""
     sys_instruct = """Te egy stratégiai hírelemző vagy. A feladatod a 15 legfontosabb téma azonosítása.
     CÉL: Olyan kulcsszavakat kapjak, amikkel később szemantikailag szűrhetjük a hírfolyamot.
-    FÓKUSZ: Magyar gazdaság, belpolitika, világgazdaság, háború, technológia, energia.
+    FÓKUSZ: Magyar gazdaság, belpolitika, világgazdaság, háború, energia.
     VÁLASZ: Csak egy JSON listát adj vissza: ["téma1", "téma2", ...]"""
     
     prompt = f"Elemezd ezeket a címeket a szűrési stratégia alapján:\n{titles_list}"
@@ -152,7 +152,7 @@ def generate_event_summary(event_name, news_items):
 
     # Használjuk a már megírt _gemini_engine-t a hibakezelés és az egységesség miatt
     # A 'flash' modellt használjuk az elemzéshez a nagyobb kontextus miatt
-    res = _gemini_engine(prompt, system_msg, model_type="flash")
+    res = _gemini_engine(prompt, system_msg, model_type="lite")
     
     return res if res else "Nem sikerült generálni az elemzést."
 

@@ -113,12 +113,48 @@ def validate_news_clusters(cluster_data, schema):
         print(f"⚠️ JSON hiba: {e}")
         return {}
 
-def generate_event_summary(event_name, news_contents):
-    """Lite modell: Tárgyilagos összefoglaló készítése."""
-    sys_instruct = "Írj tárgyilagos, pontos magyar összefoglalót a megadott hírek alapján. Tilos a Markdown!"
-    prompt = f"Esemény: {event_name}\n\nForrások:\n{news_contents}"
-    res = _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False)
-    return res.strip() if res else "Nem sikerült összefoglalót készíteni."
+def generate_event_summary(event_name, news_items):
+    import config
+    
+    biases = []
+    context_parts = []
+    
+    for n in news_items:
+        # A config.RSS_SOURCES már tuple: (url, bias)
+        source_data = config.RSS_SOURCES.get(n['source'], (None, "Ismeretlen"))
+        bias = source_data[1] 
+        biases.append(bias)
+        context_parts.append(f"FORRÁS: {n['source']} ({bias})\nCÍM: {n['title']}\nKIVONAT: {n['summary'][:500]}\n---")
+
+    # Dinamikus prompt meghatározása
+    dynamic_instruction = get_dynamic_prompt(event_name, biases)
+    
+    prompt = f"""
+    {dynamic_instruction}
+    
+    ELEMEZENDŐ ADATOK:
+    {chr(10).join(context_parts)}
+    
+    ELVÁRT FORMÁTUM:
+    - Rövid, pontokba szedett elemzés.
+    - Kerüld a PC megfogalmazásokat, nevezd nevén a propagandát.
+    - A végén: 'VALÓSZÍNŰ VALÓSÁG' konklúzió (1 mondat).
+    """
+
+    # Itt a System Prompt: a "cinikus elemző" karakter
+    system_msg = (
+        "Te egy cinikus, de szigorúan objektív politikai és gazdasági elemző vagy. "
+        "A feladatod a hírek dekonstrukciója: keresd a propagandát, a szándékos torzítást, "
+        "a hergelő nyelvhasználatot és a narratívák ütközését. "
+        "Ne udvariaskodj a forrásokkal, legyél könyörtelenül kritikus és távolságtartó. "
+        "Csak a lényegre fókuszálj, ne írj felesleges bevezetőket."
+    )
+
+    # Használjuk a már megírt _gemini_engine-t a hibakezelés és az egységesség miatt
+    # A 'flash' modellt használjuk az elemzéshez a nagyobb kontextus miatt
+    res = _gemini_engine(prompt, system_msg, model_type="flash")
+    
+    return res if res else "Nem sikerült generálni az elemzést."
 
 
 def get_gemini_embeddings(texts):
@@ -157,3 +193,38 @@ def translate_if_needed(text):
     
     # Ha a válasz None vagy üres string, akkor az eredeti szöveget küldjük vissza
     return text
+
+def get_dynamic_prompt(event_name, source_biases):
+    # Meghatározzuk, milyen típusú forrásaink vannak
+    has_right = any("konzervatív" in b or "kormánypárti" in b for b in source_biases)
+    has_left = any("liberális" in b or "baloldali" in b or "kritikai" in b for b in source_biases)
+    
+    base_info = f"Esemény: {event_name}\n"
+
+    # A: ÜTKÖZTETŐ PROMPT (Ha mindkét oldal jelen van)
+    if has_right and has_left:
+        return base_info + """
+        KÜLDETÉS: NARRATÍVA-ÜTKÖZTETÉS. 
+        Mivel a források között markáns politikai különbség van, a feladatod:
+        1. Emeld ki a két oldal közötti értelmezési különbséget.
+        2. Keresd meg a manipulációt: ki hergel, ki hallgat el tényeket?
+        3. Szűrd le a tiszta tényeket, amiben mindenki egyetért.
+        """
+    
+    # B: "BUBORÉK" PROMPT (Ha csak az egyik oldal ír róla)
+    elif has_right or has_left:
+        side = "jobboldali" if has_right else "baloldali"
+        return base_info + f"""
+        KÜLDETÉS: KRITIKAI ELLENSÚLY. 
+        Erről az eseményről jelenleg csak {side} források számoltak be a klaszterben. 
+        1. Emiatt legyél fokozottan gyanakvó: mi lehet a "vakfolt"? 
+        2. Milyen érdekeket szolgálhat ez a tálalás? 
+        3. Próbáld meg azonosítani a túlzásokat.
+        """
+    
+    # C: ÁLTALÁNOS / NEMZETKÖZI PROMPT
+    else:
+        return base_info + """
+        KÜLDETÉS: OBJEKTÍV ÖSSZEGZÉS. 
+        Elemezd a híreket tényalapú megközelítéssel, fókuszálj a geopolitikai és gazdasági hatásokra.
+        """

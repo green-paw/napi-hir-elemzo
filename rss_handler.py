@@ -33,8 +33,9 @@ def fetch_news():
 
     print(f"📰 Hírek lekérése és szűrése ({limit.days * 24}h limit)...")
     
-    for name, url in config.RSS_SOURCES.items():
+    for name, source_data in config.RSS_SOURCES.items():
         try:
+            url = source_data[0]
             feed = feedparser.parse(url)
             for entry in feed.entries:
                 # 1. IDŐBELI SZŰRÉS (Októberi hírek és elavult tartalom ellen)

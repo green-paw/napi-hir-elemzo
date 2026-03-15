@@ -145,7 +145,33 @@ def summarize_event(cluster_name, ids, news_pool):
     summary = generate_event_summary(cluster_name, input_text)
     return summary
 
+def deep_inspect_rss():
+    for name, url in config.RSS_SOURCES.items():
+        print(f"=== FORRÁS: {name} ===")
+        feed = feedparser.parse(url)
+        if feed.entries:
+            entry = feed.entries[0]
+            
+            # Kilistázzuk az összes elérhető mezőt
+            fields = list(entry.keys())
+            print(f"Elérhető mezők: {fields}")
+            
+            # Ha van benne valami izgalmas, nézzünk bele
+            if 'tags' in fields:
+                print(f"Példa tag: {entry.tags[0].term if entry.tags else 'Nincs term'}")
+            if 'category' in fields:
+                print(f"Kategória: {entry.category}")
+        else:
+            print("Üres feed.")
+        print("-" * 30)
+
 def main():
+
+    deep_inspect_rss()
+    return
+
+
+    
     # 1. Lekérés
     raw_news = fetch_news()
     if not raw_news: return

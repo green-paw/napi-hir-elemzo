@@ -111,13 +111,16 @@ def main():
         input_text = "\n".join([f"[{n['source']}]: {n['title']} - {n['summary']}" for n in relevant])
         
         summary = generate_event_summary(cluster['name'], input_text)
-        sources_str = ", ".join(set([n['source'] for n in relevant]))
+        sources_data = [
+            {"name": n['source'], "url": n.get('link', '')} 
+            for n in relevant_news
+        ]
         
         final_data_package.append({
             'category': cluster.get('category', 'EGYÉB'),
             'title': cluster['name'],
             'summary': summary,
-            'sources': sources_str,
+            'sources': sources_data,
             'score': cluster.get('total_score', 0)
         })
 

@@ -116,7 +116,7 @@ def main():
         summary = generate_event_summary(cluster['name'], input_text)
         sources_data = [
             {"name": n['source'], "url": n.get('link', '')} 
-            for n in relevant_news
+            for n in relevant
         ]
         
         final_data_package.append({

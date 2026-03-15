@@ -90,12 +90,12 @@ def main():
     if not raw_news: return
 
     # 2. GYORSÍTÁS: Párhuzamos fordítás
-    print(f"🌍 Fordítás indítása {len(raw_news)} hírre...")
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        titles = [n['title'] for n in raw_news]
-        translated_titles = list(executor.map(translate_if_needed, titles))
-        for i, translated in enumerate(translated_titles):
-            raw_news[i]['title'] = translated
+    #print(f"🌍 Fordítás indítása {len(raw_news)} hírre...")
+    #with ThreadPoolExecutor(max_workers=10) as executor:
+    #    titles = [n['title'] for n in raw_news]
+    #    translated_titles = list(executor.map(translate_if_needed, titles))
+    #    for i, translated in enumerate(translated_titles):
+    #        raw_news[i]['title'] = translated
 
     # 3. Stratégiai témák (Csak a Top 7-et kérjük)
     titles_only = "\n".join([f"{i+1}. {n['title']}" for i, n in enumerate(raw_news)])

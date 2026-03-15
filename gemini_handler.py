@@ -4,6 +4,20 @@ from google import genai
 from google.genai import types
 import time
 
+from pydantic import BaseModel, Field
+from typing import List
+
+class Scores(BaseModel):
+    relevance: int = Field(description="Mennyire kritikus a magyar vagy globális gazdaság/politika szempontjából (1-10)")
+    impact: int = Field(description="Az esemény súlya (1-10)")
+    novelate: int = Field(description="Mennyire tartalmaz új információt (1-10)")
+
+class ClusterResult(BaseModel):
+    name: str = Field(description="Esemény neve és helyszíne")
+    category: str = Field(description="Kategória: HAZAI, GLOBÁLIS vagy EGYÉB")
+    scores: Scores
+    ids: List[int] = Field(description="A csoportba ténylegesen beleillő hírek ID-jai")
+
 # 1. Globális kliens létrehozása itt, a handlerben
 client = genai.Client(
     api_key=config.GOOGLE_API_KEY, 

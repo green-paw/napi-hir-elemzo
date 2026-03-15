@@ -1,6 +1,7 @@
 import config
 import output_handler
 from gemini_handler import get_strategic_topics, validate_news_clusters, generate_event_summary, get_gemini_embeddings, translate_if_needed
+from rss_handler import fetch_news
 
 import feedparser
 import re
@@ -30,61 +31,6 @@ class ClusterResult(BaseModel):
     ids: List[int] = Field(description="A csoportba ténylegesen beleillő hírek ID-jai")
 
 bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
-
-def clean_news_text(entry, field='title'):
-    raw = entry.get(f"{field}_detail", {}).get('value', entry.get(field, ''))
-    if not raw: return ""
-    clean = re.sub(r'<[^>]+?>', '', html.unescape(raw))
-    return " ".join(clean.split()).strip()
-
-def smart_truncate(text, max_length=600):
-    if len(text) <= max_length: return text
-    return text[:max_length].rsplit(' ', 1)[0] + "..."
-
-def fetch_news():
-    news_pool = []
-    item_id = 0
-    now = datetime.now()
-    limit = timedelta(hours=48)
-    # A diagnosztika alapján összeállított feketelista
-    BLACKLIST = ["sport", "bulvár", "szórakozás", "horoszkóp", "időjárás", "recept", "életmód", "bulvar"]
-
-    print(f"📰 Hírek lekérése és szűrése ({limit.days * 24}h limit)...")
-    
-    for name, url in config.RSS_SOURCES.items():
-        try:
-            feed = feedparser.parse(url)
-            for entry in feed.entries:
-                # 1. Dátumszűrés (published_parsed használatával)
-                dt = now # Fallback, ha nincs dátum
-                if hasattr(entry, 'published_parsed'):
-                    dt = datetime.fromtimestamp(time.mktime(entry.published_parsed))
-                    if now - dt > limit:
-                        continue
-                
-                # 2. Kategória szűrés (tags alapján)
-                tags = [t.term.lower() for t in entry.get('tags', []) if hasattr(t, 'term')]
-                if any(bad in tags for bad in BLACKLIST):
-                    continue
-
-                # 3. Tisztítás és mentés
-                title = clean_news_text(entry, 'title')
-                if not title: continue
-
-                news_pool.append({
-                    "id": item_id,
-                    "source": name,
-                    "title": title,
-                    "summary": smart_truncate(clean_news_text(entry, 'summary'), 600),
-                    "tags": tags,
-                    "published": dt
-                })
-                item_id += 1
-        except Exception as e: 
-            print(f"⚠️ Hiba ({name}): {e}")
-            
-    print(f"✅ Kész! {len(news_pool)} releváns hír begyűjtve.")
-    return news_pool
 
 # --- ÚJ: Szemantikus szűrő matematikai alapjai ---
 def cosine_similarity(v1, v2):

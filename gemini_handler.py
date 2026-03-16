@@ -1,6 +1,5 @@
 import json
 import config
-from main import myPrint
 
 from google import genai
 from google.genai import types
@@ -68,7 +67,7 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
     return None
 
 def get_strategic_topics(titles_sample):
-    myPrint(f"get_strategic_topics hívás, minta hossza: {len(titles_sample)} karakter")
+    print(f"get_strategic_topics hívás, minta hossza: {len(titles_sample)} karakter")
     
     prompt = f"""
     Az alábbi hírcímek alapján azonosítsd a 7 legfontosabb stratégiai, politikai vagy gazdasági témát. 
@@ -92,7 +91,7 @@ def get_strategic_topics(titles_sample):
             return topics
         return []
     except Exception as e:
-        myPrint(f"❌ Hiba a témák feldolgozásánál: {e}")
+        print(f"❌ Hiba a témák feldolgozásánál: {e}")
         return []
 
 def validate_news_clusters(cluster_data, schema):

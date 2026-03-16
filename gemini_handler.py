@@ -70,7 +70,8 @@ def get_strategic_topics(titles_sample):
     print(f"get_strategic_topics hívás, minta hossza: {len(titles_sample)} karakter")
     
     prompt = f"""
-    Az alábbi hírcímek alapján azonosítsd a 7 legfontosabb stratégiai, politikai vagy gazdasági témát. 
+    Az alábbi hírcímek alapján azonosítsd a 10 legfontosabb stratégiai, politikai vagy gazdasági témát.
+    Elsősorban Magyarország politikai és gazdasági érintettsége a fontos, valamint a globális konfliktusok és jelentős gazdasági események.
     
     HÍREK:
     {titles_sample}

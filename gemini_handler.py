@@ -70,6 +70,8 @@ def get_strategic_topics(titles_sample):
     prompt = f"""
     Az alábbi hírcímek alapján azonosítsd a 7 legfontosabb stratégiai, politikai vagy gazdasági témát.
     Elsősorban Magyarország politikai és gazdasági érintettsége a fontos, valamint a globális konfliktusok és jelentős gazdasági események.
+    Ilyen vagy hasonló témák, mint "Technológiai fejlődés", "Társadalmi és kulturális trendek" akkor legyenek benne ha tényleg nincs jobb.
+    Ezek nem kellenek: Bulvár, pletykák, click-bait.
     
     HÍREK:
     {titles_sample}

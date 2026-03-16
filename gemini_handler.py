@@ -69,7 +69,8 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
                     system_instruction=sys_instruct,
                     temperature=0.0 if is_json else 0.2,
                     response_mime_type="application/json" if is_json else "text/plain",
-                    response_schema=schema if is_json and schema else None
+                    response_schema=schema if is_json and schema else None,
+                    max_output_tokens=1000
                 )
             )
             print(f"DEBUG: Finish reason: {response.candidates[0].finish_reason}")
@@ -112,8 +113,7 @@ def get_strategic_topics(titles_sample):
     
     res_text = _gemini_engine(
         prompt=prompt, 
-        sys_instruct="Te egy stratégiai politikai, gazdasági elemző vagy.", 
-        model_type="flash", 
+        sys_instruct="Te egy stratégiai politikai, gazdasági elemző vagy.",
         is_json=True,
         schema=list[str] 
     )

@@ -85,38 +85,45 @@ def parse_clusters(clusters_data):
     return sorted(filtered, key=lambda x: x['total_score'], reverse=True)
 
 def main():
-    # 1. Lekérés (rss_handler-ből, már szűrve dátumra és kategóriára)
+    # 1. Lekérés
     raw_news = fetch_news()
     if not raw_news: return
 
-    # 2. GYORSÍTÁS: Párhuzamos fordítás
-    #print(f"🌍 Fordítás indítása {len(raw_news)} hírre...")
-    #with ThreadPoolExecutor(max_workers=10) as executor:
-    #    titles = [n['title'] for n in raw_news]
-    #    translated_titles = list(executor.map(translate_if_needed, titles))
-    #    for i, translated in enumerate(translated_titles):
-    #        raw_news[i]['title'] = translated
-
-    # 3. Stratégiai témák (Csak a Top 7-et kérjük)
-    titles_only = "\n".join([f"{i+1}. {n['title']}" for i, n in enumerate(raw_news)])
-    topics = get_strategic_topics(titles_only)
+    # 2. Stratégiai témák
+    # (A modellnek nem kell 800 hír a témákhoz, az első 150-ből is látja a nap trendjeit)
+    titles_sample = "\n".join([f"{n['title']}" for n in raw_news[:150]])
+    topics = get_strategic_topics(titles_sample)
     
-    # 4. Szűrés és Klaszterezés
+    # 3. Szemantikus szűrés
     filtered_news = semantic_filter(raw_news, topics)
     if not filtered_news: return
 
+    # 💡 SEBESSÉG OPTIMALIZÁLÁS: 
+    # Ha túl sok hír maradt, vegyük a legjobbakat, hogy a klaszterezés ne akadjon el
+    if len(filtered_news) > 150:
+        filtered_news = sorted(filtered_news, key=lambda x: x.get('match_score', 0), reverse=True)[:150]
+
+    # 4. Klaszterezés (már csak a szűrt híreken)
     clusters = parse_clusters(cluster_news(filtered_news))
     
     # 5. Összefoglalás és küldés
     final_data_package = []
-    for cluster in clusters:
-        # Kigyűjtjük a teljes hír-objektumokat (szótárakat), nem csak szöveget!
+    
+    # 💡 LIMIT: Csak a top 10 legfontosabb eseményt elemezzük (sebesség + átláthatóság)
+    top_clusters = clusters[:10] 
+
+    print(f"🧠 Elemzés indítása a top {len(top_clusters)} eseményre...")
+
+    for cluster in top_clusters:
         relevant_news_objects = [n for n in filtered_news if n['id'] in cluster['ids']]
         
         if not relevant_news_objects:
             continue
 
-        # ✅ MOST MÁR A LISTÁT ADJUK ÁT, NEM A STRINGET
+        # 💡 ZAJSZŰRÉS: Csak akkor elemezzük, ha legalább 2 forrás ír róla
+        if len(set(n['source'] for n in relevant_news_objects)) < 2:
+            continue
+
         summary = generate_event_summary(cluster['name'], relevant_news_objects)
         
         sources_data = [
@@ -131,7 +138,16 @@ def main():
             'sources': sources_data,
             'score': cluster.get('total_score', 0)
         })
-    output_handler.process_and_send(final_data_package)
+        
+        # Rövid szünet a Gemini RPM limit miatt
+        time.sleep(1)
+
+    # 6. Kimenetek kezelése (HTML + Telegram)
+    if final_data_package:
+        output_handler.process_and_send(final_data_package)
+    else:
+        print("⚠️ Nem találtam elemezhető híreseményt a szűrők alapján.")
+        
     print("✅ Kész.")
 
 if __name__ == "__main__":

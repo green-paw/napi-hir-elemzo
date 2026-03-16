@@ -99,6 +99,7 @@ def main():
     # 2. Stratégiai témák
     # (A modellnek nem kell 800 hír a témákhoz, az első 150-ből is látja a nap trendjeit)
     titles_sample = "\n".join([f"{n['title']}" for n in raw_news[:150]])
+    myPrint(f"get_strategic_topics hívás, titles_sample: {len(titles_sample)} elem")
     topics = get_strategic_topics(titles_sample)
     
     # 3. Szemantikus szűrés

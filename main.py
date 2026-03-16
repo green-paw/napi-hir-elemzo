@@ -112,9 +112,8 @@ def main():
         return
 
     # 2. Stratégiai témák
-    # (A modellnek nem kell 800 hír a témákhoz, az első 150-ből is látja a nap trendjeit)
-    titles_sample = "\n".join([f"{n['title']}" for n in raw_news[:150]])
-    myPrint(f"get_strategic_topics hívás, titles_sample: {len(titles_sample)} elem")
+    titles_sample = "\n".join([f"{n['title']}" for n in raw_news[:200]])
+    myPrint(f"get_strategic_topics hívás, titles_sample: {len(titles_sample)} karakter")
     topics = get_strategic_topics(titles_sample)
     
     # 3. Szemantikus szűrés
@@ -125,9 +124,7 @@ def main():
         return
 
     # 💡 SEBESSÉG OPTIMALIZÁLÁS: 
-    # Ha túl sok hír maradt, vegyük a legjobbakat, hogy a klaszterezés ne akadjon el
-    if len(filtered_news) > 150:
-        filtered_news = sorted(filtered_news, key=lambda x: x.get('match_score', 0), reverse=True)[:150]
+    filtered_news = sorted(filtered_news, key=lambda x: x.get('match_score', 0), reverse=True)[:300]
 
     # 4. Klaszterezés (már csak a szűrt híreken)
     clusters = parse_clusters(cluster_news(filtered_news))
@@ -135,8 +132,8 @@ def main():
     # 5. Összefoglalás és küldés
     final_data_package = []
     
-    # 💡 LIMIT: Csak a top 10 legfontosabb eseményt elemezzük (sebesség + átláthatóság)
-    top_clusters = clusters[:10] 
+    # 💡 LIMIT: Csak a top 15 legfontosabb eseményt elemezzük (sebesség + átláthatóság)
+    top_clusters = clusters[:15] 
 
     myPrint(f"🧠 Elemzés indítása a top {len(top_clusters)} eseményre...")
 
@@ -144,10 +141,12 @@ def main():
         relevant_news_objects = [n for n in filtered_news if n['id'] in cluster['ids']]
         
         if not relevant_news_objects:
+            myPrint("no relevant_news_objects in cluster {cluster['name']}, skipping") 
             continue
 
         # 💡 ZAJSZŰRÉS: Csak akkor elemezzük, ha legalább 2 forrás ír róla
         if len(set(n['source'] for n in relevant_news_objects)) < 2:
+            myPrint("relevant_news_objects < 2 in cluster {cluster['name']}, skipping") 
             continue
 
         summary = generate_event_summary(cluster['name'], relevant_news_objects)

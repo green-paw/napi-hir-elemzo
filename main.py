@@ -41,7 +41,7 @@ def semantic_filter(news_pool, topics):
     news_embs = get_gemini_embeddings(news_texts)
     
     filtered = []
-    threshold = 0.42 
+    threshold = 0.55 
 
     # 2. Összehasonlítás
     for i, n_emb in enumerate(news_embs):
@@ -51,7 +51,11 @@ def semantic_filter(news_pool, topics):
         
         # Kiválasztjuk a legmagasabb pontszámot (melyik témához áll a legközelebb?)
         max_sim = max(sims) if sims else 0
-        
+
+        # DEBUG: Csak az első pár hírnél nézzük meg a számokat
+        if i < 5:
+            myPrint(f"DEBUG: '{news_pool[i]['title'][:30]}...' max_sim: {max_sim}")
+            
         # 3. Szűrés a küszöb alapján
         if max_sim >= threshold:
             news_pool[i]['match_score'] = round(max_sim, 2)

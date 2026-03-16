@@ -41,14 +41,14 @@ def semantic_filter(news_pool, topics):
     news_embs = get_gemini_embeddings(news_texts)
     
     filtered = []
-    threshold = 0.88 
+    threshold = 0.42 
 
     for i, n_emb in enumerate(news_embs):
-        sims = [cosine_similarity(n_emb, t_emb) for t_emb in topic_embs]
-        max_sim = max(sims) if sims else 0
         if max_sim >= threshold:
             news_pool[i]['match_score'] = round(max_sim, 2)
             filtered.append(news_pool[i])
+    
+    myPrint(f"✅ Szűrés kész: {len(filtered)} hír maradt (küszöb: {threshold})")
     return filtered
 
 def cluster_news(news_pool):

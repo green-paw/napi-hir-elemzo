@@ -94,7 +94,9 @@ def parse_clusters(clusters_data):
 def main():
     # 1. Lekérés
     raw_news = fetch_news()
-    if not raw_news: return
+    if not raw_news:
+        myPrint("no raw news, exiting")
+        return
 
     # 2. Stratégiai témák
     # (A modellnek nem kell 800 hír a témákhoz, az első 150-ből is látja a nap trendjeit)
@@ -105,7 +107,9 @@ def main():
     # 3. Szemantikus szűrés
     myPrint(f"semantic_filter hívás: raw_news: {len(raw_news)} elem, topics: {len(topics)} elem")
     filtered_news = semantic_filter(raw_news, topics)
-    if not filtered_news: return
+    if not filtered_news:
+        myPrint("no semantic filtered news, exiting") 
+        return
 
     # 💡 SEBESSÉG OPTIMALIZÁLÁS: 
     # Ha túl sok hír maradt, vegyük a legjobbakat, hogy a klaszterezés ne akadjon el

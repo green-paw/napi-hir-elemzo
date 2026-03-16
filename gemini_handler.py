@@ -73,8 +73,10 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
                     max_output_tokens=1000
                 )
             )
-            print(f"DEBUG: Finish reason: {response.candidates[0].finish_reason}")
-            
+
+            if response.candidates[0].finish_reason != "STOP":
+                print(f"DEBUG: Finish reason: {response.candidates[0].finish_reason}")
+    
             usage_tracker.add(model_name, response)            
             return response.text
 

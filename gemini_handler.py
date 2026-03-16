@@ -81,8 +81,7 @@ def get_strategic_topics(titles_sample):
     """
     
     # Használd az is_json=True paramétert, amit már beépítettünk a _gemini_engine-be!
-    res_text = _gemini_engine(prompt, "Te egy politikai elemző vagy.", is_json=True)
-    
+    res_text = _gemini_engine(prompt, "Te egy stratégiai, politikai vagy gazdasági elemző vagy.", is_json=True)
     
     try:
         import json
@@ -149,18 +148,21 @@ def generate_event_summary(event_name, news_items):
     {chr(10).join(context_parts)}
     
     ELVÁRT STRUKTÚRA ÉS FORMÁTUM:
-    1. ÖSSZEFOGLALÓ ÉS TÉNYEK: Pár mondatban foglald össze az eseményt. Csak a közös metszetet és a megkérdőjelezhetetlen tényeket írd le. Ha ellentmondás van a számokban vagy adatokban, itt jelezd.
+    Pár mondatban foglald össze az eseményt. Csak a közös metszetet és a megkérdőjelezhetetlen tényeket írd le.
     
-    2. NARRATÍVÁK ÉS ELEMZÉS: 
+    NARRATÍVÁK ÉS ELEMZÉS: 
        - Fejtsd ki a különböző politikai oldalak (konzervatív vs. liberális) tálalási módját.
        - KÜLÖNÖS FIGYELEM: Ha egy forrás a saját besorolásától eltérő (váratlanul kritikus vagy szokatlanul támogató) hangvételt üt meg, azt mindenképpen emeld ki!
        - Nevezd meg a konkrét manipulációs technikákat, érzelmi hergelést vagy elhallgatásokat.
-    
-    3. VALÓSZÍNŰ VALÓSÁG: Egyetlen, lényegre törő mondat a konklúzióról.
+       - Az egyes narratívák elemzése is csak 1-2 mondat legyen
+       - Ha nincs érdemi különbség az oldalak között, ne gyártsd le mesterségesen, hanem írd le: 'A hír tálalása egységes'.
 
     ELVÁRÁSOK:
-    - Használj tömör, bullet-pointos formátumot az elemzésnél.
-    - Kerüld a felesleges köröket ("Fontos megjegyezni...").
+    - Nem kell bevezető ("Rendben, nézzük meg ezt az ...")
+    - Kezdd az elemzést azonnal az érdemi összefoglalóval, ne írd ki fejlécként az esemény nevét (azt a rendszer automatikusan hozzáadja).
+    - Ami a címben benne van azt már tudjuk, azt ne ismételd sehol.
+    - Az egyes bekezdések legyenek lényegretörőek, csak pár mondat
+    - Kerüld a felesleges köröket, szófordulatokat ("Fontos megjegyezni...").
     - Használj Markdown formázást (vastagítás a kulcsszavaknál).
     """
 
@@ -168,8 +170,7 @@ def generate_event_summary(event_name, news_items):
         "Te egy tapasztalt, cinikus, de szigorúan objektív politikai és gazdasági elemző vagy. "
         "A feladatod a hírek dekonstrukciója. Ne csak azt nézd, mit írnak, hanem azt is, hogyan. "
         "Keresd a 'keretezési' technikákat és a politikai marketinget. "
-        "Ha egy forrás (pl. egy kormányközeli lap) kritikus hangot üt meg a saját oldalával szemben, "
-        "vagy egy független lap látványosan elfogult, azt kezeld prioritásként az elemzésben."
+        "Légy tömör és lényegretörő. Az egész elemzés ne legyen több 10-12 mondatnál. "
     )
 
     # Az _gemini_engine hívása marad

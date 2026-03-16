@@ -72,7 +72,7 @@ def cluster_news(news_pool):
 
     clustering = AgglomerativeClustering(
         n_clusters=None,
-        distance_threshold=0.08, # Szigorúbb olló
+        distance_threshold=0.1, # Szigorúbb olló
         metric='cosine',
         linkage='complete'
     ).fit(embeddings)
@@ -112,10 +112,16 @@ def main():
         return
 
     # 2. Stratégiai témák
-    titles_sample = "\n".join([f"{n['title']}" for n in raw_news[:200]])
-    myPrint(f"get_strategic_topics hívás, titles_sample: {len(titles_sample)} karakter")
+    sample_size = min(len(raw_news), 200)
+    titles_sample = "\n".join([n['title'] for n in random.sample(raw_news, sample_size)])
     topics = get_strategic_topics(titles_sample)
-    
+    if topics:
+        myPrint("🎯 Azonosított stratégiai témák:")
+        for i, topic in enumerate(topics, 1):
+            myPrint(f"   {i}. {topic}")
+    else:
+        myPrint("⚠️ Nem sikerült stratégiai témákat generálni.")
+        
     # 3. Szemantikus szűrés
     myPrint(f"semantic_filter hívás: raw_news: {len(raw_news)} elem, topics: {len(topics)} elem")
     filtered_news = semantic_filter(raw_news, topics)

@@ -124,7 +124,7 @@ def main():
         return
 
     # 💡 SEBESSÉG OPTIMALIZÁLÁS: 
-    filtered_news = sorted(filtered_news, key=lambda x: x.get('match_score', 0), reverse=True)[:200]
+    filtered_news = sorted(filtered_news, key=lambda x: x.get('match_score', 0), reverse=True)[:300]
 
     # 4. Klaszterezés (már csak a szűrt híreken)
     clusters = parse_clusters(cluster_news(filtered_news))
@@ -132,8 +132,8 @@ def main():
     # 5. Összefoglalás és küldés
     final_data_package = []
     
-    # 💡 LIMIT: Csak a top 15 legfontosabb eseményt elemezzük (sebesség + átláthatóság)
-    top_clusters = clusters[:10] 
+    # 💡 LIMIT: Csak a top 20 legfontosabb eseményt elemezzük (sebesség + átláthatóság)
+    top_clusters = clusters[:20] 
 
     myPrint(f"🧠 Elemzés indítása a top {len(top_clusters)} eseményre...")
 
@@ -142,11 +142,6 @@ def main():
         
         if not relevant_news_objects:
             myPrint("no relevant_news_objects in cluster {cluster['name']}, skipping") 
-            continue
-
-        # 💡 ZAJSZŰRÉS: Csak akkor elemezzük, ha legalább 2 forrás ír róla
-        if len(set(n['source'] for n in relevant_news_objects)) < 2:
-            myPrint("relevant_news_objects < 2 in cluster {cluster['name']}, skipping") 
             continue
 
         summary = generate_event_summary(cluster['name'], relevant_news_objects)

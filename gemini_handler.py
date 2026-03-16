@@ -23,14 +23,13 @@ class TokenLogger:
         self.log = []
 
     def add(self, model_name, response):
-        usage = response.usage_metadata
-        in_t = usage.prompt_token_count
-        out_t = getattr(usage, 'candidates_token_count', 0)
-        self.log.append({
-            "model": model_name,
-            "input": in_t,
-            "output": out_t
-        })
+        if hasattr(response, 'usage_metadata'):
+            usage = response.usage_metadata
+            self.log.append({
+                "model": model_name,
+                "input": usage.prompt_token_count,
+                "output": getattr(usage, 'candidates_token_count', 0)
+            })
 
     def get_aggregated_stats(self):
         stats = {}
@@ -214,7 +213,6 @@ def get_gemini_embeddings(texts):
             contents=batch,
             config=types.EmbedContentConfig(task_type="CLUSTERING")
         )
-        usage_tracker.add("gemini-embedding-001", response)
         all_embeddings.extend([embedding.values for embedding in response.embeddings])
         if len(texts) > 100:
             time.sleep(1)

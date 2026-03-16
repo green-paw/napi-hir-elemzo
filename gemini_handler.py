@@ -24,10 +24,12 @@ class TokenLogger:
 
     def add(self, model_name, response):
         usage = response.usage_metadata
+        in_t = usage.prompt_token_count
+        out_t = getattr(usage, 'candidates_token_count', 0)
         self.log.append({
             "model": model_name,
-            "input": usage.prompt_token_count,
-            "output": getattr(usage, 'candidates_token_count', 0) # Embeddingnél nincs output
+            "input": in_t,
+            "output": out_t
         })
 
     def get_aggregated_stats(self):

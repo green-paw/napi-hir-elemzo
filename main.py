@@ -41,7 +41,7 @@ def semantic_filter(news_pool, topics):
     news_embs = get_gemini_embeddings(news_texts)
     
     filtered = []
-    threshold = 0.55 
+    threshold = 0.72
 
     # 2. Összehasonlítás
     for i, n_emb in enumerate(news_embs):

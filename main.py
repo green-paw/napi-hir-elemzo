@@ -83,7 +83,7 @@ def cluster_news(news_pool):
 
     final_clusters = []
     for label, items in groups.items():
-        formatted_list = "\n".join([f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {n['summary'][:150]}" for n in items])
+        formatted_list = "\n".join([f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {n['summary'][:200]}" for n in items])
         # A validate_news_clusters-ben az AI már a belső pontokat is nézheti
         data = validate_news_clusters(formatted_list, schema=ClusterResult)
 
@@ -124,7 +124,7 @@ def main():
         return
 
     # 💡 SEBESSÉG OPTIMALIZÁLÁS: 
-    filtered_news = sorted(filtered_news, key=lambda x: x.get('match_score', 0), reverse=True)[:300]
+    filtered_news = sorted(filtered_news, key=lambda x: x.get('match_score', 0), reverse=True)[:200]
 
     # 4. Klaszterezés (már csak a szűrt híreken)
     clusters = parse_clusters(cluster_news(filtered_news))
@@ -133,7 +133,7 @@ def main():
     final_data_package = []
     
     # 💡 LIMIT: Csak a top 15 legfontosabb eseményt elemezzük (sebesség + átláthatóság)
-    top_clusters = clusters[:15] 
+    top_clusters = clusters[:10] 
 
     myPrint(f"🧠 Elemzés indítása a top {len(top_clusters)} eseményre...")
 

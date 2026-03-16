@@ -67,10 +67,8 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
     return None
 
 def get_strategic_topics(titles_sample):
-    print(f"get_strategic_topics hívás, minta hossza: {len(titles_sample)} karakter")
-    
     prompt = f"""
-    Az alábbi hírcímek alapján azonosítsd a 10 legfontosabb stratégiai, politikai vagy gazdasági témát.
+    Az alábbi hírcímek alapján azonosítsd a 7 legfontosabb stratégiai, politikai vagy gazdasági témát.
     Elsősorban Magyarország politikai és gazdasági érintettsége a fontos, valamint a globális konfliktusok és jelentős gazdasági események.
     
     HÍREK:

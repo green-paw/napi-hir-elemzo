@@ -1,9 +1,10 @@
 import json
-import config  # <--- Ezt be kell importálni!
+import config
+from main import myPrint
+
 from google import genai
 from google.genai import types
 import time
-
 from pydantic import BaseModel, Field
 from typing import List
 
@@ -66,18 +67,32 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
            
     return None
 
-def get_strategic_topics(titles_list):
-    """Flash modell: 200+ hír stratégiai átvilágítása."""
-    sys_instruct = """Te egy stratégiai hírelemző vagy. A feladatod a 15 legfontosabb téma azonosítása.
-    CÉL: Olyan kulcsszavakat kapjak, amikkel később szemantikailag szűrhetjük a hírfolyamot.
-    FÓKUSZ: Magyar gazdaság, belpolitika, világgazdaság, háború, energia.
-    VÁLASZ: Csak egy JSON listát adj vissza: ["téma1", "téma2", ...]"""
+def get_strategic_topics(titles_sample):
+    myPrint(f"get_strategic_topics hívás, minta hossza: {len(titles_sample)} karakter")
     
-    prompt = f"Elemezd ezeket a címeket a szűrési stratégia alapján:\n{titles_list}"
-    res = _gemini_engine(prompt, sys_instruct, model_type="flash", is_json=True)
+    prompt = f"""
+    Az alábbi hírcímek alapján azonosítsd a 7 legfontosabb stratégiai, politikai vagy gazdasági témát. 
+    
+    HÍREK:
+    {titles_sample}
+    
+    VÁLASZ FORMÁTUMA:
+    Egy JSON listát adj vissza, ami csak a témák nevét tartalmazza, semmi mást!
+    Példa: ["Téma 1", "Téma 2", "Téma 3"]
+    """
+    
+    # Használd az is_json=True paramétert, amit már beépítettünk a _gemini_engine-be!
+    res_text = _gemini_engine(prompt, "Te egy politikai elemző vagy.", is_json=True)
+    
+    
     try:
-        return json.loads(res) if res else []
-    except:
+        import json
+        topics = json.loads(res_text)
+        if isinstance(topics, list):
+            return topics
+        return []
+    except Exception as e:
+        myPrint(f"❌ Hiba a témák feldolgozásánál: {e}")
         return []
 
 def validate_news_clusters(cluster_data, schema):

@@ -73,6 +73,7 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
                     response_schema=schema if is_json and schema else None
                 )
             )
+            print(f"DEBUG: Finish reason: {response.candidates[0].finish_reason}")
             
             usage_tracker.add(model_name, response)            
             return response.text

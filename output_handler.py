@@ -190,7 +190,7 @@ def send_split_message(chat_id, text):
         header = f"🗞 <b>AI HÍRELEMZÉS ({i}/{total_parts})</b>\n\n"
         bot.send_message(chat_id, header + part, parse_mode='HTML', disable_web_page_preview=True)
 
-def send_ntfy_alert(message, title="Hírelemző Értesítés"):
+def send_ntfy_alert(message="Napi hír elemzés elkészült", title="Hírelemző Értesítés"):
     topic = "napi-hir-elemzo" 
     
     try:

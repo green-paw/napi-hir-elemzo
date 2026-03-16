@@ -107,8 +107,7 @@ def get_strategic_topics(titles_sample):
     Példa: ["Téma 1", "Téma 2", "Téma 3"]
     """
     
-    # Használd az is_json=True paramétert, amit már beépítettünk a _gemini_engine-be!
-    res_text = _gemini_engine(prompt, "Te egy stratégiai, politikai vagy gazdasági elemző vagy.", is_json=True)
+    res_text = _gemini_engine(prompt, "Te egy stratégiai, politikai vagy gazdasági elemző vagy.", model_type="flash", is_json=True)
     
     try:
         import json
@@ -144,7 +143,7 @@ def validate_news_clusters(cluster_data, schema):
     """
 
     # Itt hívjuk meg a motort
-    res = _gemini_engine(cluster_data, sys_instruct, model_type="lite", is_json=True, schema=schema)
+    res = _gemini_engine(cluster_data, sys_instruct, is_json=True, schema=schema)
     
     try:
         return json.loads(res) if res else {}
@@ -198,8 +197,7 @@ def generate_event_summary(event_name, news_items):
         "Légy tömör és lényegretörő. Az egész elemzés ne legyen több 10-12 mondatnál. "
     )
 
-    # Az _gemini_engine hívása marad
-    res = _gemini_engine(prompt, system_msg, model_type="lite")
+    res = _gemini_engine(prompt, system_msg)
     
     return res if res else "Nem sikerült generálni az elemzést."
     
@@ -230,8 +228,7 @@ def translate_if_needed(text):
     
     SZABÁLY: Csak a fordítást küldd vissza, ne fűzz hozzá semmilyen magyarázatot vagy megjegyzést!"""
     
-    # Meghívjuk a motort a Lite modellel
-    res = _gemini_engine(text, sys_instruct, model_type="lite")
+    res = _gemini_engine(text, sys_instruct)
     
     # Ha kaptunk választ és nem csak üres karaktereket tartalmaz
     if res and res.strip():

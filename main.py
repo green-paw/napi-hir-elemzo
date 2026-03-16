@@ -179,7 +179,11 @@ def main():
         output_handler.process_and_send(final_data_package, topics_html)
     else:
         myPrint("⚠️ Nem találtam elemezhető híreseményt a szűrők alapján.")
-        
+    
+    from gemini_handler import usage_tracker        
+    usage = usage_tracker.get_aggregated_stats()
+    myPrint(usage)
+    
     myPrint("✅ Kész.")
 
 if __name__ == "__main__":

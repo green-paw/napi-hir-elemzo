@@ -30,6 +30,16 @@ class TokenLogger:
             "output": getattr(usage, 'candidates_token_count', 0) # Embeddingnél nincs output
         })
 
+    def get_aggregated_stats(self):
+        stats = {}
+        for entry in self.log:
+            m = entry["model"]
+            if m not in stats:
+                stats[m] = {"in": 0, "out": 0}
+            stats[m]["in"] += entry["input"]
+            stats[m]["out"] += entry["output"]
+        return stats
+        
     def get_summary(self):
         return self.log
 

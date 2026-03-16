@@ -113,15 +113,20 @@ def main():
         return
 
     # 2. Stratégiai témák
+    topics_html = ""
     sample_size = min(len(raw_news), 200)
     titles_sample = "\n".join([n['title'] for n in random.sample(raw_news, sample_size)])
     topics = get_strategic_topics(titles_sample)
     if topics:
+        topics_html = "Azonosított stratégiai témák:<br><ul>"
         myPrint("🎯 Azonosított stratégiai témák:")
         for i, topic in enumerate(topics, 1):
             myPrint(f"   {i}. {topic}")
+            topics_html += f"<li>{topic}</li>"
+        topics_html += "</ul>"
     else:
         myPrint("⚠️ Nem sikerült stratégiai témákat generálni.")
+        return
         
     # 3. Szemantikus szűrés
     myPrint(f"semantic_filter hívás: raw_news: {len(raw_news)} elem, topics: {len(topics)} elem")
@@ -171,7 +176,7 @@ def main():
 
     # 6. Kimenetek kezelése (HTML + Telegram)
     if final_data_package:
-        output_handler.process_and_send(final_data_package)
+        output_handler.process_and_send(final_data_package, topics_html)
     else:
         myPrint("⚠️ Nem találtam elemezhető híreseményt a szűrők alapján.")
         

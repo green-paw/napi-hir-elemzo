@@ -197,7 +197,7 @@ def send_ntfy_alert(message="Napi hír elemzés elkészült", title="Hírelemző
         requests.post(f"https://ntfy.sh/{topic}",
             data=message.encode('utf-8'),
             headers={
-                "Title": "Napi hír elemzés",
+                "Title": "Napi hir elemzes",
                 "Click": "https://green-paw.github.io/napi-hir-elemzo/index.html", # Erre visz, ha rákattintasz
                 "Priority": "high"
             }

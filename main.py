@@ -118,7 +118,7 @@ def main():
     titles_sample = "\n".join([n['title'] for n in random.sample(raw_news, sample_size)])
     topics = get_strategic_topics(titles_sample)
     if topics:
-        topics_html = "Azonosított stratégiai témák:<br><ul>"
+        topics_html = "<ul>"
         myPrint("🎯 Azonosított stratégiai témák:")
         for i, topic in enumerate(topics, 1):
             myPrint(f"   {i}. {topic}")

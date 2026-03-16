@@ -4,6 +4,7 @@ import markdown  # pip install markdown
 import re
 from datetime import datetime
 from collections import defaultdict
+import requests
 
 bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
 
@@ -136,6 +137,8 @@ def process_and_send(final_data_package, topics_html):
     except Exception as e:
         print(f"❌ Hiba a HTML generálás során: {e}")
 
+    send_ntfy_alert()
+    
     # telegram kihagyása
     return
     
@@ -186,3 +189,21 @@ def send_split_message(chat_id, text):
     for i, part in enumerate(parts, 1):
         header = f"🗞 <b>AI HÍRELEMZÉS ({i}/{total_parts})</b>\n\n"
         bot.send_message(chat_id, header + part, parse_mode='HTML', disable_web_page_preview=True)
+
+def send_ntfy_alert(message, title="Hírelemző Értesítés"):
+    topic = "napi-hir-elemzo" 
+    
+    try:
+        requests.post(f"https://ntfy.sh/{topic}",
+            data=message.encode('utf-8'),
+            headers={
+                "Title": "Napi hír elemzés",
+                "Click": "https://green-paw.github.io/napi-hir-elemzo/index.html", # Erre visz, ha rákattintasz
+                "Priority": "high"
+            }
+        )
+    except Exception as e:
+        print(f"Nem sikerült a push küldés: {e}")
+
+
+

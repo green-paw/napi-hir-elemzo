@@ -18,6 +18,24 @@ class ClusterResult(BaseModel):
     scores: Scores
     ids: List[int] = Field(description="A csoportba ténylegesen beleillő hírek ID-jai")
 
+class TokenLogger:
+    def __init__(self):
+        self.log = []
+
+    def add(self, model_name, response):
+        usage = response.usage_metadata
+        self.log.append({
+            "model": model_name,
+            "input": usage.prompt_token_count,
+            "output": getattr(usage, 'candidates_token_count', 0) # Embeddingnél nincs output
+        })
+
+    def get_summary(self):
+        return self.log
+
+# Hozz létre egy példányt a modul szintjén
+usage_tracker = TokenLogger()
+
 # 1. Globális kliens létrehozása itt, a handlerben
 client = genai.Client(
     api_key=config.GOOGLE_API_KEY, 
@@ -35,17 +53,14 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=sys_instruct,
-                    max_output_tokens=600,
+                    max_output_tokens=800,
                     temperature=0.0 if is_json else 0.2,
-                    # Ezeket ne felejtsd ki!
                     response_mime_type="application/json" if is_json else "text/plain",
                     response_schema=schema if is_json and schema else None
                 )
             )
             
-            usage = response.usage_metadata
-            #print(f"model: {model_name}, input tokens: {usage.prompt_token_count}, output tokens: {usage.candidates_token_count}")
-            
+            usage_tracker.add(model_name, response)            
             return response.text
 
         except Exception as e:
@@ -127,8 +142,6 @@ def validate_news_clusters(cluster_data, schema):
         return {}
 
 def generate_event_summary(event_name, news_items):
-    import config
-    
     biases = []
     context_parts = []
     
@@ -189,6 +202,7 @@ def get_gemini_embeddings(texts):
             contents=batch,
             config=types.EmbedContentConfig(task_type="CLUSTERING")
         )
+        usage_tracker.add("gemini-embedding-001", response)
         all_embeddings.extend([embedding.values for embedding in response.embeddings])
         if len(texts) > 100:
             time.sleep(1)

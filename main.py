@@ -131,9 +131,6 @@ def main():
             'sources': sources_data,
             'score': cluster.get('total_score', 0)
         })
-
-    output_handler.process_and_send(final_data_package)
-
     output_handler.process_and_send(final_data_package)
     print("✅ Kész.")
 

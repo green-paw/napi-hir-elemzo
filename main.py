@@ -17,6 +17,13 @@ import time
 from concurrent.futures import ThreadPoolExecutor # A gyors fordításhoz
 from sklearn.cluster import AgglomerativeClustering
 
+from datetime import datetime
+
+def myPrint(message):
+    """Timestampet ad minden üzenet elé (HH:MM:SS format)."""
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    print(f"[{timestamp}] {message}")
+
 # --- Szemantikus szűrő matematikai alapjai ---
 def cosine_similarity(v1, v2):
     dot_product = sum(x * y for x, y in zip(v1, v2))
@@ -26,7 +33,7 @@ def cosine_similarity(v1, v2):
 
 def semantic_filter(news_pool, topics):
     if not topics or not news_pool: return news_pool
-    print(f"🔍 Szemantikus szűrés: {len(news_pool)} hír...")
+    myPrint(f"🔍 Szemantikus szűrés: {len(news_pool)} hír...")
     
     topic_embs = get_gemini_embeddings(topics)
     # Itt használjuk ki a tags-eket is a pontossághoz!
@@ -46,7 +53,7 @@ def semantic_filter(news_pool, topics):
 
 def cluster_news(news_pool):
     if not news_pool: return []
-    print(f"🧩 Klaszterezés ({len(news_pool)} hír)...")
+    myPrint(f"🧩 Klaszterezés ({len(news_pool)} hír)...")
     texts = [f"CÍM: {n['title']} KIVONAT: {n['summary'][:200]}" for n in news_pool]
     embeddings = get_gemini_embeddings(texts)
 
@@ -95,7 +102,7 @@ def main():
     topics = get_strategic_topics(titles_sample)
     
     # 3. Szemantikus szűrés
-    print(f"semantic_filter hívás: raw_news: {len(raw_news)} elem, topics: {len(topics)} elem")
+    myPrint(f"semantic_filter hívás: raw_news: {len(raw_news)} elem, topics: {len(topics)} elem")
     filtered_news = semantic_filter(raw_news, topics)
     if not filtered_news: return
 
@@ -113,7 +120,7 @@ def main():
     # 💡 LIMIT: Csak a top 10 legfontosabb eseményt elemezzük (sebesség + átláthatóság)
     top_clusters = clusters[:10] 
 
-    print(f"🧠 Elemzés indítása a top {len(top_clusters)} eseményre...")
+    myPrint(f"🧠 Elemzés indítása a top {len(top_clusters)} eseményre...")
 
     for cluster in top_clusters:
         relevant_news_objects = [n for n in filtered_news if n['id'] in cluster['ids']]
@@ -147,9 +154,9 @@ def main():
     if final_data_package:
         output_handler.process_and_send(final_data_package)
     else:
-        print("⚠️ Nem találtam elemezhető híreseményt a szűrők alapján.")
+        myPrint("⚠️ Nem találtam elemezhető híreseményt a szűrők alapján.")
         
-    print("✅ Kész.")
+    myPrint("✅ Kész.")
 
 if __name__ == "__main__":
     main()

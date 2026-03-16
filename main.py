@@ -35,15 +35,24 @@ def semantic_filter(news_pool, topics):
     if not topics or not news_pool: return news_pool
     myPrint(f"🔍 Szemantikus szűrés: {len(news_pool)} hír...")
     
+    # 1. Témák és hírek vektorizálása
     topic_embs = get_gemini_embeddings(topics)
-    # Itt használjuk ki a tags-eket is a pontossághoz!
     news_texts = [f"[{', '.join(n['tags'])}] {n['title']}" if n['tags'] else n['title'] for n in news_pool]
     news_embs = get_gemini_embeddings(news_texts)
     
     filtered = []
     threshold = 0.42 
 
+    # 2. Összehasonlítás
     for i, n_emb in enumerate(news_embs):
+        # Kiszámoljuk a hasonlóságot a hír és az ÖSSZES téma között
+        # Ez egy listát ad vissza (pl. [0.21, 0.45, 0.12, 0.33...])
+        sims = [cosine_similarity(n_emb, t_emb) for t_emb in topic_embs]
+        
+        # Kiválasztjuk a legmagasabb pontszámot (melyik témához áll a legközelebb?)
+        max_sim = max(sims) if sims else 0
+        
+        # 3. Szűrés a küszöb alapján
         if max_sim >= threshold:
             news_pool[i]['match_score'] = round(max_sim, 2)
             filtered.append(news_pool[i])

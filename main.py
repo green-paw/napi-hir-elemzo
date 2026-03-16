@@ -18,6 +18,7 @@ from concurrent.futures import ThreadPoolExecutor # A gyors fordításhoz
 from sklearn.cluster import AgglomerativeClustering
 
 from datetime import datetime
+import random
 
 def myPrint(message):
     """Timestampet ad minden üzenet elé (HH:MM:SS format)."""

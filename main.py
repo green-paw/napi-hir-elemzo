@@ -95,6 +95,7 @@ def main():
     topics = get_strategic_topics(titles_sample)
     
     # 3. Szemantikus szűrés
+    print(f"semantic_filter hívás: raw_news: {len(raw_news)} elem, topics: {len(topics)} elem")
     filtered_news = semantic_filter(raw_news, topics)
     if not filtered_news: return
 

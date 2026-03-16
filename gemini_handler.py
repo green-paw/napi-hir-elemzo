@@ -56,6 +56,9 @@ client = genai.Client(
 def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schema=None):
     model_name = "gemini-2.5-flash-lite" if model_type == "lite" else "gemini-2.5-flash"
 
+    if model_name == "gemini-2.5-flash" and is_json == True and schema == None:
+        print("WARNING: nincs megadva séma egy flash json hívásnál")
+
     # Újrapróbálkozási logika (maximum 5 kísérlet)
     for attempt in range(5):
         try:
@@ -107,8 +110,14 @@ def get_strategic_topics(titles_sample):
     Példa: ["Téma 1", "Téma 2", "Téma 3"]
     """
     
-    res_text = _gemini_engine(prompt, "Te egy stratégiai, politikai vagy gazdasági elemző vagy.", model_type="flash", is_json=True)
-    
+    res_text = _gemini_engine(
+        prompt=prompt, 
+        sys_instruct="Te egy stratégiai politikai, gazdasági elemző vagy.", 
+        model_type="flash", 
+        is_json=True,
+        schema=list[str] 
+    )
+
     try:
         import json
         topics = json.loads(res_text)

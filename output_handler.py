@@ -89,7 +89,7 @@ def generate_html(final_data_package, topics_html):
     """
     
     if topics_html:
-        html_content += f"""
+        html_template += f"""
         <div class="strategy-box" style="background: #f8f9fa; padding: 15px; border-left: 5px solid #007bff; margin-bottom: 30px;">
             <h3 style="margin-top: 0;">🎯 Napi stratégiai fókuszpontok</h3>
             {topics_html}

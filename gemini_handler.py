@@ -117,6 +117,7 @@ def get_strategic_topics(titles_sample):
         return []
     except Exception as e:
         print(f"❌ Hiba a témák feldolgozásánál: {e}")
+        print(res_text)
         return []
 
 def validate_news_clusters(cluster_data, schema):

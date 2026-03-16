@@ -54,7 +54,7 @@ def format_sources_telegram(sources_list):
             formatted.append(f'{name} ({links})')
     return " | ".join(formatted)
 
-def generate_html(final_data_package):
+def generate_html(final_data_package, topics_html):
     """Létrehoz egy esztétikus HTML fájlt a hírekkel."""
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     
@@ -87,6 +87,14 @@ def generate_html(final_data_package):
                 <p>Frissítve: {now}</p>
             </header>
     """
+    
+    if topics_html:
+        html_content += f"""
+        <div class="strategy-box" style="background: #f8f9fa; padding: 15px; border-left: 5px solid #007bff; margin-bottom: 30px;">
+            <h3 style="margin-top: 0;">🎯 Napi stratégiai fókuszpontok</h3>
+            {topics_html}
+        </div>
+        """
 
     categories = [('HAZAI', 'Magyarország'), ('GLOBÁLIS', 'Világhírek'), ('EGYÉB', 'Egyéb')]
     
@@ -118,13 +126,13 @@ def generate_html(final_data_package):
         f.write(html_template)
     print("✅ index.html sikeresen legyártva.")
 
-def process_and_send(final_data_package):
+def process_and_send(final_data_package, topics_html):
     if not final_data_package:
         print("Nincs küldhető hír.")
         return
 
     try:
-        generate_html(final_data_package)
+        generate_html(final_data_package, topics_html)
     except Exception as e:
         print(f"❌ Hiba a HTML generálás során: {e}")
 

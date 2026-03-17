@@ -42,10 +42,9 @@ def calculate_priority_score(scores):
     else:
         return 0
     
-    # A te képleted: 40% relevancia, 40% hatás, 20% újdonság
-    return (s.get('relevance', 0) * 0.4) + \
-           (s.get('impact', 0) * 0.4) + \
-           (s.get('novelate', 0) * 0.2) # Figyelem: novelty-re javítva, ha a sémádban novelate van
+    return (s.get('relevance', 0) * 0.3) + \
+           (s.get('impact', 0) * 0.5) + \
+           (s.get('novelty', 0) * 0.2)
     
 def semantic_filter(news_pool, topics, top_k=300):
     if not topics or not news_pool: return news_pool

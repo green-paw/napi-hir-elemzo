@@ -87,11 +87,11 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
                     safety_settings = [
                         types.SafetySetting(category=cat, threshold="BLOCK_ONLY_HIGH")
                         for cat in [
-                            "HATE_SPEECH", 
-                            "HARASSMENT", 
-                            "SEXUALLY_EXPLICIT", 
-                            "DANGEROUS_CONTENT", 
-                            "CIVIC_INTEGRITY"
+                            "HARM_CATEGORY_HATE_SPEECH", 
+                            "HARM_CATEGORY_HARASSMENT", 
+                            "HARM_CATEGORY_SEXUALLY_EXPLICIT", 
+                            "HARM_CATEGORY_DANGEROUS_CONTENT", 
+                            "HARM_CATEGORY_CIVIC_INTEGRITY"
                         ]
                     ]
                 )

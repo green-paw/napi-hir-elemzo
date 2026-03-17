@@ -168,11 +168,19 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
 
 def get_strategic_topics(titles_sample):
     prompt = f"""
-    Az alábbi hírcímek alapján azonosítsd a 7 legfontosabb stratégiai, politikai vagy gazdasági témát.
-    Elsősorban Magyarország politikai és gazdasági érintettsége a fontos, valamint a globális konfliktusok és jelentős gazdasági események.
-    Ilyen vagy hasonló témák, mint "Technológiai fejlődés", "Társadalmi és kulturális trendek" akkor legyenek benne ha tényleg nincs jobb.
-    Ezek nem kellenek: Bulvár, pletykák, click-bait.
+    Elemezd a következő hírcímeket, és határozz meg maximum 7 darab kiemelt stratégiai fókuszpontot, amelyek a mai napot dominálják.
+
+    Szigorú prioritási sorrend:
+    - Geopolitika és Háború: Katonai konfliktusok, eszkaláció, nemzetközi szankciók, Irán, Ukrajna, USA-Kína feszültség.
+    - Magyar Stratégiai Érdek: Hazai belpolitikai válságok, választási kampány, kormányzati döntések, nemzetbiztonság.
+    - Kritikus Gazdaság és Energia: Infláció, forint-összeomlás, energiabiztonság, olajárak, nagyvállalati (OTP, MOL, CATL) krízishelyzetek.
     
+    Tiltólista:
+    - Csak akkor említs technológiát, klímát vagy kultúrát, ha az közvetlen, súlyos gazdasági vagy politikai következménnyel jár (pl. AI-szabályozás miatti tőzsdei bukás).
+    - Ha nincs 7 valóban stratégiai téma, adj kevesebbet, de ne töltsd fel bulvárral vagy irreleváns "trendekkel".
+    
+    Formátum: Csak a témák címeit add vissza, fontossági sorrendben.
+
     HÍREK:
     {titles_sample}
     

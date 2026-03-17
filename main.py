@@ -88,12 +88,11 @@ def cluster_news(news_pool):
     texts = [f"CÍM: {n['title']} KIVONAT: {n['summary'][:200]}" for n in news_pool]
     embeddings = get_gemini_embeddings(texts)
 
-    # Laza matematikai csoportosítás
     clustering = AgglomerativeClustering(
         n_clusters=None,
-        distance_threshold=0.4, # Complete-nél a 0.15 túl kicsi lenne, próbáld a 0.4-et
-        metric='cosine',
-        linkage='complete' 
+        distance_threshold=0.8, # Ward-nál és euklidészinél ez egy jó kiindulópont
+        metric='euclidean',
+        linkage='ward'
     ).fit(embeddings)
 
     groups = {}

@@ -89,11 +89,11 @@ def cluster_news(news_pool):
     embeddings = get_gemini_embeddings(texts)
 
     # Laza matematikai csoportosítás
-    clustering = AgglomerativeClustering(
+clustering = AgglomerativeClustering(
         n_clusters=None,
-        distance_threshold=0.15, 
+        distance_threshold=0.4, # Complete-nél a 0.15 túl kicsi lenne, próbáld a 0.4-et
         metric='cosine',
-        linkage='average'
+        linkage='complete' 
     ).fit(embeddings)
 
     groups = {}

@@ -113,7 +113,7 @@ def cluster_news(news_pool):
             final_clusters.extend(events)
             
         # Rövid várakozás a kvóták miatt (most már klaszterenként egyszer)
-        time.sleep(0.6)
+        time.sleep(1)
 
     return final_clusters
 

@@ -71,7 +71,9 @@ client = genai.Client(
 )
 
 def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schema=None):
-    model_name = "gemini-2.5-flash-lite" if model_type == "lite" else "gemini-2.5-flash"
+    model_name = "gemini-2.5-flash-lite"
+    if model_type == "flash":
+        model_name = "gemini-2.5-flash"
 
     if model_name == "gemini-2.5-flash" and is_json == True and schema == None:
         print("WARNING: nincs megadva séma egy flash json hívásnál")
@@ -138,7 +140,10 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
                 print(f"❌ KRITIKUS HIBA ({model_name}): {e}")
                 # Kényszerített leállás, hogy ne pörögjön a ciklus
                 raise SystemExit(1) 
-           
+
+    # nem sikerült 5 próbálkozás alatt sem
+    print(f"❌ KRITIKUS HIBA ({model_name}): nem sikerült 5 próbálkozás alatt sem")
+    raise SystemExit(1)
     return None
 
 def get_strategic_topics(titles_sample):

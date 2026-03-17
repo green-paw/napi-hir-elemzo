@@ -256,7 +256,6 @@ def main():
 
         c_name = refined_event.display_name
         myPrint(f"  [{i}/{len(refined_list)}] Összefoglalás: {c_name}")
-
         summary = generate_event_summary(c_name, relevant_news_objects)
         
         sources_data = [

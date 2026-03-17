@@ -174,37 +174,35 @@ def get_strategic_topics(titles_sample):
         print(res_text)
         return []
 
-def validate_news_clusters(cluster_data, schema):
-    """Lite modell: Stratégiai szempontok alapján pontozza a klasztereket."""
+def validate_news_clusters(cluster_data, schema=MultiClusterResponse):
+    """Lite modell: Szétválasztja a matematikai klasztert valódi eseményekre és pontoz."""
     
-    sys_instruct = """Te egy tapasztalt hírszerkesztő vagy. 
-    A feladatod a hírcsoportok validálása és szigorú pontozása gazdasági és politikai szempontból.
+    sys_instruct = """Te egy cinikus, de tűpontos hírszerkesztő algoritmus vagy. 
+    A feladatod, hogy egy matematikai módszerrel összegyűjtött hírkupacból (nyers klaszter) kihámozd a VALÓDI, különálló eseményeket.
 
-    PONTOZÁSI ÚTMUTATÓ:
-    1. RELEVANCE (1-10): 
-       - 10: Kritikus magyar gazdasági/politikai esemény, globális háborús eszkaláció.
-       - 1: Személyes történetek, bulvár, egyéni sorsok, érdekességek (pl. esküvő, celeb hír).
-       - HA A HÍR CSAK EGYÉNI SZINTŰ (hiába háborús övezet), NEM KAPHAT 4-NÉL MAGASABB PONTOT!
+    STRATÉGIAI SZABÁLYOK:
+    1. SZÉTVÁLASZTÁS: Ha a hírek között több különböző vállalat (pl. BMW vs. CATL), különálló incidens vagy téma van, KÖTELESSÉGED őket külön eseményként (event) visszaadni a listában. Ne gyárts "Debreceni ipar" típusú gyűjtőneveket!
+    2. RELEVANCIA SZŰRÉS: Csak azokat az eseményeket tartsd meg, amiknek a Relevance pontszáma legalább 4. A bulvárt, baleseteket, jelentéktelen színes híreket egyszerűen hagyd ki (ne adj nekik eseményt).
+    3. TISZTÍTÁS: Ha egy hír (ID) nem illik szorosan egyik eseményhez sem, ne kényszerítsd bele sehová, hagyd el.
 
-    2. IMPACT (1-10): 
-       - 10: Milliókat érintő döntés, országos jelentőség.
-       - 1: Csak az érintett személyekre vagy egy szűk körre van hatása.
+    PONTOZÁSI ÚTMUTATÓ (1-10):
+    - RELEVANCE: 10 = kritikus magyar érdek/világpolitika. 1 = bulvár, celeb, egyéni sors.
+    - IMPACT: Mennyi embert/pénzt érint a hír?
+    - NOVELTY: Mennyire friss és tényalapú az információ?
 
-    3. NOVELTY (1-10): Mennyire hoz friss, eddig nem ismert tényeket.
+    VÁLASZ: Kizárólag a megadott JSON sémát használd!"""
 
-    SZABÁLYOK:
-    - Ha a hír bulvár jellegű vagy emberi érdekesség (human interest), büntesd alacsony pontszámokkal minden kategóriában!
-    - A 'name' mező értéke MINDEN ESETBEN magyar nyelvű legyen, akkor is, ha a források vagy a téma nemzetközi!
-    """
-
-    # Itt hívjuk meg a motort
-    res = _gemini_engine(cluster_data, sys_instruct, is_json=True, schema=schema)
+    # Fontos: itt már a MultiClusterResponse sémát használjuk!
+    res = _gemini_engine(cluster_data, sys_instruct, model_type="lite", is_json=True, schema=schema)
     
     try:
-        return json.loads(res) if res else {}
+        if not res: return {"events": []}
+        data = json.loads(res)
+        # Biztosítjuk, hogy mindig legyen egy 'events' kulcsunk
+        return data if "events" in data else {"events": []}
     except Exception as e:
-        print(f"⚠️ JSON hiba: {e}")
-        return {}
+        print(f"⚠️ JSON hiba a validációnál: {e}")
+        return {"events": []}
 
 def generate_event_summary(event_name, news_items):
     biases = []

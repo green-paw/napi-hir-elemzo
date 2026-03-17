@@ -40,14 +40,19 @@ class TokenLogger:
             })
 
     def get_aggregated_stats(self):
-        stats = {}
-        for entry in self.log:
-            m = entry["model"]
-            if m not in stats:
-                stats[m] = {"in": 0, "out": 0}
-            stats[m]["in"] += entry["input"]
-            stats[m]["out"] += entry["output"]
-        return stats
+        try:
+            stats = {}
+            for entry in self.log:
+                m = entry["model"]
+                if m not in stats:
+                    stats[m] = {"in": 0, "out": 0}
+                stats[m]["in"] += entry.get("input", 0)
+                stats[m]["out"] += entry.get("output", 0)
+            return stats
+        except Exception as e:
+            print(f"⚠️ Hiba a statisztika összesítésénél: {e}")
+            # Hiba esetén visszaadjuk a nyers logot, hogy ne vesszen el adat
+            return self.log
         
     def get_summary(self):
         return self.log

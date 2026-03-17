@@ -142,8 +142,9 @@ def auto_cluster(embeddings, news_pool, initial_threshold=0.7, max_cluster_size=
             return groups
         
         # Ha van túl nagy, szigorítunk (csökkentjük a küszöböt)
-        myPrint(f"⚠️ Túl nagy csoportok ({max(too_large)} hír). Szigorítás: {current_threshold:.2f} -> {current_threshold - 0.1:.2f}")
-        current_threshold -= 0.05
+        new_threshold = current_threshold - 0.05
+        myPrint(f"⚠️ Túl nagy csoportok ({max(too_large)} hír). Szigorítás: {current_threshold:.2f} -> {new_threshold:.2f}")
+        current_threshold = new_threshold
         attempts += 1
         
         # Biztonsági fék, ne menjen 0 alá

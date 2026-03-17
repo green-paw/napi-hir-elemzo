@@ -92,6 +92,13 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
                 )
             )
 
+            has_valid_content = (
+                response.candidates and 
+                response.candidates[0].content and 
+                response.candidates[0].content.parts and
+                response.candidates[0].content.parts[0].text
+            )
+
             # A _gemini_engine függvényben a generálás után:
             if response.candidates[0].finish_reason != "STOP":
                 print(f"DEBUG: Finish reason: {response.candidates[0].finish_reason}")
@@ -105,7 +112,7 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
                             print(f"Kategória: {rating.category} | Valószínűség: {rating.probability} | Prompt: {prompt}")
     
             usage_tracker.add(model_name, response)            
-            return response.text
+            return response.text if has_valid_content else None
 
         except Exception as e:
             error_msg = str(e).lower()

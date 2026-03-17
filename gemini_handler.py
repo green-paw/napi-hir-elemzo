@@ -253,18 +253,36 @@ def generate_event_summary(event_name, news_items):
     return res if res else "Nem sikerült generálni az elemzést."
     
 def get_gemini_embeddings(texts):
-    """Vektorok lekérése 100-as csomagokban (Batch limit kezelése)."""
+    """Vektorok lekérése újrapróbálkozási logikával."""
     all_embeddings = []
+    
+    # 100-as batch-ek (ez jó)
     for i in range(0, len(texts), 100):
         batch = texts[i:i + 100]
-        response = client.models.embed_content(
-            model="gemini-embedding-001", # Később érdemes lehet text-embedding-04-re váltani
-            contents=batch,
-            config=types.EmbedContentConfig(task_type="CLUSTERING")
-        )
-        all_embeddings.extend([embedding.values for embedding in response.embeddings])
-        if len(texts) > 100:
-            time.sleep(1)
+        
+        # Belső újrapróbálkozás a 429-es hiba kezelésére
+        for attempt in range(5):
+            try:
+                response = client.models.embed_content(
+                    model="gemini-embedding-001",
+                    contents=batch,
+                    config=types.EmbedContentConfig(task_type="CLUSTERING")
+                )
+                all_embeddings.extend([embedding.values for embedding in response.embeddings])
+                
+                # Siker esetén várunk egy kicsit, hogy ne fussunk bele a következő limitbe
+                time.sleep(1) 
+                break # Kilépünk az attempt ciklusból
+                
+            except Exception as e:
+                if "429" in str(e) or "exhausted" in str(e).lower():
+                    wait_time = (attempt + 1) * 10 # 10, 20, 30... mp várakozás
+                    print(f"⚠️ Embedding kvóta elfogyott, várakozás {wait_time}s...")
+                    time.sleep(wait_time)
+                else:
+                    print(f"❌ Kritikus hiba az embedding során: {e}")
+                    raise e
+                    
     return all_embeddings
 
 def translate_if_needed(text):

@@ -239,14 +239,17 @@ def main():
 
     # Stratégiai Szerkesztő fázis
     myPrint(f"🧠 Stratégiai felülvizsgálat és összevonás ({len(initial_ranked)} jelölt)...")
-    refined_response = refine_event_list(initial_ranked, topics)
+    #refined_response = refine_event_list(initial_ranked, topics)
     
     final_data_package = []
-    refined_list = refined_response.refined_events[:20] # A top 20 amit a szerkesztő adott
+    #refined_list = refined_response.refined_events[:20] # A top 20 amit a szerkesztő adott
+    
+    
+    #myPrint(refined_list)
+    #myPrint(f"🧠 Flash elemzés indítása {len(refined_list)} véglegesített eseményre...")
 
-    myPrint(refined_list)
-    myPrint(f"🧠 Flash elemzés indítása {len(refined_list)} véglegesített eseményre...")
-
+    refined_list = initial_ranked
+    
     for i, refined_event in enumerate(refined_list, 1):
         # Összegyűjtjük az összes hírt az összes összevont ID-ból
         merged_ids = refined_event.merged_ids

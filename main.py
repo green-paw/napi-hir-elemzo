@@ -225,10 +225,10 @@ def main():
     # 4. Klaszterezés és szűrés
     all_events = cluster_news(filtered_news)
     initial_ranked = filter_and_rank_clusters(all_events)
-
+    
     # --- ÚJ: Teljes lista logolása az elemzés előtt ---
-    myPrint(f"📊 Összesen {len(top_clusters)} releváns eseményt találtam:")
-    for i, cluster in enumerate(top_clusters, 1):
+    myPrint(f"📊 Összesen {len(initial_ranked)} releváns eseményt találtam:")
+    for i, cluster in enumerate(initial_ranked, 1):
         name = cluster.name if hasattr(cluster, 'name') else cluster.get('name', 'Névtelen')
         score = getattr(cluster, 'total_score', 0) if not isinstance(cluster, dict) else cluster.get('total_score', 0)
         

@@ -89,7 +89,7 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
                     temperature=0.0 if is_json else 0.2,
                     response_mime_type="application/json" if is_json else "text/plain",
                     response_schema=schema if is_json and schema else None,
-                    max_output_tokens=1000,
+                    max_output_tokens=2048,
                     safety_settings = [
                         types.SafetySetting(category=cat, threshold="BLOCK_ONLY_HIGH")
                         for cat in [

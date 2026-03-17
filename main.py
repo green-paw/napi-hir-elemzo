@@ -47,38 +47,37 @@ def calculate_priority_score(scores):
            (s.get('impact', 0) * 0.4) + \
            (s.get('novelate', 0) * 0.2) # Figyelem: novelty-re javítva, ha a sémádban novelate van
     
-def semantic_filter(news_pool, topics):
+def semantic_filter(news_pool, topics, top_k=300):
     if not topics or not news_pool: return news_pool
-    myPrint(f"🔍 Szemantikus szűrés: {len(news_pool)} hír...")
+    myPrint(f"🔍 Szemantikus rangsorolás: {len(news_pool)} hír...")
     
     # 1. Témák és hírek vektorizálása
     topic_embs = get_gemini_embeddings(topics)
+    # A cím és a tagek együtt jobb kontextust adnak az embeddingnek
     news_texts = [f"[{', '.join(n['tags'])}] {n['title']}" if n['tags'] else n['title'] for n in news_pool]
     news_embs = get_gemini_embeddings(news_texts)
     
-    filtered = []
-    threshold = 0.72
-
-    # 2. Összehasonlítás
+    # 2. Relevancia számítása
     for i, n_emb in enumerate(news_embs):
-        # Kiszámoljuk a hasonlóságot a hír és az ÖSSZES téma között
-        # Ez egy listát ad vissza (pl. [0.21, 0.45, 0.12, 0.33...])
+        # Megnézzük, mennyire passzol a hír BÁRMELYIK témához
         sims = [cosine_similarity(n_emb, t_emb) for t_emb in topic_embs]
-        
-        # Kiválasztjuk a legmagasabb pontszámot (melyik témához áll a legközelebb?)
         max_sim = max(sims) if sims else 0
+        
+        # Elmentjük a pontszámot a hír objektumba
+        news_pool[i]['match_score'] = max_sim
 
-        # DEBUG: Csak az első pár hírnél nézzük meg a számokat
-        if i < 5:
-            myPrint(f"DEBUG: '{news_pool[i]['title'][:30]}...' max_sim: {max_sim}")
-            
-        # 3. Szűrés a küszöb alapján
-        if max_sim >= threshold:
-            news_pool[i]['match_score'] = round(max_sim, 2)
-            filtered.append(news_pool[i])
+    # 3. Sorbarendezés (legmagasabb pontszám elöl) és vágás
+    # Csak azokat tartjuk meg, amiknek van egy minimális közük a témákhoz (pl. > 0.3), 
+    # hogy a totál zajt (pl. sporthírek, ha nem kérted) kidobjuk.
+    filtered = [n for n in news_pool if n.get('match_score', 0) > 0.3]
+    filtered.sort(key=lambda x: x['match_score'], reverse=True)
     
-    myPrint(f"✅ Szűrés kész: {len(filtered)} hír maradt (küszöb: {threshold})")
-    return filtered
+    # Kivesszük az első top_k darabot
+    final_selection = filtered[:top_k]
+    
+    myPrint(f"✅ Rangsorolás kész: {len(final_selection)} hír továbbküldve (átlagos relevancia: {sum(n['match_score'] for n in final_selection)/len(final_selection) if final_selection else 0:.2f})")
+    
+    return final_selection
 
 def cluster_news(news_pool):
     if not news_pool: return []
@@ -88,54 +87,67 @@ def cluster_news(news_pool):
     texts = [f"CÍM: {n['title']} KIVONAT: {n['summary'][:200]}" for n in news_pool]
     embeddings = get_gemini_embeddings(texts)
 
-    clustering = AgglomerativeClustering(
-        n_clusters=None,
-        distance_threshold=0.7, # Ward-nál és euklidészinél ez egy jó kiindulópont
-        metric='euclidean',
-        linkage='ward'
-    ).fit(embeddings)
-
     groups = {}
-    for idx, label in enumerate(clustering.labels_):
-        groups.setdefault(label, []).append(news_pool[idx])
+    groups = auto_cluster(embeddings, news_pool, initial_threshold=0.8, max_cluster_size=20)
 
-    print(f"📊 Matematikai csoportosítás eredménye ({len(groups)} klaszter):")
-    for label, items in groups.items():
-        print(f"  - [{label}. klaszter]: {len(items)} hír")
-        # Csak az első 3 címet írjuk ki, hogy lássuk az összetartozást
-        for item in items:
-            print(f"      • {item['title'][:70]}...")
-
-    return []
-    
     final_clusters = []
     for label, items in groups.items():
-        # Ha a kupac túl nagy, szeleteljük fel fix 20-as darabokra
-        # Így garantáltan nem kapunk 300 soros JSON-t
-        chunks = [items[i:i + 20] for i in range(0, len(items), 20)]
+        formatted_list = "\n".join([
+            f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {n['summary'][:150]}" 
+            for n in items
+        ])
         
-        for chunk in chunks:
-            formatted_list = "\n".join([
-                f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {n['summary'][:150]}" 
-                for n in chunk
-            ])
-            
-            result = validate_news_clusters(formatted_list)
-            events = []
+        result = validate_news_clusters(formatted_list)
+        events = []
 
-            # Ellenőrizzük, hogy kaptunk-e eseményeket (lehet dict vagy Pydantic objektum)
-            if isinstance(result, dict):
-                events = result.get("events", [])
-            elif hasattr(result, "events"):
-                events = result.events
-    
-            if events:
-                final_clusters.extend(events)
+        # Pydantic vagy dict kezelés
+        if isinstance(result, dict):
+            events = result.get("events", [])
+        elif hasattr(result, "events"):
+            events = result.events
+
+        if events:
+            final_clusters.extend(events)
             
-        # Rövid várakozás a kvóták miatt
-        time.sleep(0.5)
+        # Rövid várakozás a kvóták miatt (most már klaszterenként egyszer)
+        time.sleep(0.6)
 
     return final_clusters
+
+def auto_cluster(embeddings, news_pool, initial_threshold=0.7, max_cluster_size=20):
+    current_threshold = initial_threshold
+    attempts = 0
+    max_attempts = 5
+    
+    while attempts < max_attempts:
+        clustering = AgglomerativeClustering(
+            n_clusters=None,
+            distance_threshold=current_threshold,
+            metric='euclidean',
+            linkage='ward'
+        ).fit(embeddings)
+        
+        groups = {}
+        for idx, label in enumerate(clustering.labels_):
+            groups.setdefault(label, []).append(news_pool[idx])
+        
+        # Ellenőrizzük, van-e túl nagy csoport
+        too_large = [len(items) for items in groups.values() if len(items) > max_cluster_size]
+        
+        if not too_large:
+            print(f"✨ Optimális klaszterezés elérve ({current_threshold:.2f} küszöbbel, {len(groups)} csoport).")
+            return groups
+        
+        # Ha van túl nagy, szigorítunk (csökkentjük a küszöböt)
+        print(f"⚠️ Túl nagy csoportok ({max(too_large)} hír). Szigorítás: {current_threshold:.2f} -> {current_threshold - 0.1:.2f}")
+        current_threshold -= 0.1
+        attempts += 1
+        
+        # Biztonsági fék, ne menjen 0 alá
+        if current_threshold < 0.1:
+            break
+            
+    return groups
 
 def filter_and_rank_clusters(clusters_data):
     """
@@ -181,17 +193,13 @@ def main():
         myPrint("⚠️ Nem sikerült stratégiai témákat generálni.")
         return
 
-    myPrint(f"🎯 Azonosított témák: {', '.join(topics)}")
     topics_html = "<ul>" + "".join([f"<li>{t}</li>" for t in topics]) + "</ul>"
         
     # 3. Szemantikus szűrés
-    filtered_news = semantic_filter(raw_news, topics)
+    filtered_news = semantic_filter(raw_news, topics, top_k=300)
     if not filtered_news:
         myPrint("no semantic filtered news, exiting") 
         return
-
-    # Sorbarendezés match_score alapján (ha a semantic_filter ad ilyet)
-    filtered_news = sorted(filtered_news, key=lambda x: x.get('match_score', 0), reverse=True)[:300]
 
     # 4. Klaszterezés és szűrés
     # Itt a filter_and_rank_clusters-t használjuk (ami a korábbi parse_clusters javított verziója)
@@ -199,7 +207,7 @@ def main():
     top_clusters = filter_and_rank_clusters(all_events)[:20] 
 
     if not top_clusters:
-        myPrint("⚠️ Nem találtam elég magas pontszámú eseményt.")
+        myPrint("⚠️ Nem találtam magas pontszámú eseményt.")
         return
 
     # 5. Összefoglalás és küldés

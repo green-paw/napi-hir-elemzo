@@ -221,17 +221,29 @@ def main():
     # 4. Klaszterezés és szűrés
     # Itt a filter_and_rank_clusters-t használjuk (ami a korábbi parse_clusters javított verziója)
     all_events = cluster_news(filtered_news)
-    top_clusters = filter_and_rank_clusters(all_events)[:20] 
+    top_clusters = filter_and_rank_clusters(all_events)
 
     if not top_clusters:
         myPrint("⚠️ Nem találtam magas pontszámú eseményt.")
         return
 
+    # --- ÚJ: Teljes lista logolása az elemzés előtt ---
+    myPrint(f"📊 Összesen {len(top_clusters)} releváns eseményt találtam:")
+    for i, cluster in enumerate(top_clusters, 1):
+        name = cluster.name if hasattr(cluster, 'name') else cluster.get('name', 'Névtelen')
+        score = getattr(cluster, 'total_score', 0) if not isinstance(cluster, dict) else cluster.get('total_score', 0)
+        
+        prefix = "✅ [TOP 20]" if i <= 20 else "❌ [KIMARAD]"
+        myPrint(f"    {prefix} #{i} | {name} | Pontszám: {score}")
+    # --------------------------------------------------
+
+    top_clusters = top_clusters[:20]
+    
     # 5. Összefoglalás és küldés
     final_data_package = []
     myPrint(f"🧠 Elemzés indítása a top {len(top_clusters)} eseményre...")
 
-    for cluster in top_clusters:
+    for i, cluster in enumerate(top_clusters, 1):
         # Pydantic vagy Dict kezelés biztonságosan
         c_ids = cluster.ids if hasattr(cluster, 'ids') else cluster.get('ids', [])
         c_name = cluster.name if hasattr(cluster, 'name') else cluster.get('name', 'Névtelen esemény')

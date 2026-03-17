@@ -223,7 +223,7 @@ def main():
         return
 
     # 4. Klaszterezés és szűrés
-    all_events = cluster_news(filtered_news, topics)
+    all_events = cluster_news(filtered_news)
     initial_ranked = filter_and_rank_clusters(all_events)
 
     # --- ÚJ: Teljes lista logolása az elemzés előtt ---

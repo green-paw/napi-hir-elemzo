@@ -100,7 +100,12 @@ def cluster_news(news_pool):
     for idx, label in enumerate(clustering.labels_):
         groups.setdefault(label, []).append(news_pool[idx])
 
-    print(f"matematikai csoprtosítás eredménye: {groups}")
+    print(f"📊 Matematikai csoportosítás eredménye ({len(groups)} klaszter):")
+    for label, items in groups.items():
+        print(f"  - [{label}. klaszter]: {len(items)} hír")
+        # Csak az első 3 címet írjuk ki, hogy lássuk az összetartozást
+        for item in items:
+            print(f"      • {item['title'][:70]}...")
 
     return []
     

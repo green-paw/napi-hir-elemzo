@@ -183,6 +183,19 @@ def main():
         myPrint("no raw news, exiting")
         return
 
+    # --- ÚJ: Duplikátum szűrés ---
+    seen_titles = set()
+    unique_news = []
+    for n in raw_news:
+        # Tisztítjuk a címet (kisbetű, szóközök le) a pontosabb egyezésért
+        clean_title = n['title'].strip().lower()
+        if clean_title not in seen_titles:
+            seen_titles.add(clean_title)
+            unique_news.append(n)
+    
+    myPrint(f"🧹 Duplikátumok kiszűrve: {len(raw_news)} -> {len(unique_news)} hír.")
+    raw_news = unique_news # Ezzel dolgozunk tovább
+    
     # 2. Stratégiai témák
     # Megjegyzés: random helyett az utolsó N hír is jó lehet, de a random segít a diverzitásban
     sample_size = min(len(raw_news), 200)

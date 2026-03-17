@@ -6,7 +6,8 @@ import output_handler
 from gemini_handler import (
     get_strategic_topics, validate_news_clusters, 
     generate_event_summary, get_gemini_embeddings, 
-    translate_if_needed, MultiClusterResponse
+    translate_if_needed, MultiClusterResponse,
+    refine_event_list
 )
 
 from rss_handler import fetch_news

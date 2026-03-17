@@ -249,7 +249,7 @@ def main():
     myPrint(refined_list)
     myPrint(f"🧠 Flash elemzés indítása {len(refined_list)} véglegesített eseményre...")
     
-    for i, refined_event in enumerate(refined_list, 1):
+    for i, event in enumerate(refined_list, 1):
         # Összegyűjtjük az összes hírt az összes összevont ID-ból
         merged_ids = event.get("merged_ids", [])
         c_name = event.get("display_name", "Névtelen esemény")

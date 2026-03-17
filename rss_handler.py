@@ -22,14 +22,13 @@ def smart_truncate(text, max_length=600):
     return text[:max_length].rsplit(' ', 1)[0] + "..."
 
 def fetch_news():
-    """Begyűjti, szűri és tisztítja a híreket az összes RSS forrásból."""
     news_pool = []
+    seen_links = set() # Duplikáció szűréshez
     item_id = 0
     now = datetime.now()
     limit = timedelta(hours=24)
     
-    # Stratégiai zajszűrő feketelista
-    BLACKLIST = ["sport", "bulvár", "szórakozás", "horoszkóp", "időjárás", "recept", "életmód", "bulvar"]
+    BLACKLIST = ["sport", "bulvár", "szórakozás", "horoszkóp", "időjárás", "recept", "életmód", "bulvar", "tv-műsor"]
 
     print(f"📰 Hírek lekérése és szűrése ({limit.days * 24}h limit)...")
     
@@ -38,35 +37,54 @@ def fetch_news():
             url = source_data[0]
             feed = feedparser.parse(url)
             for entry in feed.entries:
-                # 1. IDŐBELI SZŰRÉS (Októberi hírek és elavult tartalom ellen)
+                # 0. DUPLIKÁCIÓ SZŰRÉS
+                if entry.link in seen_links:
+                    continue
+
+                # 1. IDŐBELI SZŰRÉS
                 dt = now
                 if hasattr(entry, 'published_parsed'):
                     dt = datetime.fromtimestamp(time.mktime(entry.published_parsed))
-                    if now - dt > limit:
-                        continue
+                elif hasattr(entry, 'updated_parsed'): # Tartalék, ha nincs published
+                    dt = datetime.fromtimestamp(time.mktime(entry.updated_parsed))
                 
-                # 2. KATEGÓRIA SZŰRÉS (Magyar tags/címkék alapján)
+                if now - dt > limit:
+                    continue
+                
+                # 2. KATEGÓRIA SZŰRÉS
                 tags = [t.term.lower() for t in entry.get('tags', []) if hasattr(t, 'term')]
-                if any(bad in tags for bad in BLACKLIST):
+                # Nézzük meg a címet is, mert sokszor oda írják a rovatot (pl. [Sport])
+                title_lower = entry.title.lower()
+                if any(bad in tags for bad in BLACKLIST) or any(f"[{bad}]" in title_lower for bad in BLACKLIST):
                     continue
 
-                # 3. TISZTÍTÁS
+                # 3. TISZTÍTÁS ÉS ÖSSZEGYŰJTÉS
                 title = clean_news_text(entry, 'title')
                 if not title:
                     continue
+
+                # Próbáljuk kinyerni a leírást több mezőből is
+                raw_summary = entry.get('summary', entry.get('description', ''))
+                summary = smart_truncate(clean_news_text({'summary': raw_summary}, 'summary'), 600)
 
                 news_pool.append({
                     "id": item_id,
                     "source": name,
                     "title": title,
-                    "summary": smart_truncate(clean_news_text(entry, 'summary'), 600),
+                    "summary": summary,
                     "link": entry.link,
                     "tags": tags,
                     "published": dt
                 })
+                
+                seen_links.add(entry.link)
                 item_id += 1
+                
         except Exception as e:
             print(f"⚠️ Hiba a(z) {name} forrásnál: {e}")
             
-    print(f"✅ Begyűjtés kész: {len(news_pool)} releváns hír.")
+    # Időrendbe tétel (legfrissebb elöl), hogy a main() fixen a legújabbakat lássa
+    news_pool.sort(key=lambda x: x['published'], reverse=True)
+    
+    print(f"✅ Begyűjtés kész: {len(news_pool)} egyedi, releváns hír.")
     return news_pool

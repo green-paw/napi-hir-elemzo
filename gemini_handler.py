@@ -10,7 +10,7 @@ from typing import List
 class Scores(BaseModel):
     relevance: int = Field(description="Mennyire kritikus a magyar vagy globális gazdaság/politika szempontjából (1-10)")
     impact: int = Field(description="Az esemény súlya (1-10)")
-    novelate: int = Field(description="Mennyire tartalmaz új információt (1-10)")
+    novelty: int = Field(description="Mennyire tartalmaz új információt (1-10)")
 
 class ClusterResultSingle(BaseModel):
     name: str = Field(description="Az esemény rövid, magyar neve")

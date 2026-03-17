@@ -267,11 +267,11 @@ def main():
         ]
         
         final_data_package.append({
-            'category': c_cat,
+            'category': "EGYÉB", #c_cat,
             'title': c_name,
             'summary': summary,
             'sources': sources_data,
-            'score': c_score
+            'score': 0 #c_score
         })
         
         time.sleep(5) # Kicsit több szünet a biztonság kedvéért

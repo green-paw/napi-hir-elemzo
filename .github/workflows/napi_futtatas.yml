@@ -1,12 +1,14 @@
 name: AI News Analysis with HTML Archive
 
 on:
-  # schedule:
+  #schedule:
   #  - cron: '49 5,17 * * *'
-  workflow_dispatch: # Manuális indítás lehetősége
+  workflow_dispatch: 
 
 permissions:
-  contents: write  # Engedély az index.html visszamásolásához a repóba
+  contents: write
+  pages: write
+  id-token: write
 
 jobs:
   analyze_and_save:
@@ -33,24 +35,20 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # Kiszámoljuk a fájlnevet a branch alapján
+          OUTPUT_FILENAME: >-
+            ${{ github.ref_name == 'release/v1.0' && 'index.html' || format('{0}_index.html', github.ref_name) }}
         run: python -u main.py
 
-      - name: Commit and Push HTML Archive
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-
-          # Csak az index.html-t adjuk hozzá
-          if [ -f index.html ]; then
-            git add index.html
-            
-            # Csak akkor commitolunk, ha tényleg változott a HTML
-            if git diff --quiet && git diff --staged --quiet; then
-              echo "Nincs változás a HTML fájlban."
-            else
-              git commit -m "Hírarchívum frissítése (HTML) [skip ci]"
-              git push
-            fi
-          else
-            echo "Hiba: Az index.html nem jött létre!"
-          fi
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          # Csak a HTML fájlokat vigye át (opcionális, de tisztább)
+          publish_whitelist: "*.html"
+          # Nagyon fontos: ne törölje a többi branch fájljait a gh-pages ágról!
+          keep_files: true
+          # Csak akkor fusson le az időzített frissítés, ha a v1.0-n vagyunk
+          # (Manuális indításnál bármelyik branch frissít)
+          enable_jail: true

@@ -91,7 +91,7 @@ def cluster_news(news_pool):
     # Laza matematikai csoportosítás
     clustering = AgglomerativeClustering(
         n_clusters=None,
-        distance_threshold=0.3, 
+        distance_threshold=0.2, 
         metric='cosine',
         linkage='average'
     ).fit(embeddings)

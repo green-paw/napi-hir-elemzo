@@ -223,13 +223,8 @@ def main():
         return
 
     # 4. Klaszterezés és szűrés
-    # Itt a filter_and_rank_clusters-t használjuk (ami a korábbi parse_clusters javított verziója)
-    all_events = cluster_news(filtered_news)
-    top_clusters = filter_and_rank_clusters(all_events)
-
-    if not top_clusters:
-        myPrint("⚠️ Nem találtam magas pontszámú eseményt.")
-        return
+    all_events = cluster_news(filtered_news, topics)
+    initial_ranked = filter_and_rank_clusters(all_events)
 
     # --- ÚJ: Teljes lista logolása az elemzés előtt ---
     myPrint(f"📊 Összesen {len(top_clusters)} releváns eseményt találtam:")
@@ -241,29 +236,27 @@ def main():
         myPrint(f"    {prefix} #{i} | {name} | Pontszám: {score}")
     # --------------------------------------------------
 
-    top_clusters = top_clusters[:20]
-    total_top = len(top_clusters)
+    # Stratégiai Szerkesztő fázis
+    myPrint(f"🧠 Stratégiai felülvizsgálat és összevonás ({len(initial_ranked)} jelölt)...")
+    refined_response = refine_event_list(initial_ranked, topics)
     
-    # 5. Összefoglalás és küldés
     final_data_package = []
-    myPrint(f"🧠 Elemzés indítása a top {total_top} eseményre...")
+    refined_list = refined_response.refined_events[:20] # A top 20 amit a szerkesztő adott
 
-    for i, cluster in enumerate(top_clusters, 1):
-        # Pydantic vagy Dict kezelés biztonságosan
-        c_ids = cluster.ids if hasattr(cluster, 'ids') else cluster.get('ids', [])
-        c_name = cluster.name if hasattr(cluster, 'name') else cluster.get('name', 'Névtelen esemény')
-        c_cat = cluster.category if hasattr(cluster, 'category') else cluster.get('category', 'EGYÉB')
-        c_score = getattr(cluster, 'total_score', 0) if not isinstance(cluster, dict) else cluster.get('total_score', 0)
+    myPrint(refined_list)
+    myPrint(f"🧠 Flash elemzés indítása {len(refined_list)} véglegesített eseményre...")
 
-        relevant_news_objects = [n for n in filtered_news if n['id'] in c_ids]
+    for i, refined_event in enumerate(refined_list, 1):
+        # Összegyűjtjük az összes hírt az összes összevont ID-ból
+        merged_ids = refined_event.merged_ids
+        relevant_news_objects = [n for n in filtered_news if n['id'] in merged_ids]
         
         if not relevant_news_objects:
             continue
 
-        # Látni fogod, épp melyik cikket írja
-        myPrint(f"  [{i}/{total_top}] Összefoglalás: {c_name} (Súly: {c_score})")
-        
-        # A Flash modell hívása az elemzéshez
+        c_name = refined_event.display_name
+        myPrint(f"  [{i}/{len(refined_list)}] Összefoglalás: {c_name}")
+
         summary = generate_event_summary(c_name, relevant_news_objects)
         
         sources_data = [
@@ -279,7 +272,7 @@ def main():
             'score': c_score
         })
         
-        time.sleep(1.2) # Kicsit több szünet a biztonság kedvéért
+        time.sleep(2) # Kicsit több szünet a biztonság kedvéért
 
     # 6. Kimenetek (ntfy, HTML, stb.)
     if final_data_package:

@@ -73,26 +73,29 @@ def cluster_news(news_pool):
 
     clustering = AgglomerativeClustering(
         n_clusters=None,
-        distance_threshold=0.1, # Szigorúbb olló
+        distance_threshold=0.3, # Lazább küszöb (0.1 helyett)
         metric='cosine',
-        linkage='complete'
+        linkage='average'      # 'complete' helyett 'average'
     ).fit(embeddings)
 
     groups = {}
     for idx, label in enumerate(clustering.labels_):
         groups.setdefault(label, []).append(news_pool[idx])
 
-    final_clusters = []
+    # ... laza klaszterezés után ...
+    final_events = []
     for label, items in groups.items():
-        formatted_list = "\n".join([f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {n['summary'][:200]}" for n in items])
-        # A validate_news_clusters-ben az AI már a belső pontokat is nézheti
-        data = validate_news_clusters(formatted_list, schema=ClusterResult)
-
-        if data and data.get('ids'):
-            final_clusters.append(data)
-        time.sleep(0.5) 
-
-    return final_clusters
+        # Beküldjük a kupacot (pl. 10-15 hír)
+        raw_response = validate_news_clusters(items, schema=MultiClusterResponse)
+        
+        if raw_response and raw_response.events:
+            for event in raw_response.events:
+                # Itt már tiszta, pontozott eseményeink vannak
+                final_events.append(event)
+    
+    # Itt érdemes egy végső sorbarendezést csinálni pontszám alapján
+    final_events.sort(key=lambda x: x.scores.relevance, reverse=True)
+    return final_events
 
 def parse_clusters(clusters_data):
     filtered = []

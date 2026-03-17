@@ -88,15 +88,19 @@ def cluster_news(news_pool):
     embeddings = get_gemini_embeddings(texts)
 
     groups = {}
-    groups = auto_cluster(embeddings, news_pool, initial_threshold=0.8, max_cluster_size=20)
+    groups = auto_cluster(embeddings, news_pool, initial_threshold=1, max_cluster_size=20)
+    total_groups = len(groups)
 
     final_clusters = []
+    i = 0
     for label, items in groups.items():
+        i += 1
         formatted_list = "\n".join([
             f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {n['summary'][:150]}" 
             for n in items
         ])
-        
+
+        myPrint(f"  [{i}/{total_groups}] Lite elemzés | Klaszter ID: {label} | {len(items)} hír...")
         result = validate_news_clusters(formatted_list)
         events = []
 
@@ -117,7 +121,7 @@ def cluster_news(news_pool):
 def auto_cluster(embeddings, news_pool, initial_threshold=0.7, max_cluster_size=20):
     current_threshold = initial_threshold
     attempts = 0
-    max_attempts = 5
+    max_attempts = 20
     
     while attempts < max_attempts:
         clustering = AgglomerativeClustering(
@@ -140,7 +144,7 @@ def auto_cluster(embeddings, news_pool, initial_threshold=0.7, max_cluster_size=
         
         # Ha van túl nagy, szigorítunk (csökkentjük a küszöböt)
         myPrint(f"⚠️ Túl nagy csoportok ({max(too_large)} hír). Szigorítás: {current_threshold:.2f} -> {current_threshold - 0.1:.2f}")
-        current_threshold -= 0.1
+        current_threshold -= 0.05
         attempts += 1
         
         # Biztonsági fék, ne menjen 0 alá
@@ -198,7 +202,7 @@ def main():
     
     # 2. Stratégiai témák
     # Megjegyzés: random helyett az utolsó N hír is jó lehet, de a random segít a diverzitásban
-    sample_size = min(len(raw_news), 200)
+    sample_size = min(len(raw_news), 300)
     titles_sample = "\n".join([n['title'] for n in random.sample(raw_news, sample_size)])
     topics = get_strategic_topics(titles_sample)
     
@@ -239,6 +243,9 @@ def main():
         if not relevant_news_objects:
             continue
 
+        # Látni fogod, épp melyik cikket írja
+        myPrint(f"  [{i}/{total_top}] Összefoglalás: {c_name} (Súly: {c_score})")
+        
         # A Flash modell hívása az elemzéshez
         summary = generate_event_summary(c_name, relevant_news_objects)
         

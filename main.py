@@ -238,10 +238,11 @@ def main():
     # --------------------------------------------------
 
     top_clusters = top_clusters[:20]
+    total_top = len(top_clusters)
     
     # 5. Összefoglalás és küldés
     final_data_package = []
-    myPrint(f"🧠 Elemzés indítása a top {len(top_clusters)} eseményre...")
+    myPrint(f"🧠 Elemzés indítása a top {total_top} eseményre...")
 
     for i, cluster in enumerate(top_clusters, 1):
         # Pydantic vagy Dict kezelés biztonságosan

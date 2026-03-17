@@ -209,6 +209,10 @@ def main():
         myPrint("⚠️ Nem sikerült stratégiai témákat generálni.")
         return
 
+    myPrint("TOP TOPIKOK:")
+    for i, t in enumerate(topics, 1):
+        myPrint(f"{i}: {t}")
+        
     topics_html = "<ul>" + "".join([f"<li>{t}</li>" for t in topics]) + "</ul>"
         
     # 3. Szemantikus szűrés

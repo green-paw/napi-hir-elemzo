@@ -91,7 +91,7 @@ def cluster_news(news_pool):
     # Laza matematikai csoportosítás
     clustering = AgglomerativeClustering(
         n_clusters=None,
-        distance_threshold=0.2, 
+        distance_threshold=0.15, 
         metric='cosine',
         linkage='average'
     ).fit(embeddings)
@@ -102,24 +102,27 @@ def cluster_news(news_pool):
 
     final_clusters = []
     for label, items in groups.items():
-        # FONTOS: Itt állítjuk össze az adott kupac szöveges listáját az LLM-nek
-        formatted_list = "\n".join([
-            f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {n['summary'][:150]}" 
-            for n in items
-        ])
+        # Ha a kupac túl nagy, szeleteljük fel fix 20-as darabokra
+        # Így garantáltan nem kapunk 300 soros JSON-t
+        chunks = [items[i:i + 20] for i in range(0, len(items), 20)]
         
-        # Az LLM szétválogatja a kupacot valódi eseményekre (MultiClusterResponse)
-        result = validate_news_clusters(formatted_list) 
-        
-        # Ellenőrizzük, hogy kaptunk-e eseményeket (lehet dict vagy Pydantic objektum)
-        events = []
-        if isinstance(result, dict):
-            events = result.get("events", [])
-        elif hasattr(result, "events"):
-            events = result.events
+        for chunk in chunks:
+            formatted_list = "\n".join([
+                f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {n['summary'][:150]}" 
+                for n in chunk
+            ])
+            
+            result = validate_news_clusters(formatted_list)
+            events = []
 
-        if events:
-            final_clusters.extend(events)
+            # Ellenőrizzük, hogy kaptunk-e eseményeket (lehet dict vagy Pydantic objektum)
+            if isinstance(result, dict):
+                events = result.get("events", [])
+            elif hasattr(result, "events"):
+                events = result.events
+    
+            if events:
+                final_clusters.extend(events)
             
         # Rövid várakozás a kvóták miatt
         time.sleep(0.5)

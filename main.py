@@ -201,7 +201,7 @@ def main():
             unique_news.append(n)
     
     myPrint(f"🧹 Duplikátumok kiszűrve: {len(raw_news)} -> {len(unique_news)} hír.")
-    raw_news = unique_news # Ezzel dolgozunk tovább
+    raw_news = unique_news[:100] # Ezzel dolgozunk tovább
     
     # 2. Stratégiai témák
     # Megjegyzés: random helyett az utolsó N hír is jó lehet, de a random segít a diverzitásban

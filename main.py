@@ -113,7 +113,7 @@ def cluster_news(news_pool):
             final_clusters.extend(events)
             
         # Rövid várakozás a kvóták miatt (most már klaszterenként egyszer)
-        time.sleep(1)
+        time.sleep(5)
 
     return final_clusters
 
@@ -271,7 +271,7 @@ def main():
             'score': c_score
         })
         
-        time.sleep(2) # Kicsit több szünet a biztonság kedvéért
+        time.sleep(5) # Kicsit több szünet a biztonság kedvéért
 
     # 6. Kimenetek (ntfy, HTML, stb.)
     if final_data_package:

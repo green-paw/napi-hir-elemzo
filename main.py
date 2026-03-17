@@ -32,6 +32,21 @@ def cosine_similarity(v1, v2):
     mag2 = math.sqrt(sum(x * x for x in v2))
     return dot_product / (mag1 * mag2) if mag1 and mag2 else 0
 
+def calculate_priority_score(scores):
+    """Kiszámítja a súlyozott összpontszámot a sorbarendezéshez."""
+    # Kezeljük mind a Pydantic objektumot, mind a dict-et
+    if hasattr(scores, 'model_dump'):
+        s = scores.model_dump()
+    elif isinstance(scores, dict):
+        s = scores
+    else:
+        return 0
+    
+    # A te képleted: 40% relevancia, 40% hatás, 20% újdonság
+    return (s.get('relevance', 0) * 0.4) + \
+           (s.get('impact', 0) * 0.4) + \
+           (s.get('novelate', 0) * 0.2) # Figyelem: novelty-re javítva, ha a sémádban novelate van
+    
 def semantic_filter(news_pool, topics):
     if not topics or not news_pool: return news_pool
     myPrint(f"🔍 Szemantikus szűrés: {len(news_pool)} hír...")
@@ -68,14 +83,17 @@ def semantic_filter(news_pool, topics):
 def cluster_news(news_pool):
     if not news_pool: return []
     myPrint(f"🧩 Klaszterezés ({len(news_pool)} hír)...")
+    
+    # Szövegek előkészítése az embeddinghez
     texts = [f"CÍM: {n['title']} KIVONAT: {n['summary'][:200]}" for n in news_pool]
     embeddings = get_gemini_embeddings(texts)
 
+    # Laza matematikai csoportosítás
     clustering = AgglomerativeClustering(
         n_clusters=None,
-        distance_threshold=0.3, # Lazább küszöb (0.1 helyett)
+        distance_threshold=0.3, 
         metric='cosine',
-        linkage='average'      # 'complete' helyett 'average'
+        linkage='average'
     ).fit(embeddings)
 
     groups = {}
@@ -84,27 +102,56 @@ def cluster_news(news_pool):
 
     final_clusters = []
     for label, items in groups.items():
-        # Itt adjuk át a hírkupacot
+        # FONTOS: Itt állítjuk össze az adott kupac szöveges listáját az LLM-nek
+        formatted_list = "\n".join([
+            f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {n['summary'][:150]}" 
+            for n in items
+        ])
+        
+        # Az LLM szétválogatja a kupacot valódi eseményekre (MultiClusterResponse)
         result = validate_news_clusters(formatted_list) 
         
-        if result and "events" in result:
-            # Itt már események jönnek vissza, amiket egyesével adunk a listához
-            final_clusters.extend(result["events"])
-    
-    # Itt érdemes egy végső sorbarendezést csinálni pontszám alapján
-    final_clusters.sort(key=lambda x: x.scores.relevance, reverse=True)
+        # Ellenőrizzük, hogy kaptunk-e eseményeket (lehet dict vagy Pydantic objektum)
+        events = []
+        if isinstance(result, dict):
+            events = result.get("events", [])
+        elif hasattr(result, "events"):
+            events = result.events
+
+        if events:
+            final_clusters.extend(events)
+            
+        # Rövid várakozás a kvóták miatt
+        time.sleep(0.5)
+
     return final_clusters
 
-def parse_clusters(clusters_data):
-    filtered = []
+def filter_and_rank_clusters(clusters_data):
+    """
+    Végső szűrés a súlyozott pontszám alapján. 
+    Csak a tényleg fontos hírek mennek tovább elemzésre.
+    """
+    final_selection = []
+    
     for c in clusters_data:
-        s = c.get('scores', {})
-        # Súlyozott pontszám
-        base_score = (s.get('relevance', 0)*0.4) + (s.get('impact', 0)*0.4) + (s.get('novelty', 0)*0.2)
-        if base_score >= 5:
-            c['total_score'] = round(base_score, 1)
-            filtered.append(c)
-    return sorted(filtered, key=lambda x: x['total_score'], reverse=True)
+        # Meghívjuk a korábban megírt pontozó függvényt
+        # (Feltételezzük, hogy a c egy objektum vagy dict, amit a cluster_news ad vissza)
+        scores = c.scores if hasattr(c, 'scores') else c.get('scores', {})
+        total_score = calculate_priority_score(scores)
+        
+        # Csak az 5.0 feletti (vagy általad választott küszöb) hírek mennek tovább
+        if total_score >= 5.0:
+            # Eltároljuk a kerekített pontszámot a későbbi megjelenítéshez
+            if isinstance(c, dict):
+                c['total_score'] = round(total_score, 1)
+            else:
+                # Pydantic objektum esetén dinamikusan adjuk hozzá vagy kezeljük
+                setattr(c, 'total_score', round(total_score, 1))
+            
+            final_selection.append(c)
+    
+    # Egy utolsó biztonsági sorbarendezés
+    return sorted(final_selection, key=lambda x: getattr(x, 'total_score', 0) if not isinstance(x, dict) else x.get('total_score', 0), reverse=True)
 
 def main():
     # 1. Lekérés
@@ -114,50 +161,54 @@ def main():
         return
 
     # 2. Stratégiai témák
-    topics_html = ""
+    # Megjegyzés: random helyett az utolsó N hír is jó lehet, de a random segít a diverzitásban
     sample_size = min(len(raw_news), 200)
     titles_sample = "\n".join([n['title'] for n in random.sample(raw_news, sample_size)])
     topics = get_strategic_topics(titles_sample)
-    if topics:
-        topics_html = "<ul>"
-        myPrint("🎯 Azonosított stratégiai témák:")
-        for i, topic in enumerate(topics, 1):
-            myPrint(f"   {i}. {topic}")
-            topics_html += f"<li>{topic}</li>"
-        topics_html += "</ul>"
-    else:
+    
+    if not topics:
         myPrint("⚠️ Nem sikerült stratégiai témákat generálni.")
         return
+
+    myPrint(f"🎯 Azonosított témák: {', '.join(topics)}")
+    topics_html = "<ul>" + "".join([f"<li>{t}</li>" for t in topics]) + "</ul>"
         
     # 3. Szemantikus szűrés
-    myPrint(f"semantic_filter hívás: raw_news: {len(raw_news)} elem, topics: {len(topics)} elem")
     filtered_news = semantic_filter(raw_news, topics)
     if not filtered_news:
         myPrint("no semantic filtered news, exiting") 
         return
 
-    # 💡 SEBESSÉG OPTIMALIZÁLÁS: 
+    # Sorbarendezés match_score alapján (ha a semantic_filter ad ilyet)
     filtered_news = sorted(filtered_news, key=lambda x: x.get('match_score', 0), reverse=True)[:300]
 
-    # 4. Klaszterezés (már csak a szűrt híreken)
-    clusters = parse_clusters(cluster_news(filtered_news))
-    
+    # 4. Klaszterezés és szűrés
+    # Itt a filter_and_rank_clusters-t használjuk (ami a korábbi parse_clusters javított verziója)
+    all_events = cluster_news(filtered_news)
+    top_clusters = filter_and_rank_clusters(all_events)[:20] 
+
+    if not top_clusters:
+        myPrint("⚠️ Nem találtam elég magas pontszámú eseményt.")
+        return
+
     # 5. Összefoglalás és küldés
     final_data_package = []
-    
-    # 💡 LIMIT: Csak a top 20 legfontosabb eseményt elemezzük (sebesség + átláthatóság)
-    top_clusters = clusters[:20] 
-
     myPrint(f"🧠 Elemzés indítása a top {len(top_clusters)} eseményre...")
 
     for cluster in top_clusters:
-        relevant_news_objects = [n for n in filtered_news if n['id'] in cluster['ids']]
+        # Pydantic vagy Dict kezelés biztonságosan
+        c_ids = cluster.ids if hasattr(cluster, 'ids') else cluster.get('ids', [])
+        c_name = cluster.name if hasattr(cluster, 'name') else cluster.get('name', 'Névtelen esemény')
+        c_cat = cluster.category if hasattr(cluster, 'category') else cluster.get('category', 'EGYÉB')
+        c_score = getattr(cluster, 'total_score', 0) if not isinstance(cluster, dict) else cluster.get('total_score', 0)
+
+        relevant_news_objects = [n for n in filtered_news if n['id'] in c_ids]
         
         if not relevant_news_objects:
-            myPrint("no relevant_news_objects in cluster {cluster['name']}, skipping") 
             continue
 
-        summary = generate_event_summary(cluster['name'], relevant_news_objects)
+        # A Flash modell hívása az elemzéshez
+        summary = generate_event_summary(c_name, relevant_news_objects)
         
         sources_data = [
             {"name": n['source'], "url": n.get('link', '')} 
@@ -165,27 +216,24 @@ def main():
         ]
         
         final_data_package.append({
-            'category': cluster.get('category', 'EGYÉB'),
-            'title': cluster['name'],
+            'category': c_cat,
+            'title': c_name,
             'summary': summary,
             'sources': sources_data,
-            'score': cluster.get('total_score', 0)
+            'score': c_score
         })
         
-        # Rövid szünet a Gemini RPM limit miatt
-        time.sleep(1)
+        time.sleep(1.2) # Kicsit több szünet a biztonság kedvéért
 
-    # 6. Kimenetek kezelése (HTML + Telegram)
+    # 6. Kimenetek (ntfy, HTML, stb.)
     if final_data_package:
         output_handler.process_and_send(final_data_package, topics_html)
-    else:
-        myPrint("⚠️ Nem találtam elemezhető híreseményt a szűrők alapján.")
-    
+        
+    # Statisztika
     from gemini_handler import usage_tracker        
     usage = usage_tracker.get_aggregated_stats()
-    myPrint(usage)
-    
+    myPrint(f"📊 Token használat: {usage}")
     myPrint("✅ Kész.")
-
+    
 if __name__ == "__main__":
     main()

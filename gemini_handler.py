@@ -12,11 +12,15 @@ class Scores(BaseModel):
     impact: int = Field(description="Az esemény súlya (1-10)")
     novelate: int = Field(description="Mennyire tartalmaz új információt (1-10)")
 
-class ClusterResult(BaseModel):
-    name: str = Field(description="Esemény neve és helyszíne")
-    category: str = Field(description="Kategória: HAZAI, GLOBÁLIS vagy EGYÉB")
-    scores: Scores
-    ids: List[int] = Field(description="A csoportba ténylegesen beleillő hírek ID-jai")
+class ClusterResultSingle(BaseModel):
+    name: str = Field(description="Az esemény rövid, magyar neve")
+    ids: List[int] = Field(description="A hírek ID-jai, amik EBBEN az eseményben összeillenek")
+    scores: Scores # Itt marad a pontozás (relevance, impact, novelty)
+    category: str = Field(description="HAZAI, GLOBÁLIS vagy EGYÉB")
+
+class MultiClusterResponse(BaseModel):
+    # Ez fogadja be a laza matematikai csoportot
+    events: List[ClusterResultSingle] = Field(description="Az azonosított különálló, releváns események")
 
 class TokenLogger:
     def __init__(self):

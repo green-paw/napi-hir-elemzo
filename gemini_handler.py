@@ -79,7 +79,6 @@ def refine_event_list(event_candidates, strategic_topics):
     minimal_list = "\n".join([f"ID:{c['ids'] if isinstance(c, dict) else c.ids} | NÉV: {c['name'] if isinstance(c, dict) else c.name}" for c in event_candidates])
 
     prompt = f"""
-    Te egy vezető hírszerkesztő stratégiai elemző vagy. 
     Itt egy lista eseményekről, amiket egy automata rendszer gyűjtött össze.
     
     STRATÉGIAI FÓKUSZPONTOK:
@@ -97,7 +96,9 @@ def refine_event_list(event_candidates, strategic_topics):
     Válaszolj strukturált formátumban. A display_name legyen tömör, magyar nyelvű és lényegretörő.
     """
 
-    response = _gemini_engine(prompt, is_json=True, schema=RefinedEventList)
+    sys_instruct = "Te egy vezető hírszerkesztő stratégiai elemző vagy."
+    
+    response = _gemini_engine(prompt, sys_instruct, is_json=True, schema=RefinedEventList)
     return response.parsed
 
 def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schema=None):

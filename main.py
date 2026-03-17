@@ -100,6 +100,10 @@ def cluster_news(news_pool):
     for idx, label in enumerate(clustering.labels_):
         groups.setdefault(label, []).append(news_pool[idx])
 
+    print(f"matematikai csoprtosítás eredménye: {groups}")
+
+    return []
+    
     final_clusters = []
     for label, items in groups.items():
         # Ha a kupac túl nagy, szeleteljük fel fix 20-as darabokra

@@ -99,6 +99,7 @@ def refine_event_list(event_candidates, strategic_topics):
     sys_instruct = "Te egy vezető hírszerkesztő stratégiai elemző vagy."
     
     raw_json = _gemini_engine(prompt, sys_instruct, is_json=True, schema=RefinedEventList)
+    print(raw_json)
     
     if not raw_json:
         # B-terv, ha valamiért None jönne vissza

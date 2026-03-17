@@ -221,9 +221,11 @@ def validate_news_clusters(cluster_data, schema=MultiClusterResponse):
     PONTOZÁSI ÚTMUTATÓ (1-10):
     - RELEVANCE: 10 = kritikus magyar érdek/világpolitika. 1 = bulvár, celeb, egyéni sors.
     - IMPACT (1-10): 
-        10: Globális/Regionális katasztrófa, háborús fordulat, kritikus ellátásbiztonság.
-        5: Jelentős, de lokális gazdasági/politikai esemény.
-        2: Érdekes, de nem stratégiai jelentőségű hír.
+        Az impact pontszám meghatározásakor legyél kíméletlen:
+        9-10: Háborús cselekmény, több száz halott, globális gazdasági összeomlás, atomfenyegetés.
+        7-8: Államfők bejelentései, Magyarország és más országok közötti politikai/gazdasági jelentős események. Országos politikai földindulás, kritikus infrastruktúra leállása (pl. Kuba áramszünet), deviza-összeomlás.
+        4-6: Vállalati eredmények, helyi szabályozások, sportesemények (pl. BL döntő), környezeti hírek (pl. fafajok).
+        1-3: Bulvár, érdekességek, technológiai apróságok.
     - NOVELTY: Mennyire friss és tényalapú az információ?
 
     VÁLASZ: Kizárólag a megadott JSON sémát használd!"""

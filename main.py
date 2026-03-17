@@ -188,7 +188,7 @@ def main():
         myPrint("no raw news, exiting")
         return
 
-    raw_news = raw_news[:200]
+    raw_news = raw_news[:600]
     
     # --- ÚJ: Duplikátum szűrés ---
     seen_titles = set()

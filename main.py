@@ -135,11 +135,11 @@ def auto_cluster(embeddings, news_pool, initial_threshold=0.7, max_cluster_size=
         too_large = [len(items) for items in groups.values() if len(items) > max_cluster_size]
         
         if not too_large:
-            print(f"✨ Optimális klaszterezés elérve ({current_threshold:.2f} küszöbbel, {len(groups)} csoport).")
+            myPrint(f"✨ Optimális klaszterezés elérve ({current_threshold:.2f} küszöbbel, {len(groups)} csoport).")
             return groups
         
         # Ha van túl nagy, szigorítunk (csökkentjük a küszöböt)
-        print(f"⚠️ Túl nagy csoportok ({max(too_large)} hír). Szigorítás: {current_threshold:.2f} -> {current_threshold - 0.1:.2f}")
+        myPrint(f"⚠️ Túl nagy csoportok ({max(too_large)} hír). Szigorítás: {current_threshold:.2f} -> {current_threshold - 0.1:.2f}")
         current_threshold -= 0.1
         attempts += 1
         

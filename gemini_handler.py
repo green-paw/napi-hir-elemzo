@@ -61,14 +61,44 @@ class TokenLogger:
     def get_summary(self):
         return self.log
 
-# Hozz létre egy példányt a modul szintjén
 usage_tracker = TokenLogger()
 
-# 1. Globális kliens létrehozása itt, a handlerben
 client = genai.Client(
     api_key=config.GOOGLE_API_KEY, 
     http_options={'api_version': 'v1beta'}
 )
+
+class RefinedEvent(BaseModel):
+    merged_ids: List[int]  # Az összes ID, ami ebbe az eseménybe tartozik
+    display_name: str      # Az esemény végső, profi, magyar megnevezése
+
+class RefinedEventList(BaseModel):
+    refined_events: List[RefinedEvent]
+
+def refine_event_list(event_candidates, strategic_topics):
+    minimal_list = "\n".join([f"ID:{c['ids'] if isinstance(c, dict) else c.ids} | NÉV: {c['name'] if isinstance(c, dict) else c.name}" for c in event_candidates])
+
+    prompt = f"""
+    Te egy vezető hírszerkesztő stratégiai elemző vagy. 
+    Itt egy lista eseményekről, amiket egy automata rendszer gyűjtött össze.
+    
+    STRATÉGIAI FÓKUSZPONTOK:
+    {strategic_topics}
+    
+    FELADATOD:
+    1. ÖSSZEVONÁS: Keresd meg azokat, amik ugyanarról szólnak (pl. magyar és angol nyelvű források ugyanarról a csapásról).
+    2. PRIORITÁS: Válaszd ki a 20 legfontosabb eseményt a stratégiai fókusz alapján.
+    3. RANGSOR: A lista elejére a kritikus, háborús, gazdasági és nemzetbiztonsági hírek kerüljenek. 
+       A "puha" témák (sport, klímatrendek, bulvár) maradjanak a lista végén vagy essenek ki.
+    
+    BEMENETI LISTA:
+    {minimal_list}
+    
+    Válaszolj strukturált formátumban. A display_name legyen tömör, magyar nyelvű és lényegretörő.
+    """
+
+    response = _gemini_engine(prompt, is_json=True, schema=RefinedEventList)
+    return response.parsed
 
 def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schema=None):
     model_name = "gemini-2.5-flash-lite"

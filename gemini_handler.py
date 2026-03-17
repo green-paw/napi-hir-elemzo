@@ -70,12 +70,31 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
                     temperature=0.0 if is_json else 0.2,
                     response_mime_type="application/json" if is_json else "text/plain",
                     response_schema=schema if is_json and schema else None,
-                    max_output_tokens=1000
+                    max_output_tokens=1000,
+                    safety_settings = [
+                        types.SafetySetting(category=cat, threshold="BLOCK_ONLY_HIGH")
+                        for cat in [
+                            "HATE_SPEECH", 
+                            "HARASSMENT", 
+                            "SEXUALLY_EXPLICIT", 
+                            "DANGEROUS_CONTENT", 
+                            "CIVIC_INTEGRITY"
+                        ]
+                    ]
                 )
             )
 
+            # A _gemini_engine függvényben a generálás után:
             if response.candidates[0].finish_reason != "STOP":
                 print(f"DEBUG: Finish reason: {response.candidates[0].finish_reason}")
+                
+                # Ha tiltás van, írjuk ki a részleteket
+                if response.candidates[0].finish_reason == "SAFETY" or response.candidates[0].finish_reason == "PROHIBITED_CONTENT":
+                    print("--- Biztonsági szűrések részletei ---")
+                    for rating in response.candidates[0].safety_ratings:
+                        # Csak azokat írjuk ki, amik nem 'NEGLIGIBLE' (elhanyagolható) szintűek
+                        if rating.probability != "NEGLIGIBLE":
+                            print(f"Kategória: {rating.category} | Valószínűség: {rating.probability} | Prompt: {prompt}")
     
             usage_tracker.add(model_name, response)            
             return response.text

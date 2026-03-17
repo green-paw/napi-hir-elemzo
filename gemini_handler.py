@@ -27,8 +27,16 @@ class TokenLogger:
             usage = response.usage_metadata
             self.log.append({
                 "model": model_name,
-                "input": usage.prompt_token_count,
+                # Ha nincs kitöltve, legyen 0
+                "input": getattr(usage, 'prompt_token_count', 0),
                 "output": getattr(usage, 'candidates_token_count', 0)
+            })
+        else:
+            # Ha egyáltalán nincs metadata (pl. hálózati hiba vagy azonnali tiltás)
+            self.log.append({
+                "model": model_name,
+                "input": 0,
+                "output": 0
             })
 
     def get_aggregated_stats(self):

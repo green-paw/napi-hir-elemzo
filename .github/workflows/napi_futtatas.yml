@@ -2,7 +2,7 @@ name: AI News Analysis with HTML Archive
 
 on:
   schedule:
-    - cron: '19 6,18 * * *'
+    - cron: '49 5,17 * * *'
   workflow_dispatch: # Manuális indítás lehetősége
 
 permissions:

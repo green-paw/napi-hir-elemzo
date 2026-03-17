@@ -82,20 +82,18 @@ def cluster_news(news_pool):
     for idx, label in enumerate(clustering.labels_):
         groups.setdefault(label, []).append(news_pool[idx])
 
-    # ... laza klaszterezés után ...
-    final_events = []
+    final_clusters = []
     for label, items in groups.items():
-        # Beküldjük a kupacot (pl. 10-15 hír)
-        raw_response = validate_news_clusters(items, schema=MultiClusterResponse)
+        # Itt adjuk át a hírkupacot
+        result = validate_news_clusters(formatted_list) 
         
-        if raw_response and raw_response.events:
-            for event in raw_response.events:
-                # Itt már tiszta, pontozott eseményeink vannak
-                final_events.append(event)
+        if result and "events" in result:
+            # Itt már események jönnek vissza, amiket egyesével adunk a listához
+            final_clusters.extend(result["events"])
     
     # Itt érdemes egy végső sorbarendezést csinálni pontszám alapján
-    final_events.sort(key=lambda x: x.scores.relevance, reverse=True)
-    return final_events
+    final_clusters.sort(key=lambda x: x.scores.relevance, reverse=True)
+    return final_clusters
 
 def parse_clusters(clusters_data):
     filtered = []

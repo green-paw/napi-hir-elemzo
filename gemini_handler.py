@@ -123,8 +123,28 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
                             print(f"Kategória: {rating.category} | Valószínűség: {rating.probability} | Prompt: {prompt}")
     
             usage_tracker.add(model_name, response)            
-            return response.text if has_valid_content else None
 
+            # Ellenőrizzük, hogy félbeszakadt-e a válasz
+            if response.candidates[0].finish_reason == "MAX_TOKENS":
+                print(f"⚠️ FIGYELMEZTETÉS ({model_name}): A válasz túl hosszú, le lett vágva!")
+            
+            # Csak akkor próbálunk JSON-t varázsolni, ha azt kértük
+            if is_json:
+                try:
+                    # Megpróbáljuk leszedni a Markdown kódrészleteket, ha a modell odatette volna
+                    cleaned_text = response.text.strip()
+                    if cleaned_text.startswith("```json"):
+                        cleaned_text = cleaned_text.replace("```json", "", 1).rsplit("```", 1)[0].strip()
+                    elif cleaned_text.startswith("```"):
+                        cleaned_text = cleaned_text.replace("```", "", 1).rsplit("```", 1)[0].strip()
+                    
+                    return cleaned_text # Visszaadjuk a szöveget a hívónak, ő fogja json.loads-olni
+                except Exception as e:
+                    print(f"❌ Hiba a JSON szöveg előkészítésénél: {e}")
+                    return None
+            
+            return response.text
+            
         except Exception as e:
             error_msg = str(e).lower()
             

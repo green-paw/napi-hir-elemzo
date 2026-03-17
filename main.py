@@ -244,20 +244,20 @@ def main():
     refined_response = refine_event_list(initial_ranked[:20], topics)
     
     final_data_package = []
-    refined_list = refined_response.refined_events # A top 20 amit a szerkesztő adott
+    refined_list = refined_response.get("refined_events", [])[:20]
 
     myPrint(refined_list)
     myPrint(f"🧠 Flash elemzés indítása {len(refined_list)} véglegesített eseményre...")
     
     for i, refined_event in enumerate(refined_list, 1):
         # Összegyűjtjük az összes hírt az összes összevont ID-ból
-        merged_ids = refined_event.merged_ids
+        merged_ids = event.get("merged_ids", [])
+        c_name = event.get("display_name", "Névtelen esemény")
         relevant_news_objects = [n for n in filtered_news if n['id'] in merged_ids]
         
         if not relevant_news_objects:
             continue
 
-        c_name = refined_event.display_name
         myPrint(f"  [{i}/{len(refined_list)}] Összefoglalás: {c_name}")
         summary = generate_event_summary(c_name, relevant_news_objects)
         

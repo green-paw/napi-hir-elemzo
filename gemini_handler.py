@@ -98,8 +98,17 @@ def refine_event_list(event_candidates, strategic_topics):
 
     sys_instruct = "Te egy vezető hírszerkesztő stratégiai elemző vagy."
     
-    response = _gemini_engine(prompt, sys_instruct, is_json=True, schema=RefinedEventList)
-    return response.parsed
+    raw_json = _gemini_engine(prompt, sys_instruct, is_json=True, schema=RefinedEventList)
+    
+    if not raw_json:
+        # B-terv, ha valamiért None jönne vissza
+        return {"refined_events": []}
+
+    try:
+        return json.loads(raw_json)
+    except Exception as e:
+        print(f"❌ Hiba a szerkesztett lista feldolgozásánál: {e}")
+        return {"refined_events": []}
 
 def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schema=None):
     model_name = "gemini-2.5-flash-lite"

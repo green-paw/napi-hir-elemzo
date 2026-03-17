@@ -90,7 +90,7 @@ def cluster_news(news_pool):
 
     clustering = AgglomerativeClustering(
         n_clusters=None,
-        distance_threshold=0.8, # Ward-nál és euklidészinél ez egy jó kiindulópont
+        distance_threshold=0.7, # Ward-nál és euklidészinél ez egy jó kiindulópont
         metric='euclidean',
         linkage='ward'
     ).fit(embeddings)

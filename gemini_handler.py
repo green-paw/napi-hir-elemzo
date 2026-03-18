@@ -9,19 +9,18 @@ from typing import List
 
 class Scores(BaseModel):
     relevance: int = Field(description="Mennyire kritikus a magyar vagy globális gazdaság/politika szempontjából (1-10)")
-    impact: int = Field(description="Az esemény súlya és globális/hazai hatása (1-10)")
-    novelty: int = Field(description="Mennyire friss vagy meglepő az információ (1-10)")
+    impact: int = Field(description="Az esemény súlya (1-10)")
+    novelty: int = Field(description="Mennyire tartalmaz új információt (1-10)")
 
 class ClusterResultSingle(BaseModel):
-    name: str = Field(description="Az esemény profi, újságírós címe")
-    summary: str = Field(description="Egyetlen, tényszerű mondat, ami összefoglalja az esemény lényegét") # ÚJ MEZŐ!
-    ids: List[int] = Field(description="A beküldött hírek ID-jai")
-    scores: Scores 
+    name: str = Field(description="Az esemény rövid, magyar neve")
+    ids: List[int] = Field(description="A hírek ID-jai, amik EBBEN az eseményben összeillenek")
+    scores: Scores # Itt marad a pontozás (relevance, impact, novelty)
     category: str = Field(description="HAZAI, GLOBÁLIS vagy EGYÉB")
 
 class MultiClusterResponse(BaseModel):
-    # A leírást átírtuk a szintézis logikájára
-    events: List[ClusterResultSingle] = Field(description="A szintetizált fő esemény (maximum 1 db). Ha a klaszter csak zaj, hagyd üresen az events listát!")
+    # Ez fogadja be a laza matematikai csoportot
+    events: List[ClusterResultSingle] = Field(description="Az azonosított különálló, releváns események")
 
 class TokenLogger:
     def __init__(self):
@@ -62,54 +61,14 @@ class TokenLogger:
     def get_summary(self):
         return self.log
 
+# Hozz létre egy példányt a modul szintjén
 usage_tracker = TokenLogger()
 
+# 1. Globális kliens létrehozása itt, a handlerben
 client = genai.Client(
     api_key=config.GOOGLE_API_KEY, 
     http_options={'api_version': 'v1beta'}
 )
-
-class RefinedEvent(BaseModel):
-    merged_ids: List[int]  # Az összes ID, ami ebbe az eseménybe tartozik
-    display_name: str      # Az esemény végső, profi, magyar megnevezése
-
-class RefinedEventList(BaseModel):
-    refined_events: List[RefinedEvent]
-
-def refine_event_list(event_candidates, strategic_topics):
-    minimal_list = "\n".join([f"ID:{c['ids'] if isinstance(c, dict) else c.ids} | NÉV: {c['name'] if isinstance(c, dict) else c.name}" for c in event_candidates])
-
-    prompt = f"""
-    Itt egy lista eseményekről, amiket egy automata rendszer gyűjtött össze.
-    
-    STRATÉGIAI FÓKUSZPONTOK:
-    {strategic_topics}
-    
-    FELADATOD:
-    1. ÖSSZEVONÁS: Keresd meg azokat, amik ugyanarról szólnak (pl. magyar és angol nyelvű források ugyanarról a csapásról).
-    2. PRIORITÁS: Válaszd ki a 20 legfontosabb eseményt a stratégiai fókusz alapján.
-    3. RANGSOR: A lista elejére a kritikus, háborús, gazdasági és nemzetbiztonsági hírek kerüljenek. 
-       A "puha" témák (sport, klímatrendek, bulvár) maradjanak a lista végén vagy essenek ki.
-    
-    BEMENETI LISTA:
-    {minimal_list}
-    
-    Válaszolj strukturált formátumban. A display_name legyen tömör, magyar nyelvű és lényegretörő.
-    """
-
-    sys_instruct = "Te egy vezető hírszerkesztő stratégiai elemző vagy."
-    
-    raw_json = _gemini_engine(prompt, sys_instruct, is_json=True, schema=RefinedEventList)
-    
-    if not raw_json:
-        # B-terv, ha valamiért None jönne vissza
-        return {"refined_events": []}
-
-    try:
-        return json.loads(raw_json)
-    except Exception as e:
-        print(f"❌ Hiba a szerkesztett lista feldolgozásánál: {e}")
-        return {"refined_events": []}
 
 def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schema=None):
     model_name = "gemini-2.5-flash-lite"
@@ -249,30 +208,35 @@ def get_strategic_topics(titles_sample):
         return []
 
 def validate_news_clusters(cluster_data, schema=MultiClusterResponse):
-    """Lite modell: Nevezi, pontozza és röviden összefoglalja a matematikai klasztert."""
+    """Lite modell: Szétválasztja a matematikai klasztert valódi eseményekre és pontoz."""
     
-    sys_instruct = """Te egy vezető hírszerkesztő vagy. 
-    A feladatod, hogy egy MI által már matematikailag egybecsoportosított, azonos témájú hírlistát szintetizálj EGYETLEN átfogó eseménnyé, és értékeld annak súlyát.
+    sys_instruct = """Te egy cinikus, de tűpontos hírszerkesztő algoritmus vagy. 
+    A feladatod, hogy egy matematikai módszerrel összegyűjtött hírkupacból (nyers klaszter) kihámozd a VALÓDI, különálló eseményeket.
 
     STRATÉGIAI SZABÁLYOK:
-    1. SZINTÉZIS: A kapott hírek egyetlen fő eseményről szólnak (pl. különböző nyelvű vagy fókuszú cikkek ugyanarról). Ne szedd szét őket apró részletekre! Határozd meg a közös nevezőt, és adj vissza EGYETLEN eseményt, ami lefedi a klasztert.
-    2. KIVONAT (Summary): A display_name legyen egy profi, újságírós cím, és (ha a séma engedi) készíts egy 1 mondatos, tényszerű összefoglalót a lényegről.
-    3. ZAJ KISZŰRÉSE: Ha a klaszter nyilvánvalóan csak véletlenszerű szóegyezések halmaza (nincs valódi esemény mögötte), vagy tisztán bulvár (Relevance < 4), akkor adj vissza egy üres listát.
+    1. SZÉTVÁLASZTÁS: Ha a hírek között több különböző vállalat (pl. BMW vs. CATL), különálló incidens vagy téma van, KÖTELESSÉGED őket külön eseményként (event) visszaadni a listában. Ne gyárts "Debreceni ipar" típusú gyűjtőneveket!
+    2. RELEVANCIA SZŰRÉS: Csak azokat az eseményeket tartsd meg, amiknek a Relevance pontszáma legalább 4. A bulvárt, baleseteket, jelentéktelen színes híreket egyszerűen hagyd ki (ne adj nekik eseményt).
+    3. TISZTÍTÁS: Ha egy hír (ID) nem illik szorosan egyik eseményhez sem, ne kényszerítsd bele sehová, hagyd el.
 
     PONTOZÁSI ÚTMUTATÓ (1-10):
-    Az impact pontszám meghatározásakor legyél kíméletlen:
-    - 9-10: Háborús eszkaláció, több száz halott, globális gazdasági/piaci sokk, atomfenyegetés.
-    - 7-8: Államfők bejelentései, Magyarország és más országok közötti politikai/gazdasági jelentős események, kritikus infrastruktúra leállása, deviza-összeomlás.
-    - 4-6: Vállalati eredmények, helyi (nem országos) szabályozások, sportesemények (pl. BL döntő), tudományos érdekességek.
-    - 1-3: Bulvár, celebhírek, egyéni sorsok, technológiai pletykák.
+    - RELEVANCE: 10 = kritikus magyar érdek/világpolitika. 1 = bulvár, celeb, egyéni sors.
+    - IMPACT (1-10): 
+        Az impact pontszám meghatározásakor legyél kíméletlen:
+        9-10: Háborús cselekmény, több száz halott, globális gazdasági összeomlás, atomfenyegetés.
+        7-8: Államfők bejelentései, Magyarország és más országok közötti politikai/gazdasági jelentős események. Országos politikai földindulás, kritikus infrastruktúra leállása (pl. Kuba áramszünet), deviza-összeomlás.
+        4-6: Vállalati eredmények, helyi szabályozások, sportesemények (pl. BL döntő), környezeti hírek (pl. fafajok).
+        1-3: Bulvár, érdekességek, technológiai apróságok.
+    - NOVELTY: Mennyire friss és tényalapú az információ?
 
     VÁLASZ: Kizárólag a megadott JSON sémát használd!"""
 
+    # Fontos: itt már a MultiClusterResponse sémát használjuk!
     res = _gemini_engine(cluster_data, sys_instruct, model_type="lite", is_json=True, schema=schema)
     
     try:
         if not res: return {"events": []}
         data = json.loads(res)
+        # Biztosítjuk, hogy mindig legyen egy 'events' kulcsunk
         return data if "events" in data else {"events": []}
     except Exception as e:
         print(f"⚠️ JSON hiba a validációnál: {e}")

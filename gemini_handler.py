@@ -13,8 +13,8 @@ class Scores(BaseModel):
     novelty: int = Field(description="Mennyire friss vagy meglepő az információ (1-10)")
 
 class ClusterResultSingle(BaseModel):
-    name: str = Field(description="Az esemény profi, újságírós címe")
-    summary: str = Field(description="Egyetlen, tényszerű mondat, ami összefoglalja az esemény lényegét") # ÚJ MEZŐ!
+    name: str = Field(description="Az esemény profi, újságírós címe, KIZÁRÓLAG MAGYAR NYELVEN!")
+    summary: str = Field(description="Egyetlen, tényszerű mondat, ami összefoglalja az esemény lényegét, KIZÁRÓLAG MAGYAR NYELVEN!") # ÚJ MEZŐ!
     ids: List[int] = Field(description="A beküldött hírek ID-jai")
     scores: Scores 
     category: str = Field(description="HAZAI, GLOBÁLIS vagy EGYÉB")

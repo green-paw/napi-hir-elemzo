@@ -258,6 +258,17 @@ def main():
     all_events.sort(key=lambda x: x.get('final_score', 0), reverse=True)
     top_20_events = all_events[:20]
 
+    # A 20-on felüli, de validált események összegyűjtése
+    near_misses = []
+    if len(all_events) > 20:
+        for ev in all_events[20:]:
+            count = len(ev.get('news_list', []))
+            # Csak a címet és a darabszámot tartjuk meg, ahogy kérted
+            near_misses.append(f"<b>{ev.get('title', 'Cím nélkül')}</b> ({count} hír) - [Rangsorolt: {ev['final_score']} pont]")
+
+    # Az új elemeket a lista ELEJÉRE fűzzük (near_misses + a korábbi discarded_summaries)
+    discarded_summaries = near_misses + discarded_summaries
+    
     # 6. Flash Elemzés (Mélyebb összefoglaló generálása)
     myPrint(f"🧠 Flash elemzés indítása a top {len(top_20_events)} eseményre...")
     final_data_package = []

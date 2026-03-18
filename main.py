@@ -92,6 +92,9 @@ def cluster_news(news_pool):
     for label, news_list in groups.items():
         count = len(news_list)
         avg_relevance = sum(n.get('relevance_score', 0) for n in news_list) / count
+
+        top_news = news_list[0] 
+        summary_text = f"{top_news['title']} ({count} hír)"
         
         if count >= 3:
             clusters_to_validate.append((label, news_list))

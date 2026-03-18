@@ -35,28 +35,16 @@ def cosine_similarity(v1, v2):
 
 def calculate_priority_score(event):
     """Kiszámolja a végleges 0-100-as prioritási pontszámot a hibrid modell alapján."""
-    
-    # Ha valamiért üres lenne az objektum (biztonsági fék)
-    if not event or not hasattr(event, 'scores'):
+    # Mivel az event egy dict, így ellenőrizzük:
+    if not event or 'scores' not in event:
         return 0
 
-    # 1. MINŐSÉG: Az LLM (Lite) értékelése (Max 10 pont)
-    # Az Impact (hatás) a legfontosabb, a Novelty (újdonság) a legkevésbé
-    llm_base = (event.scores.impact * 0.6) + (event.scores.relevance * 0.3) + (event.scores.novelty * 0.1)
-    
-    # 2. MENNYISÉG: A klaszter mérete (Hány cikk szól erről?)
-    cluster_size = len(event.ids) if hasattr(event, 'ids') else 0
-    
-    # Bónusz számítás: Minden cikk ér egy kis pluszt, de maximalizáljuk a hatását
-    # (pl. 30 cikk felett már nem adunk több pontot, hogy egy spam-hullám ne törje át a plafont)
+    scores = event.get('scores', {})
+    llm_base = (scores.get('impact', 0) * 0.6) + (scores.get('relevance', 0) * 0.3) + (scores.get('novelty', 0) * 0.1)
+    cluster_size = len(event.get('ids', []))
     size_bonus = min(cluster_size * 0.8, 25.0) 
-    
-    # 3. HIBRID SZINTÉZIS (Max 100 pont)
-    # Az LLM adhat max 75 pontot (10 * 7.5)
-    # A klaszter mérete adhat max 25 pontot
     final_score = (llm_base * 7.5) + size_bonus
     
-    # Kerekítés és biztosítás, hogy ne mehessen 100 fölé
     return min(round(final_score), 100)
     
 def semantic_filter(news_pool, topics, top_k=300):
@@ -200,7 +188,7 @@ def main():
         return
 
     # Maximum 600 hírrel dolgozunk a teljesítmény miatt
-    raw_news = raw_news[:600]
+    #raw_news = raw_news[:600]
     
     # --- Duplikátum szűrés ---
     seen_titles = set()
@@ -243,17 +231,11 @@ def main():
         myPrint("❌ Nem sikerült eseményeket generálni a klaszterekből.")
         return
 
-    # 5. Hibrid Pontozás és Sorbarendezés (LLM minőség + Klaszterméret)
+# 5. Hibrid Pontozás és Sorbarendezés (LLM minőség + Klaszterméret)
     myPrint(f"⚖️ Végleges pontszámok kiszámítása {len(all_events)} eseményre...")
-    
     for ev in all_events:
-        # Kiszámoljuk és rátesszük az objektumra a végleges pontot (0-100)
-        ev.final_score = calculate_priority_score(ev)
-
-    # Rendezzük csökkenő sorrendbe a hibrid pontszám alapján
-    all_events.sort(key=lambda x: getattr(x, 'final_score', 0), reverse=True)
-    
-    # KIVÁGÁS: Csak a legeslegjobb 20 megy tovább a mélyelemzésre!
+        ev['final_score'] = calculate_priority_score(ev)
+    all_events.sort(key=lambda x: x.get('final_score', 0), reverse=True)
     top_20_events = all_events[:20]
 
     # 6. Flash Elemzés (Mélyebb összefoglaló generálása)
@@ -261,11 +243,10 @@ def main():
     final_data_package = []
     
     for i, event in enumerate(top_20_events, 1):
-        # Az új sémából kinyerjük az adatokat
-        merged_ids = getattr(event, 'ids', [])
-        c_name = getattr(event, 'name', "Névtelen esemény")
-        c_cat = getattr(event, 'category', "EGYÉB")
-        c_score = getattr(event, 'final_score', 0)
+        merged_ids = event.get('ids', [])
+        c_name = event.get('name', "Névtelen esemény")
+        c_cat = event.get('category', "EGYÉB")
+        c_score = event.get('final_score', 0)
         
         # Opcionális: A Lite 1 mondatos összefoglalóját is kinyerheted, ha beleteszed a promptba kontextusnak
         # c_summary_lite = getattr(event, 'summary', '') 

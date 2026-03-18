@@ -85,15 +85,29 @@ def cluster_news(news_pool):
     # 1. VEKTOROK ÚJRAHASZNOSÍTÁSA (Nincs API hívás, instant lefut!)
     embeddings = [n['embedding'] for n in news_pool]
 
+    # Az auto_cluster a korábban megbeszélt (0.12 + complete) beállításokkal fusson!
     groups = auto_cluster(embeddings, news_pool)
-    total_groups = len(groups)
+    total_raw_groups = len(groups)
 
-    final_clusters = []
-    i = 0
-    for label, items in groups.items():
-        i += 1
+    # --- ÚJ: ELŐSZŰRÉS A KÖLTSÉGCSÖKKENTÉSHEZ ---
+    clusters_to_validate = []
+    for label, news_list in groups.items():
+        # Kiszámoljuk az átlagos relevanciát a biztonsági hálóhoz
+        avg_relevance = sum(n.get('relevance_score', 0) for n in news_list) / len(news_list)
         
-        # 2. TOKEN-SPÓROLÁS: Ha hatalmas a klaszter, csak az első 15 legrelevánsabb hírt mutatjuk meg a Lite-nak
+        # Szigorú szűrés: csak ha több hír van, VAGY ha az az egy hír kiemelkedően fontos
+        if len(news_list) >= 2 or avg_relevance > 0.92:
+            clusters_to_validate.append((label, news_list))
+        # Egyébként egyszerűen eldobjuk a klasztert (zaj vagy irreleváns apróság)
+
+    num_to_process = len(clusters_to_validate)
+    myPrint(f"📉 Szűrés után {num_to_process}/{total_raw_groups} klaszter maradt validálásra.")
+    
+    final_clusters = []
+    
+    # 2. VALIDÁCIÓS CIKLUS
+    for i, (label, items) in enumerate(clusters_to_validate, 1):
+        # TOKEN-SPÓROLÁS: Csak az első 15 legrelevánsabb hírt mutatjuk meg a Lite-nak
         representative_items = items[:15]
         
         formatted_list = "\n".join([
@@ -101,32 +115,39 @@ def cluster_news(news_pool):
             for n in representative_items
         ])
 
-        myPrint(f"  [{i}/{total_groups}] Lite validáció | Klaszter ID: {label} | {len(items)} hír (ebből {len(representative_items)} küldve)...")
+        myPrint(f"  [{i}/{num_to_process}] Lite validáció | Klaszter ID: {label} | {len(items)} hír (ebből {len(representative_items)} küldve)...")
+        
+        # A validáló hívás
         result = validate_news_clusters(formatted_list)
 
+        # 3. EREDMÉNYEK FELDOLGOZÁSA ÉS ID-K VISSZAÍRÁSA
         events = []
         if isinstance(result, dict):
             events = result.get("events", [])
         elif hasattr(result, "events"):
             events = result.events
 
-        # 3. AZ ID-K VISSZAÍRÁSA: A Lite csak 15 ID-t látott, de mi az összeset rátesszük az eseményre!
+        # A Lite csak 15 ID-t látott, de mi az összeset rátesszük az eseményre (klaszterméret pontozás miatt fontos!)
         all_cluster_ids = [n['id'] for n in items]
         
         if events:
             for ev in events:
                 if isinstance(ev, dict):
                     ev['ids'] = all_cluster_ids
+                    # Biztosítjuk a szótár-alapú elérést a későbbi szakaszokhoz
+                    final_clusters.append(ev)
                 else:
-                    ev.ids = all_cluster_ids
-            final_clusters.extend(events)
+                    # Ha a modell véletlenül objektumot adna vissza
+                    ev_dict = ev.dict() if hasattr(ev, 'dict') else vars(ev)
+                    ev_dict['ids'] = all_cluster_ids
+                    final_clusters.append(ev_dict)
             
-        time.sleep(3.0) # Biztonságos várakozás a Lite hívások között
+        time.sleep(2.0) # Biztonságos várakozás a Lite hívások között a kvóta miatt
 
     return final_clusters
 
 def auto_cluster(embeddings, news_pool):
-    distance_limit = 0.12
+    distance_limit = 0.115
     
     clustering = AgglomerativeClustering(
         n_clusters=None,

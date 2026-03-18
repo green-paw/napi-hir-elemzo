@@ -126,7 +126,7 @@ def cluster_news(news_pool):
     return final_clusters
 
 def auto_cluster(embeddings, news_pool):
-    distance_limit = 0.14 
+    distance_limit = 0.12
     
     clustering = AgglomerativeClustering(
         n_clusters=None,

@@ -5,6 +5,10 @@ import re
 from datetime import datetime
 from collections import defaultdict
 import requests
+import os
+
+# Alapértelmezett értéket is adunk, ha lokálisan futtatnád
+output_file = os.getenv("OUTPUT_FILENAME", "index.html")
 
 bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
 
@@ -122,11 +126,12 @@ def generate_html(final_data_package, topics_html):
     </body>
     </html>
     """
-    
-    with open("index.html", "w", encoding="utf-8") as f:
-        f.write(html_template)
-    print("✅ index.html sikeresen legyártva.")
 
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write(html_template)
+    
+    print(f"✅ {output_file} sikeresen legyártva.")
+    
 def process_and_send(final_data_package, topics_html):
     if not final_data_package:
         print("Nincs küldhető hír.")
@@ -137,10 +142,11 @@ def process_and_send(final_data_package, topics_html):
     except Exception as e:
         print(f"❌ Hiba a HTML generálás során: {e}")
 
+    # telegram és ntfy kihagyása development alatt
+    return
+
     send_ntfy_alert()
     
-    # telegram kihagyása
-    return
     
     try:
         report_parts = []

@@ -143,7 +143,7 @@ def generate_html(final_data_package, topics_html, discarded_summaries=""):
     
     print(f"✅ {output_file} sikeresen legyártva.")
     
-def process_and_send(final_data_package, topics_html, discarded_summaries):
+def process_and_send(final_data_package, topics_html, discarded_summaries=""):
     if not final_data_package:
         print("Nincs küldhető hír.")
         return

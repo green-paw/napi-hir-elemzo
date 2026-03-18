@@ -352,11 +352,14 @@ def get_gemini_embeddings(texts):
                 break # Kilépünk az attempt ciklusból
                 
             except Exception as e:
-                if "429" in str(e) or "exhausted" in str(e).lower():
-                    wait_time = (attempt + 1) * 10 # 10, 20, 30... mp várakozás
-                    print(f"⚠️ Embedding kvóta elfogyott, várakozás {wait_time}s...")
+                error_msg = str(e).lower()
+                # 429 (kvóta), 503 (szerver hiba), 500 (belső hiba) kezelése
+                if any(x in error_msg for x in ["429", "503", "500", "unavailable", "exhausted"]):
+                    wait_time = (attempt + 1) * 10
+                    print(f"⚠️ Átmeneti API hiba ({e}), várakozás {wait_time}s...")
                     time.sleep(wait_time)
                 else:
+                    # Ez tényleg valami ismeretlen, komoly hiba
                     print(f"❌ Kritikus hiba az embedding során: {e}")
                     raise e
                     

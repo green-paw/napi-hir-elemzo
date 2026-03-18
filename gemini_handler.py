@@ -9,18 +9,19 @@ from typing import List
 
 class Scores(BaseModel):
     relevance: int = Field(description="Mennyire kritikus a magyar vagy globális gazdaság/politika szempontjából (1-10)")
-    impact: int = Field(description="Az esemény súlya (1-10)")
-    novelty: int = Field(description="Mennyire tartalmaz új információt (1-10)")
+    impact: int = Field(description="Az esemény súlya és globális/hazai hatása (1-10)")
+    novelty: int = Field(description="Mennyire friss vagy meglepő az információ (1-10)")
 
 class ClusterResultSingle(BaseModel):
-    name: str = Field(description="Az esemény rövid, magyar neve")
-    ids: List[int] = Field(description="A hírek ID-jai, amik EBBEN az eseményben összeillenek")
-    scores: Scores # Itt marad a pontozás (relevance, impact, novelty)
+    name: str = Field(description="Az esemény profi, újságírós címe")
+    summary: str = Field(description="Egyetlen, tényszerű mondat, ami összefoglalja az esemény lényegét") # ÚJ MEZŐ!
+    ids: List[int] = Field(description="A beküldött hírek ID-jai")
+    scores: Scores 
     category: str = Field(description="HAZAI, GLOBÁLIS vagy EGYÉB")
 
 class MultiClusterResponse(BaseModel):
-    # Ez fogadja be a laza matematikai csoportot
-    events: List[ClusterResultSingle] = Field(description="Az azonosított különálló, releváns események")
+    # A leírást átírtuk a szintézis logikájára
+    events: List[ClusterResultSingle] = Field(description="A szintetizált fő esemény (maximum 1 db). Ha a klaszter csak zaj, hagyd üresen az events listát!")
 
 class TokenLogger:
     def __init__(self):

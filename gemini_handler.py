@@ -258,6 +258,7 @@ def validate_news_clusters(cluster_data, schema=MultiClusterResponse):
     1. SZINTÉZIS: A kapott hírek egyetlen fő eseményről szólnak (pl. különböző nyelvű vagy fókuszú cikkek ugyanarról). Ne szedd szét őket apró részletekre! Határozd meg a közös nevezőt, és adj vissza EGYETLEN eseményt, ami lefedi a klasztert.
     2. KIVONAT (Summary): A display_name legyen egy profi, újságírós cím, és (ha a séma engedi) készíts egy 1 mondatos, tényszerű összefoglalót a lényegről.
     3. ZAJ KISZŰRÉSE: Ha a klaszter nyilvánvalóan csak véletlenszerű szóegyezések halmaza (nincs valódi esemény mögötte), vagy tisztán bulvár (Relevance < 4), akkor adj vissza egy üres listát.
+    4. KÖTELEZŐ NYELV: A 'name' (cím) és a 'summary' (kivonat) mezőket KIZÁRÓLAG MAGYAR NYELVEN írhatod meg, függetlenül az eredeti cikkek nyelvétől!
 
     PONTOZÁSI ÚTMUTATÓ (1-10):
     Az impact pontszám meghatározásakor legyél kíméletlen:

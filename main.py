@@ -88,9 +88,13 @@ def cluster_news(news_pool):
     total_raw_groups = len(groups)
 
     clusters_to_validate = []
+    discarded_summaries = []
     for label, news_list in groups.items():
         count = len(news_list)
         avg_relevance = sum(n.get('relevance_score', 0) for n in news_list) / count
+
+        top_news = news_list[0] 
+        summary_text = f"{top_news['title']} ({count} hír)"
         
         if count >= 3:
             clusters_to_validate.append((label, news_list))
@@ -98,7 +102,10 @@ def cluster_news(news_pool):
             clusters_to_validate.append((label, news_list))
         elif count == 1 and avg_relevance > 0.97:
             clusters_to_validate.append((label, news_list))
-
+        else:
+            discarded_summaries.append(summary_text)
+            continue
+    
     num_to_process = len(clusters_to_validate)
     myPrint(f"📉 Szűrés után {num_to_process}/{total_raw_groups} klaszter maradt validálásra.")
     
@@ -143,7 +150,7 @@ def cluster_news(news_pool):
             
         time.sleep(2.0) # Biztonságos várakozás a Lite hívások között a kvóta miatt
 
-    return final_clusters
+    return final_clusters, discarded_summaries
 
 def auto_cluster(embeddings, news_pool):
     distance_limit = 0.125
@@ -238,7 +245,7 @@ def main():
     # 4. Klaszterezés és Lite Validáció (Szintézis)
     # Ez a függvény most már megcsinálja a multilingvális beágyazást, 
     # a csoportosítást és a Lite alapú névadást/pontozást is.
-    all_events = cluster_news(filtered_news)
+    all_events, discarded_summaries = cluster_news(filtered_news)
     
     if not all_events:
         myPrint("❌ Nem sikerült eseményeket generálni a klaszterekből.")
@@ -293,7 +300,7 @@ def main():
     # 7. Kimenetek (HTML, Deploy, stb.)
     if final_data_package:
         myPrint("📦 Adatcsomag összeállítva, mentés és publikálás...")
-        output_handler.process_and_send(final_data_package, topics_html)
+        output_handler.process_and_send(final_data_package, topics_html, discarded_summaries)
         
     # 8. Statisztika
     from gemini_handler import usage_tracker        

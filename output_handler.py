@@ -59,7 +59,7 @@ def format_sources_telegram(sources_list):
             formatted.append(f'{name} ({links})')
     return " | ".join(formatted)
 
-def generate_html(final_data_package, topics_html):
+def generate_html(final_data_package, topics_html, discarded_summaries=""):
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     branch_name = output_file.replace("index.html", "")
     
@@ -124,6 +124,16 @@ def generate_html(final_data_package, topics_html):
 
     html_template += """
         </div>
+    """
+
+    if discarded_summaries:
+        html_template += '<hr><div style="color: #666; font-size: 0.9em; padding: 20px;">'
+        html_template += '<h3>🔍 Szűrés során mellőzött kisebb események:</h3><ul>'
+        for disc in discarded_summaries:
+            html_template += f'<li>{disc}</li>'
+        html_template += '</ul></div>'
+    
+    html_template += """
     </body>
     </html>
     """
@@ -133,13 +143,13 @@ def generate_html(final_data_package, topics_html):
     
     print(f"✅ {output_file} sikeresen legyártva.")
     
-def process_and_send(final_data_package, topics_html):
+def process_and_send(final_data_package, topics_html, discarded_summaries=""):
     if not final_data_package:
         print("Nincs küldhető hír.")
         return
 
     try:
-        generate_html(final_data_package, topics_html)
+        generate_html(final_data_package, topics_html, discarded_summaries)
     except Exception as e:
         print(f"❌ Hiba a HTML generálás során: {e}")
 

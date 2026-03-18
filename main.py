@@ -187,84 +187,98 @@ def filter_and_rank_clusters(clusters_data):
     # Egy utolsó biztonsági sorbarendezés
     return sorted(final_selection, key=lambda x: getattr(x, 'total_score', 0) if not isinstance(x, dict) else x.get('total_score', 0), reverse=True)
 
+import random
+import time
+
 def main():
+    myPrint("🚀 Hírfigyelő rendszer indítása...")
+    
     # 1. Lekérés
     raw_news = fetch_news()
     if not raw_news:
-        myPrint("no raw news, exiting")
+        myPrint("❌ Nincs bejövő hír, leállás.")
         return
 
+    # Maximum 600 hírrel dolgozunk a teljesítmény miatt
     raw_news = raw_news[:600]
     
-    # --- ÚJ: Duplikátum szűrés ---
+    # --- Duplikátum szűrés ---
     seen_titles = set()
     unique_news = []
     for n in raw_news:
-        # Tisztítjuk a címet (kisbetű, szóközök le) a pontosabb egyezésért
         clean_title = n['title'].strip().lower()
         if clean_title not in seen_titles:
             seen_titles.add(clean_title)
             unique_news.append(n)
     
-    myPrint(f"🧹 Duplikátumok kiszűrve: {len(raw_news)} -> {len(unique_news)} hír.")
-    raw_news = unique_news[:100] # Ezzel dolgozunk tovább
+    myPrint(f"🧹 Duplikátumok eltávolítva: {len(raw_news)} -> {len(unique_news)} egyedi hír maradt.")
     
-    # 2. Stratégiai témák
-    # Megjegyzés: random helyett az utolsó N hír is jó lehet, de a random segít a diverzitásban
-    sample_size = min(len(raw_news), 300)
-    titles_sample = "\n".join([n['title'] for n in random.sample(raw_news, sample_size)])
+    # 2. Stratégiai témák generálása
+    sample_size = min(len(unique_news), 300)
+    titles_sample = "\n".join([n['title'] for n in random.sample(unique_news, sample_size)])
     topics = get_strategic_topics(titles_sample)
     
     if not topics:
-        myPrint("⚠️ Nem sikerült stratégiai témákat generálni.")
+        myPrint("⚠️ Nem sikerült stratégiai témákat generálni, leállás.")
         return
 
-    myPrint("TOP TOPIKOK:")
+    myPrint("🎯 Napi Stratégiai Topikok:")
     for i, t in enumerate(topics, 1):
-        myPrint(f"{i}: {t}")
+        myPrint(f"  {i}. {t}")
         
     topics_html = "<ul>" + "".join([f"<li>{t}</li>" for t in topics]) + "</ul>"
         
-    # 3. Szemantikus szűrés
-    filtered_news = semantic_filter(raw_news, topics, top_k=300)
+    # 3. Szemantikus szűrés (Matek: Cosine távolság alapján)
+    filtered_news = semantic_filter(unique_news, topics, top_k=300)
     if not filtered_news:
-        myPrint("no semantic filtered news, exiting") 
+        myPrint("❌ A szemantikus szűrés után nem maradt hír, leállás.") 
         return
 
-    # 4. Klaszterezés és szűrés
+    # 4. Klaszterezés és Lite Validáció (Szintézis)
+    # Ez a függvény most már megcsinálja a multilingvális beágyazást, 
+    # a csoportosítást és a Lite alapú névadást/pontozást is.
     all_events = cluster_news(filtered_news)
-    initial_ranked = filter_and_rank_clusters(all_events)
     
-    # --- ÚJ: Teljes lista logolása az elemzés előtt ---
-    myPrint(f"📊 Összesen {len(initial_ranked)} releváns eseményt találtam:")
-    for i, cluster in enumerate(initial_ranked, 1):
-        name = cluster.name if hasattr(cluster, 'name') else cluster.get('name', 'Névtelen')
-        score = getattr(cluster, 'total_score', 0) if not isinstance(cluster, dict) else cluster.get('total_score', 0)
-        
-        prefix = "✅ [TOP 20]" if i <= 20 else "❌ [KIMARAD]"
-        myPrint(f"    {prefix} #{i} | {name} | Pontszám: {score}")
-    # --------------------------------------------------
+    if not all_events:
+        myPrint("❌ Nem sikerült eseményeket generálni a klaszterekből.")
+        return
 
-    # Stratégiai Szerkesztő fázis
-    myPrint(f"🧠 Stratégiai felülvizsgálat és összevonás ({len(initial_ranked)} jelölt)...")
-    refined_response = refine_event_list(initial_ranked[:20], topics)
+    # 5. Hibrid Pontozás és Sorbarendezés (LLM minőség + Klaszterméret)
+    myPrint(f"⚖️ Végleges pontszámok kiszámítása {len(all_events)} eseményre...")
     
+    for ev in all_events:
+        # Kiszámoljuk és rátesszük az objektumra a végleges pontot (0-100)
+        ev.final_score = calculate_priority_score(ev)
+
+    # Rendezzük csökkenő sorrendbe a hibrid pontszám alapján
+    all_events.sort(key=lambda x: getattr(x, 'final_score', 0), reverse=True)
+    
+    # KIVÁGÁS: Csak a legeslegjobb 20 megy tovább a mélyelemzésre!
+    top_20_events = all_events[:20]
+
+    # 6. Flash Elemzés (Mélyebb összefoglaló generálása)
+    myPrint(f"🧠 Flash elemzés indítása a top {len(top_20_events)} eseményre...")
     final_data_package = []
-    refined_list = refined_response.get("refined_events", [])[:20]
-
-    myPrint(refined_list)
-    myPrint(f"🧠 Flash elemzés indítása {len(refined_list)} véglegesített eseményre...")
     
-    for i, event in enumerate(refined_list, 1):
-        # Összegyűjtjük az összes hírt az összes összevont ID-ból
-        merged_ids = event.get("merged_ids", [])
-        c_name = event.get("display_name", "Névtelen esemény")
+    for i, event in enumerate(top_20_events, 1):
+        # Az új sémából kinyerjük az adatokat
+        merged_ids = getattr(event, 'ids', [])
+        c_name = getattr(event, 'name', "Névtelen esemény")
+        c_cat = getattr(event, 'category', "EGYÉB")
+        c_score = getattr(event, 'final_score', 0)
+        
+        # Opcionális: A Lite 1 mondatos összefoglalóját is kinyerheted, ha beleteszed a promptba kontextusnak
+        # c_summary_lite = getattr(event, 'summary', '') 
+        
+        # Összeszedjük a konkrét hír objektumokat az ID-k alapján
         relevant_news_objects = [n for n in filtered_news if n['id'] in merged_ids]
         
         if not relevant_news_objects:
             continue
 
-        myPrint(f"  [{i}/{len(refined_list)}] Összefoglalás: {c_name}")
+        myPrint(f"  [{i}/{len(top_20_events)}] Összefoglalás: {c_name} (Pont: {c_score} | Cikkek: {len(relevant_news_objects)})")
+        
+        # Itt hívjuk a nagy Flash modellt
         summary = generate_event_summary(c_name, relevant_news_objects)
         
         sources_data = [
@@ -273,21 +287,21 @@ def main():
         ]
         
         final_data_package.append({
-            'category': "EGYÉB", #c_cat,
+            'category': c_cat,
             'title': c_name,
             'summary': summary,
             'sources': sources_data,
-            'score': 0 #c_score
+            'score': c_score
         })
         
-        time.sleep(5) # Kicsit több szünet a biztonság kedvéért
+        time.sleep(3) # Biztonsági szünet a Flash hívások között
 
-    # 6. Kimenetek (ntfy, HTML, stb.)
+    # 7. Kimenetek (HTML, Deploy, stb.)
     if final_data_package:
-        #output_handler.process_and_send(final_data_package, topics_html)
-        myPrint(final_data_package)
+        myPrint("📦 Adatcsomag összeállítva, mentés és publikálás...")
+        output_handler.process_and_send(final_data_package, topics_html)
         
-    # Statisztika
+    # 8. Statisztika
     from gemini_handler import usage_tracker        
     usage = usage_tracker.get_aggregated_stats()
     myPrint(f"📊 Token használat: {usage}")

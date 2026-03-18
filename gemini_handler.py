@@ -248,35 +248,30 @@ def get_strategic_topics(titles_sample):
         return []
 
 def validate_news_clusters(cluster_data, schema=MultiClusterResponse):
-    """Lite modell: Szétválasztja a matematikai klasztert valódi eseményekre és pontoz."""
+    """Lite modell: Nevezi, pontozza és röviden összefoglalja a matematikai klasztert."""
     
-    sys_instruct = """Te egy cinikus, de tűpontos hírszerkesztő algoritmus vagy. 
-    A feladatod, hogy egy matematikai módszerrel összegyűjtött hírkupacból (nyers klaszter) kihámozd a VALÓDI, különálló eseményeket.
+    sys_instruct = """Te egy vezető hírszerkesztő vagy. 
+    A feladatod, hogy egy MI által már matematikailag egybecsoportosított, azonos témájú hírlistát szintetizálj EGYETLEN átfogó eseménnyé, és értékeld annak súlyát.
 
     STRATÉGIAI SZABÁLYOK:
-    1. SZÉTVÁLASZTÁS: Ha a hírek között több különböző vállalat (pl. BMW vs. CATL), különálló incidens vagy téma van, KÖTELESSÉGED őket külön eseményként (event) visszaadni a listában. Ne gyárts "Debreceni ipar" típusú gyűjtőneveket!
-    2. RELEVANCIA SZŰRÉS: Csak azokat az eseményeket tartsd meg, amiknek a Relevance pontszáma legalább 4. A bulvárt, baleseteket, jelentéktelen színes híreket egyszerűen hagyd ki (ne adj nekik eseményt).
-    3. TISZTÍTÁS: Ha egy hír (ID) nem illik szorosan egyik eseményhez sem, ne kényszerítsd bele sehová, hagyd el.
+    1. SZINTÉZIS: A kapott hírek egyetlen fő eseményről szólnak (pl. különböző nyelvű vagy fókuszú cikkek ugyanarról). Ne szedd szét őket apró részletekre! Határozd meg a közös nevezőt, és adj vissza EGYETLEN eseményt, ami lefedi a klasztert.
+    2. KIVONAT (Summary): A display_name legyen egy profi, újságírós cím, és (ha a séma engedi) készíts egy 1 mondatos, tényszerű összefoglalót a lényegről.
+    3. ZAJ KISZŰRÉSE: Ha a klaszter nyilvánvalóan csak véletlenszerű szóegyezések halmaza (nincs valódi esemény mögötte), vagy tisztán bulvár (Relevance < 4), akkor adj vissza egy üres listát.
 
     PONTOZÁSI ÚTMUTATÓ (1-10):
-    - RELEVANCE: 10 = kritikus magyar érdek/világpolitika. 1 = bulvár, celeb, egyéni sors.
-    - IMPACT (1-10): 
-        Az impact pontszám meghatározásakor legyél kíméletlen:
-        9-10: Háborús cselekmény, több száz halott, globális gazdasági összeomlás, atomfenyegetés.
-        7-8: Államfők bejelentései, Magyarország és más országok közötti politikai/gazdasági jelentős események. Országos politikai földindulás, kritikus infrastruktúra leállása (pl. Kuba áramszünet), deviza-összeomlás.
-        4-6: Vállalati eredmények, helyi szabályozások, sportesemények (pl. BL döntő), környezeti hírek (pl. fafajok).
-        1-3: Bulvár, érdekességek, technológiai apróságok.
-    - NOVELTY: Mennyire friss és tényalapú az információ?
+    Az impact pontszám meghatározásakor legyél kíméletlen:
+    - 9-10: Háborús eszkaláció, több száz halott, globális gazdasági/piaci sokk, atomfenyegetés.
+    - 7-8: Államfők bejelentései, Magyarország és más országok közötti politikai/gazdasági jelentős események, kritikus infrastruktúra leállása, deviza-összeomlás.
+    - 4-6: Vállalati eredmények, helyi (nem országos) szabályozások, sportesemények (pl. BL döntő), tudományos érdekességek.
+    - 1-3: Bulvár, celebhírek, egyéni sorsok, technológiai pletykák.
 
     VÁLASZ: Kizárólag a megadott JSON sémát használd!"""
 
-    # Fontos: itt már a MultiClusterResponse sémát használjuk!
     res = _gemini_engine(cluster_data, sys_instruct, model_type="lite", is_json=True, schema=schema)
     
     try:
         if not res: return {"events": []}
         data = json.loads(res)
-        # Biztosítjuk, hogy mindig legyen egy 'events' kulcsunk
         return data if "events" in data else {"events": []}
     except Exception as e:
         print(f"⚠️ JSON hiba a validációnál: {e}")

@@ -33,19 +33,31 @@ def cosine_similarity(v1, v2):
     mag2 = math.sqrt(sum(x * x for x in v2))
     return dot_product / (mag1 * mag2) if mag1 and mag2 else 0
 
-def calculate_priority_score(scores):
-    """Kiszámítja a súlyozott összpontszámot a sorbarendezéshez."""
-    # Kezeljük mind a Pydantic objektumot, mind a dict-et
-    if hasattr(scores, 'model_dump'):
-        s = scores.model_dump()
-    elif isinstance(scores, dict):
-        s = scores
-    else:
-        return 0
+def calculate_priority_score(event):
+    """Kiszámolja a végleges 0-100-as prioritási pontszámot a hibrid modell alapján."""
     
-    return (s.get('relevance', 0) * 0.3) + \
-           (s.get('impact', 0) * 0.5) + \
-           (s.get('novelty', 0) * 0.2)
+    # Ha valamiért üres lenne az objektum (biztonsági fék)
+    if not event or not hasattr(event, 'scores'):
+        return 0
+
+    # 1. MINŐSÉG: Az LLM (Lite) értékelése (Max 10 pont)
+    # Az Impact (hatás) a legfontosabb, a Novelty (újdonság) a legkevésbé
+    llm_base = (event.scores.impact * 0.6) + (event.scores.relevance * 0.3) + (event.scores.novelty * 0.1)
+    
+    # 2. MENNYISÉG: A klaszter mérete (Hány cikk szól erről?)
+    cluster_size = len(event.ids) if hasattr(event, 'ids') else 0
+    
+    # Bónusz számítás: Minden cikk ér egy kis pluszt, de maximalizáljuk a hatását
+    # (pl. 30 cikk felett már nem adunk több pontot, hogy egy spam-hullám ne törje át a plafont)
+    size_bonus = min(cluster_size * 0.8, 25.0) 
+    
+    # 3. HIBRID SZINTÉZIS (Max 100 pont)
+    # Az LLM adhat max 75 pontot (10 * 7.5)
+    # A klaszter mérete adhat max 25 pontot
+    final_score = (llm_base * 7.5) + size_bonus
+    
+    # Kerekítés és biztosítás, hogy ne mehessen 100 fölé
+    return min(round(final_score), 100)
     
 def semantic_filter(news_pool, topics, top_k=300):
     if not topics or not news_pool: return news_pool

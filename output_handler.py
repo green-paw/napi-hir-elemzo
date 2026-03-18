@@ -60,8 +60,8 @@ def format_sources_telegram(sources_list):
     return " | ".join(formatted)
 
 def generate_html(final_data_package, topics_html):
-    """Létrehoz egy esztétikus HTML fájlt a hírekkel."""
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    branch_name = output_file.replace("index.html", "")
     
     html_template = f"""
     <!DOCTYPE html>
@@ -69,7 +69,7 @@ def generate_html(final_data_package, topics_html):
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>AI Hírelemzés - {now}</title>
+        <title>AI Hírelemzés - {now} - branch_name</title>
         <style>
             body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; background: #f4f7f6; color: #333; margin: 0; padding: 20px; }}
             .container {{ max-width: 900px; margin: auto; }}
@@ -90,6 +90,7 @@ def generate_html(final_data_package, topics_html):
             <header>
                 <h1>🗞 AI Hírelemzés</h1>
                 <p>Frissítve: {now}</p>
+                <p>Branch: {branch_name}</p>
             </header>
     """
     

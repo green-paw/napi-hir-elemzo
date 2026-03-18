@@ -51,107 +51,101 @@ def semantic_filter(news_pool, topics, top_k=300):
     if not topics or not news_pool: return news_pool
     myPrint(f"🔍 Szemantikus rangsorolás: {len(news_pool)} hír...")
     
-    # 1. Témák és hírek vektorizálása
     topic_embs = get_gemini_embeddings(topics)
-    # A cím és a tagek együtt jobb kontextust adnak az embeddingnek
-    news_texts = [f"[{', '.join(n['tags'])}] {n['title']}" if n['tags'] else n['title'] for n in news_pool]
+    
+    # 1. SZUPER-SZÖVEG generálása az embeddinghez (mindent beleteszünk, ami számít)
+    news_texts = [
+        f"CÍM: {n['title']} CÍMKÉK: {', '.join(n.get('tags', []))} KIVONAT: {n.get('summary', '')[:200]}" 
+        for n in news_pool
+    ]
     news_embs = get_gemini_embeddings(news_texts)
     
-    # 2. Relevancia számítása
+    # 2. Relevancia számítása és VEKTOROK MENTÉSE
     for i, n_emb in enumerate(news_embs):
-        # Megnézzük, mennyire passzol a hír BÁRMELYIK témához
-        sims = [cosine_similarity(n_emb, t_emb) for t_emb in topic_embs]
-        max_sim = max(sims) if sims else 0
+        # Eltároljuk a vektort, hogy a klaszterezőnél már ne kelljen API-t hívni!
+        news_pool[i]['embedding'] = n_emb
         
-        # Elmentjük a pontszámot a hír objektumba
-        news_pool[i]['match_score'] = max_sim
+        sims = [cosine_similarity(n_emb, t_emb) for t_emb in topic_embs]
+        news_pool[i]['match_score'] = max(sims) if sims else 0
 
-    # 3. Sorbarendezés (legmagasabb pontszám elöl) és vágás
-    # Csak azokat tartjuk meg, amiknek van egy minimális közük a témákhoz (pl. > 0.3), 
-    # hogy a totál zajt (pl. sporthírek, ha nem kérted) kidobjuk.
-    filtered = [n for n in news_pool if n.get('match_score', 0) > 0.3]
+    # 3. SZIGORÍTOTT ZAJ-KAPU: 0.3 helyett 0.65 (A sport és a fafajok itt hullanak ki)
+    filtered = [n for n in news_pool if n.get('match_score', 0) > 0.65]
     filtered.sort(key=lambda x: x['match_score'], reverse=True)
     
-    # Kivesszük az első top_k darabot
     final_selection = filtered[:top_k]
     
     myPrint(f"✅ Rangsorolás kész: {len(final_selection)} hír továbbküldve (átlagos relevancia: {sum(n['match_score'] for n in final_selection)/len(final_selection) if final_selection else 0:.2f})")
     
     return final_selection
 
+import time
+
 def cluster_news(news_pool):
     if not news_pool: return []
     myPrint(f"🧩 Klaszterezés ({len(news_pool)} hír)...")
     
-    # Szövegek előkészítése az embeddinghez
-    texts = [f"CÍM: {n['title']} KIVONAT: {n['summary'][:200]}" for n in news_pool]
-    embeddings = get_gemini_embeddings(texts)
+    # 1. VEKTOROK ÚJRAHASZNOSÍTÁSA (Nincs API hívás, instant lefut!)
+    embeddings = [n['embedding'] for n in news_pool]
 
-    groups = {}
-    groups = auto_cluster(embeddings, news_pool, initial_threshold=1, max_cluster_size=20)
+    groups = auto_cluster(embeddings, news_pool)
     total_groups = len(groups)
 
     final_clusters = []
     i = 0
     for label, items in groups.items():
         i += 1
+        
+        # 2. TOKEN-SPÓROLÁS: Ha hatalmas a klaszter, csak az első 15 legrelevánsabb hírt mutatjuk meg a Lite-nak
+        representative_items = items[:15]
+        
         formatted_list = "\n".join([
             f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {n['summary'][:150]}" 
-            for n in items
+            for n in representative_items
         ])
 
-        myPrint(f"  [{i}/{total_groups}] Lite elemzés | Klaszter ID: {label} | {len(items)} hír...")
-        result = validate_news_clusters(formatted_list)
+        myPrint(f"  [{i}/{total_groups}] Lite validáció | Klaszter ID: {label} | {len(items)} hír (ebből {len(representative_items)} küldve)...")
+        result = validate_news_clusters(formatted_list, topics=None) # A topics opcionális lehet itt
+        
         events = []
-
-        # Pydantic vagy dict kezelés
         if isinstance(result, dict):
             events = result.get("events", [])
         elif hasattr(result, "events"):
             events = result.events
 
+        # 3. AZ ID-K VISSZAÍRÁSA: A Lite csak 15 ID-t látott, de mi az összeset rátesszük az eseményre!
+        all_cluster_ids = [n['id'] for n in items]
+        
         if events:
+            for ev in events:
+                if isinstance(ev, dict):
+                    ev['ids'] = all_cluster_ids
+                else:
+                    ev.ids = all_cluster_ids
             final_clusters.extend(events)
             
-        # Rövid várakozás a kvóták miatt (most már klaszterenként egyszer)
-        time.sleep(5)
+        time.sleep(3.0) # Biztonságos várakozás a Lite hívások között
 
     return final_clusters
 
-def auto_cluster(embeddings, news_pool, initial_threshold=0.7, max_cluster_size=20):
-    current_threshold = initial_threshold
-    attempts = 0
-    max_attempts = 20
+from sklearn.cluster import AgglomerativeClustering
+
+def auto_cluster(embeddings, news_pool):
+    # A Cosine távolság 0 és 2 között mozog. 
+    # A 0.15-ös távolság 85%-os koszinusz hasonlóságot jelent, ami tökéletes az azonos hírekhez.
+    distance_limit = 0.15 
     
-    while attempts < max_attempts:
-        clustering = AgglomerativeClustering(
-            n_clusters=None,
-            distance_threshold=current_threshold,
-            metric='euclidean',
-            linkage='ward'
-        ).fit(embeddings)
+    clustering = AgglomerativeClustering(
+        n_clusters=None,
+        distance_threshold=distance_limit,
+        metric='cosine', # EZ A LÉNYEG: Nyelvfüggetlen gömb-geometria
+        linkage='average' # A cosine metrikához a 'ward' nem jó, az 'average' a stabil
+    ).fit(embeddings)
+    
+    groups = {}
+    for idx, label in enumerate(clustering.labels_):
+        groups.setdefault(label, []).append(news_pool[idx])
         
-        groups = {}
-        for idx, label in enumerate(clustering.labels_):
-            groups.setdefault(label, []).append(news_pool[idx])
-        
-        # Ellenőrizzük, van-e túl nagy csoport
-        too_large = [len(items) for items in groups.values() if len(items) > max_cluster_size]
-        
-        if not too_large:
-            myPrint(f"✨ Optimális klaszterezés elérve ({current_threshold:.2f} küszöbbel, {len(groups)} csoport).")
-            return groups
-        
-        # Ha van túl nagy, szigorítunk (csökkentjük a küszöböt)
-        new_threshold = current_threshold - 0.05
-        myPrint(f"⚠️ Túl nagy csoportok ({max(too_large)} hír). Szigorítás: {current_threshold:.2f} -> {new_threshold:.2f}")
-        current_threshold = new_threshold
-        attempts += 1
-        
-        # Biztonsági fék, ne menjen 0 alá
-        if current_threshold < 0.1:
-            break
-            
+    myPrint(f"✨ Optimális klaszterezés elérve ({len(groups)} masszív csoport).")
     return groups
 
 def filter_and_rank_clusters(clusters_data):

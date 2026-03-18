@@ -89,21 +89,15 @@ def cluster_news(news_pool):
 
     clusters_to_validate = []
     for label, news_list in groups.items():
-        # Kiszámoljuk az átlagos relevanciát a biztonsági hálóhoz
-        avg_relevance = sum(n.get('relevance_score', 0) for n in news_list) / len(news_list)
+        count = len(news_list)
+        avg_relevance = sum(n.get('relevance_score', 0) for n in news_list) / count
         
         if count >= 3:
-            # 3 vagy több forrás már komoly esemény
             clusters_to_validate.append((label, news_list))
         elif count == 2 and avg_relevance > 0.90:
-            # 2 forrásnál már elvárjuk a jó relevanciát
             clusters_to_validate.append((label, news_list))
         elif count == 1 and avg_relevance > 0.96:
-            # 1 forrásnál csak a tűpontos, stratégiai híreket engedjük át
             clusters_to_validate.append((label, news_list))
-        else:
-            # Minden mást eldobunk (spórolunk 15-20 hívást)
-            continue
 
     num_to_process = len(clusters_to_validate)
     myPrint(f"📉 Szűrés után {num_to_process}/{total_raw_groups} klaszter maradt validálásra.")

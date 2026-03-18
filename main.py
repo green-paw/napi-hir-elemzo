@@ -146,7 +146,7 @@ def cluster_news(news_pool):
     return final_clusters
 
 def auto_cluster(embeddings, news_pool):
-    distance_limit = 0.115
+    distance_limit = 0.125
     
     clustering = AgglomerativeClustering(
         n_clusters=None,
@@ -202,9 +202,6 @@ def main():
     if not raw_news:
         myPrint("❌ Nincs bejövő hír, leállás.")
         return
-
-    # Maximum 600 hírrel dolgozunk a teljesítmény miatt
-    #raw_news = raw_news[:600]
     
     # --- Duplikátum szűrés ---
     seen_titles = set()
@@ -247,7 +244,7 @@ def main():
         myPrint("❌ Nem sikerült eseményeket generálni a klaszterekből.")
         return
 
-# 5. Hibrid Pontozás és Sorbarendezés (LLM minőség + Klaszterméret)
+    # 5. Hibrid Pontozás és Sorbarendezés (LLM minőség + Klaszterméret)
     myPrint(f"⚖️ Végleges pontszámok kiszámítása {len(all_events)} eseményre...")
     for ev in all_events:
         ev['final_score'] = calculate_priority_score(ev)

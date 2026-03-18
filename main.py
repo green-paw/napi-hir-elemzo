@@ -127,27 +127,27 @@ def cluster_news(news_pool):
 
     return final_clusters
 
-from sklearn.cluster import AgglomerativeClustering
-
 def auto_cluster(embeddings, news_pool):
-    # A Cosine távolság 0 és 2 között mozog. 
-    # A 0.15-ös távolság 85%-os koszinusz hasonlóságot jelent, ami tökéletes az azonos hírekhez.
-    distance_limit = 0.15 
+    # Szigorított küszöb: 0.15 helyett 0.05 vagy 0.06. 
+    # Ez kb. 94-95%-os koszinusz hasonlóságot vár el. Csak a konkrét események élik túl.
+    distance_limit = 0.06 
     
     clustering = AgglomerativeClustering(
         n_clusters=None,
         distance_threshold=distance_limit,
-        metric='cosine', # EZ A LÉNYEG: Nyelvfüggetlen gömb-geometria
-        linkage='average' # A cosine metrikához a 'ward' nem jó, az 'average' a stabil
+        metric='cosine', 
+        # A 'complete' a legszigorúbb: a klaszter BÁRMELY két eleme közötti 
+        # távolság nem haladhatja meg a limitet. Nincs többé "Magyar Gazdaság" gyűjtőtégely!
+        linkage='complete' 
     ).fit(embeddings)
     
     groups = {}
     for idx, label in enumerate(clustering.labels_):
         groups.setdefault(label, []).append(news_pool[idx])
         
-    myPrint(f"✨ Optimális klaszterezés elérve ({len(groups)} masszív csoport).")
+    myPrint(f"✨ Optimális klaszterezés elérve ({len(groups)} pengeéles csoport).")
     return groups
-
+    
 def filter_and_rank_clusters(clusters_data):
     """
     Végső szűrés a súlyozott pontszám alapján. 

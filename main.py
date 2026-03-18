@@ -78,8 +78,6 @@ def semantic_filter(news_pool, topics, top_k=300):
     
     return final_selection
 
-import time
-
 def cluster_news(news_pool):
     if not news_pool: return []
     myPrint(f"🧩 Klaszterezés ({len(news_pool)} hír)...")
@@ -128,24 +126,22 @@ def cluster_news(news_pool):
     return final_clusters
 
 def auto_cluster(embeddings, news_pool):
-    # Szigorított küszöb: 0.15 helyett 0.05 vagy 0.06. 
-    # Ez kb. 94-95%-os koszinusz hasonlóságot vár el. Csak a konkrét események élik túl.
-    distance_limit = 0.1
+    distance_limit = 0.14 
     
     clustering = AgglomerativeClustering(
         n_clusters=None,
         distance_threshold=distance_limit,
         metric='cosine', 
-        # A 'complete' a legszigorúbb: a klaszter BÁRMELY két eleme közötti 
-        # távolság nem haladhatja meg a limitet. Nincs többé "Magyar Gazdaság" gyűjtőtégely!
-        linkage='average' 
+        linkage='complete' 
     ).fit(embeddings)
     
     groups = {}
     for idx, label in enumerate(clustering.labels_):
         groups.setdefault(label, []).append(news_pool[idx])
         
-    myPrint(f"✨ Optimális klaszterezés elérve ({len(groups)} pengeéles csoport).")
+    max_size = max(len(g) for g in groups.values()) if groups else 0
+    myPrint(f"✨ Optimális klaszterezés elérve ({len(groups)} csoport, legnagyobb: {max_size} hír).")
+    
     return groups
     
 def filter_and_rank_clusters(clusters_data):

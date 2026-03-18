@@ -5,10 +5,6 @@ import re
 from datetime import datetime
 from collections import defaultdict
 import requests
-import os
-
-# Alapértelmezett értéket is adunk, ha lokálisan futtatnád
-output_file = os.getenv("OUTPUT_FILENAME", "index.html")
 
 bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
 
@@ -59,9 +55,9 @@ def format_sources_telegram(sources_list):
             formatted.append(f'{name} ({links})')
     return " | ".join(formatted)
 
-def generate_html(final_data_package, topics_html, discarded_summaries=""):
+def generate_html(final_data_package, topics_html):
+    """Létrehoz egy esztétikus HTML fájlt a hírekkel."""
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
-    branch_name = output_file.replace("index.html", "")
     
     html_template = f"""
     <!DOCTYPE html>
@@ -69,7 +65,7 @@ def generate_html(final_data_package, topics_html, discarded_summaries=""):
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>AI Hírelemzés - {now} - branch_name</title>
+        <title>AI Hírelemzés - {now}</title>
         <style>
             body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; background: #f4f7f6; color: #333; margin: 0; padding: 20px; }}
             .container {{ max-width: 900px; margin: auto; }}
@@ -90,7 +86,6 @@ def generate_html(final_data_package, topics_html, discarded_summaries=""):
             <header>
                 <h1>🗞 AI Hírelemzés</h1>
                 <p>Frissítve: {now}</p>
-                <p>Branch: {branch_name}</p>
             </header>
     """
     
@@ -124,40 +119,28 @@ def generate_html(final_data_package, topics_html, discarded_summaries=""):
 
     html_template += """
         </div>
-    """
-
-    if discarded_summaries:
-        html_template += '<hr><div style="color: #666; font-size: 0.9em; padding: 20px;">'
-        html_template += '<h3>🔍 Szűrés során mellőzött kisebb események:</h3><ul>'
-        for disc in discarded_summaries:
-            html_template += f'<li>{disc}</li>'
-        html_template += '</ul></div>'
-    
-    html_template += """
     </body>
     </html>
     """
-
-    with open(output_file, "w", encoding="utf-8") as f:
+    
+    with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_template)
-    
-    print(f"✅ {output_file} sikeresen legyártva.")
-    
-def process_and_send(final_data_package, topics_html, discarded_summaries=""):
+    print("✅ index.html sikeresen legyártva.")
+
+def process_and_send(final_data_package, topics_html):
     if not final_data_package:
         print("Nincs küldhető hír.")
         return
 
     try:
-        generate_html(final_data_package, topics_html, discarded_summaries)
+        generate_html(final_data_package, topics_html)
     except Exception as e:
         print(f"❌ Hiba a HTML generálás során: {e}")
 
-    # telegram és ntfy kihagyása development alatt
-    return
-
     send_ntfy_alert()
     
+    # telegram kihagyása
+    return
     
     try:
         report_parts = []

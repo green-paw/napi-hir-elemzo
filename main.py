@@ -130,7 +130,7 @@ def cluster_news(news_pool):
 def auto_cluster(embeddings, news_pool):
     # Szigorított küszöb: 0.15 helyett 0.05 vagy 0.06. 
     # Ez kb. 94-95%-os koszinusz hasonlóságot vár el. Csak a konkrét események élik túl.
-    distance_limit = 0.06 
+    distance_limit = 0.1
     
     clustering = AgglomerativeClustering(
         n_clusters=None,
@@ -138,7 +138,7 @@ def auto_cluster(embeddings, news_pool):
         metric='cosine', 
         # A 'complete' a legszigorúbb: a klaszter BÁRMELY két eleme közötti 
         # távolság nem haladhatja meg a limitet. Nincs többé "Magyar Gazdaság" gyűjtőtégely!
-        linkage='complete' 
+        linkage='average' 
     ).fit(embeddings)
     
     groups = {}

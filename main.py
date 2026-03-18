@@ -47,7 +47,7 @@ def calculate_priority_score(event):
     
     return min(round(final_score), 100)
     
-def semantic_filter(news_pool, topics, top_p=0.85):
+def semantic_filter(news_pool, topics):
     if not topics or not news_pool: return news_pool
     myPrint(f"🔍 Szemantikus rangsorolás: {len(news_pool)} hír...")
     
@@ -94,9 +94,9 @@ def cluster_news(news_pool):
         
         if count >= 3:
             clusters_to_validate.append((label, news_list))
-        elif count == 2 and avg_relevance > 0.90:
+        elif count == 2 and avg_relevance > 0.92:
             clusters_to_validate.append((label, news_list))
-        elif count == 1 and avg_relevance > 0.96:
+        elif count == 1 and avg_relevance > 0.97:
             clusters_to_validate.append((label, news_list))
 
     num_to_process = len(clusters_to_validate)
@@ -230,7 +230,7 @@ def main():
     topics_html = "<ul>" + "".join([f"<li>{t}</li>" for t in topics]) + "</ul>"
         
     # 3. Szemantikus szűrés (Matek: Cosine távolság alapján)
-    filtered_news = semantic_filter(unique_news, topics, top_p=0.85)
+    filtered_news = semantic_filter(unique_news, topics, top_p=0.86)
     if not filtered_news:
         myPrint("❌ A szemantikus szűrés után nem maradt hír, leállás.") 
         return

@@ -47,7 +47,7 @@ def calculate_priority_score(event):
     
     return min(round(final_score), 100)
     
-def semantic_filter(news_pool, topics):
+def semantic_filter(news_pool, topics, top_p=0.85):
     if not topics or not news_pool: return news_pool
     myPrint(f"🔍 Szemantikus rangsorolás: {len(news_pool)} hír...")
     

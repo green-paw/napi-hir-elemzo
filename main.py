@@ -116,8 +116,8 @@ def cluster_news(news_pool):
         ])
 
         myPrint(f"  [{i}/{total_groups}] Lite validáció | Klaszter ID: {label} | {len(items)} hír (ebből {len(representative_items)} küldve)...")
-        result = validate_news_clusters(formatted_list, topics=None) # A topics opcionális lehet itt
-        
+        result = validate_news_clusters(formatted_list)
+
         events = []
         if isinstance(result, dict):
             events = result.get("events", [])

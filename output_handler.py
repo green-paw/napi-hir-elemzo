@@ -59,7 +59,7 @@ def format_sources_telegram(sources_list):
             formatted.append(f'{name} ({links})')
     return " | ".join(formatted)
 
-def generate_html(final_data_package, topics_html, discarded_summaries):
+def generate_html(final_data_package, topics_html, discarded_summaries=""):
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     branch_name = output_file.replace("index.html", "")
     

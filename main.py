@@ -260,11 +260,8 @@ def main():
 
     # A 20-on felüli, de validált események összegyűjtése
     near_misses = []
-    if len(all_events) > 20:
-        for ev in all_events[20:]:
-            near_misses.append(f"<b>{ev.get('name', 'Cím nélkül')}</b> ({len(ev.get('ids', []))} hír) - [Rangsorolt: {event.get('final_score', 0)} pont]")
-
-    # Az új elemeket a lista ELEJÉRE fűzzük (near_misses + a korábbi discarded_summaries)
+    for ev in all_events[20:]:
+        near_misses.append(f"<b>{ev.get('name', 'Cím nélkül')}</b> ({len(ev.get('ids', []))} hír) - [Rangsorolt: {ev.get('final_score', 0)} pont]")
     discarded_summaries = near_misses + discarded_summaries
     
     # 6. Flash Elemzés (Mélyebb összefoglaló generálása)

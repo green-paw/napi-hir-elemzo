@@ -10,6 +10,7 @@ class Article(BaseModel):
     content: str
     published: datetime
     embedding: Optional[List[float]] = None
+    match_score: float = 0
 
 # 2. A hírforrás objektuma a végső kimenethez
 class ArticleSource(BaseModel):

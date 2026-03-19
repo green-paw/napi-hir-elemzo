@@ -1,12 +1,10 @@
 # saját importok
-import config
 import output_handler
 
 # Csak a szükséges handler funkciók
 from gemini_handler import (
-    get_strategic_topics, validate_news_clusters, 
+    get_strategic_topics,  
     generate_event_summary, get_gemini_embeddings, 
-    translate_if_needed, MultiClusterResponse, refine_event_list,
     validate_news_clusters_batch
 )
 from models import Article, ArticleSource, FinalEvent
@@ -15,8 +13,7 @@ from rss_handler import fetch_news
 
 # általános importok
 import math
-from typing import List, Optional
-from concurrent.futures import ThreadPoolExecutor 
+from typing import List
 from sklearn.cluster import AgglomerativeClustering
 
 from datetime import datetime
@@ -53,50 +50,32 @@ def calculate_priority_score(event) -> int:
     return min(round(final_score), 100)
     
 def semantic_filter(news_pool: List[Article], topics: List[str], top_p=0.85) -> List[Article]:
-    """
-    Szemantikus rangsorolás és szűrés. 
-    Bemenet és kimenet is Article objektumok listája.
-    """
     if not topics or not news_pool: 
         return news_pool
         
     myPrint(f"🔍 Szemantikus rangsorolás: {len(news_pool)} hír...")
     
     topic_embs = get_gemini_embeddings(topics)
-    
-    # 1. SZUPER-SZÖVEG generálása az objektum mezőiből
-    # Feltételezve, hogy az Article-ben a content vagy summary mezőben van a lényeg
     news_texts = [
         f"CÍM: {n.title} FORRÁS: {n.source} TARTALOM: {n.content[:200]}" 
         for n in news_pool
     ]
     news_embs = get_gemini_embeddings(news_texts)
-    
-    # 2. Relevancia számítása és VEKTOROK MENTÉSE az objektumba
-    filtered_with_scores = []
-    
-    for i, n_emb in enumerate(news_embs):
-        # Az embeddinget közvetlenül az Article objektumban tároljuk el
-        news_pool[i].embedding = n_emb
-        
-        sims = [cosine_similarity(n_emb, t_emb) for t_emb in topic_embs]
-        match_score = max(sims) if sims else 0
-        
-        # Csak azokat tartjuk meg, amik átmennek a küszöbön
-        if match_score > top_p:
-            # Ideiglenesen egy tuple-ben tároljuk a score-t a rendezéshez
-            filtered_with_scores.append((news_pool[i], match_score))
 
-    # Rendezés a match_score alapján (a tuple második eleme)
-    filtered_with_scores.sort(key=lambda x: x[1], reverse=True)
+    filtered = []
+    for i, n_emb in enumerate(news_embs):
+        news_pool[i].embedding = n_emb
+        sims = [cosine_similarity(n_emb, t_emb) for t_emb in topic_embs]
+        news_pool[i].match_score = max(sims) if sims else 0
+        
+        if news_pool[i].match_score > top_p:
+            filtered.append(news_pool[i])
+
+    filtered.sort(key=lambda x: x.match_score, reverse=True)
+    avg_score = sum(article.match_score for article in filtered) / len(filtered) if filtered else 0
+    myPrint(f"✅ Rangsorolás kész: {len(filtered)} hír továbbküldve (átlagos relevancia: {avg_score:.2f})")
     
-    # Csak az Article objektumokat adjuk vissza
-    final_filtered = [item[0] for item in filtered_with_scores]
-    
-    avg_score = sum(score for _, score in filtered_with_scores) / len(filtered_with_scores) if filtered_with_scores else 0
-    myPrint(f"✅ Rangsorolás kész: {len(final_filtered)} hír továbbküldve (átlagos relevancia: {avg_score:.2f})")
-    
-    return final_filtered
+    return filtered
 
 def cluster_news(news_pool: List[Article]):
     if not news_pool: 

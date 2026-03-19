@@ -6,19 +6,19 @@ import config
 from datetime import datetime, timedelta
 from models import Article # Ne felejtsd el az importot!
 
-def clean_news_text(entry, field='title'):
+def clean_news_text(entry: dict, field: str = 'title') -> str:
     raw = entry.get(f"{field}_detail", {}).get('value', entry.get(field, ''))
     if not raw:
         return ""
     clean = re.sub(r'<[^>]+?>', '', html.unescape(raw))
     return " ".join(clean.split()).strip()
 
-def smart_truncate(text, max_length=600):
+def smart_truncate(text: str, max_length: int = 600) -> str:
     if len(text) <= max_length:
         return text
     return text[:max_length].rsplit(' ', 1)[0] + "..."
 
-def fetch_news():
+def fetch_news() -> list[Article]:
     news_pool = [] # Ezt a nevet használjuk végig
     seen_links = set()
     item_id = 0
@@ -61,7 +61,6 @@ def fetch_news():
                 raw_summary = entry.get('summary', entry.get('description', ''))
                 summary = smart_truncate(clean_news_text({'summary': raw_summary}, 'summary'), 600)
 
-                # Itt példányosítjuk az Article objektumot
                 news_pool.append(Article(
                     id=item_id,
                     title=title,
@@ -69,7 +68,7 @@ def fetch_news():
                     source=name,
                     summary=summary,
                     content=summary,
-                    published=dt  # <--- Itt a 'published' nevet használd
+                    published=dt
                 ))
                 
                 seen_links.add(entry.link)
@@ -78,7 +77,6 @@ def fetch_news():
         except Exception as e:
             print(f"⚠️ Hiba a(z) {name} forrásnál: {e}")
     
-    # Rendezés az Article objektum 'date' mezője alapján
     news_pool.sort(key=lambda x: x.published, reverse=True)
     
     print(f"✅ Begyűjtés kész: {len(news_pool)} egyedi, releváns hír.")

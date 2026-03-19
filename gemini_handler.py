@@ -77,7 +77,7 @@ class RefinedEvent(BaseModel):
 class RefinedEventList(BaseModel):
     refined_events: List[RefinedEvent]
 
-def refine_event_list(event_candidates, strategic_topics):
+def refine_event_list(event_candidates: List[ClusterResultSingle], strategic_topics: List[str]) -> dict:
     minimal_list = "\n".join([f"ID:{c['ids'] if isinstance(c, dict) else c.ids} | NÉV: {c['name'] if isinstance(c, dict) else c.name}" for c in event_candidates])
 
     prompt = f"""
@@ -320,7 +320,8 @@ def get_strategic_topics(titles_sample: str) -> List[str]:
         print(res_text)
         return []
 
-def validate_news_clusters(cluster_data, schema=MultiClusterResponse):
+# UNUSED 
+def validate_news_clusters(cluster_data: str, schema=MultiClusterResponse) -> dict:
     """Lite modell: Nevezi, pontozza és röviden összefoglalja a matematikai klasztert."""
     
     sys_instruct = """Te egy vezető hírszerkesztő vagy. 
@@ -351,12 +352,11 @@ def validate_news_clusters(cluster_data, schema=MultiClusterResponse):
         print(f"⚠️ JSON hiba a validációnál: {e}")
         return {"events": []}
 
-def generate_event_summary(event_name, news_items):
+def generate_event_summary(event_name: str, news_items: list[Article]) -> str:
     biases = []
     context_parts = []
     
     for n in news_items:
-        # A config.RSS_SOURCES már tuple: (url, bias)
         source_data = config.RSS_SOURCES.get(n.source, (None, "Ismeretlen"))
         bias = source_data[1] 
         biases.append(bias)
@@ -370,46 +370,46 @@ def generate_event_summary(event_name, news_items):
     
     ELEMEZENDŐ ADATOK:
     {chr(10).join(context_parts)}
-    
-    ELVÁRT STRUKTÚRA ÉS FORMÁTUM:
-    Pár mondatban foglald össze az eseményt. Csak a közös metszetet és a megkérdőjelezhetetlen tényeket írd le.
-    
-    NARRATÍVÁK ÉS ELEMZÉS: 
-       - Fejtsd ki a különböző politikai oldalak (konzervatív vs. liberális) tálalási módját.
-       - KÜLÖNÖS FIGYELEM: Ha egy forrás a saját besorolásától eltérő (váratlanul kritikus vagy szokatlanul támogató) hangvételt üt meg, azt mindenképpen emeld ki!
-       - Nevezd meg a konkrét manipulációs technikákat, érzelmi hergelést vagy elhallgatásokat.
-       - Az egyes narratívák elemzése is csak 1-2 mondat legyen
-       - Ha nincs érdemi különbség az oldalak között, ne gyártsd le mesterségesen, hanem írd le: 'A hír tálalása egységes'.
-
-    ELVÁRÁSOK:
-    - Nem kell bevezető ("Rendben, nézzük meg ezt az ...")
-    - Kezdd az elemzést azonnal az érdemi összefoglalóval, ne írd ki fejlécként az esemény nevét (azt a rendszer automatikusan hozzáadja).
-    - Ami a címben benne van azt már tudjuk, azt ne ismételd sehol.
-    - Az egyes bekezdések legyenek lényegretörőek, csak pár mondat
-    - Kerüld a felesleges köröket, szófordulatokat ("Fontos megjegyezni...").
-    - Használj Markdown formázást (vastagítás a kulcsszavaknál).
     """
 
     system_msg = (
-        "Te egy tapasztalt, cinikus, de szigorúan objektív politikai és gazdasági elemző vagy. "
-        "A feladatod a hírek dekonstrukciója. Ne csak azt nézd, mit írnak, hanem azt is, hogyan. "
-        "Keresd a 'keretezési' technikákat és a politikai marketinget. "
-        "Légy tömör és lényegretörő. Az egész elemzés ne legyen több 10-12 mondatnál. "
+        """
+        Te egy tapasztalt, cinikus, de szigorúan objektív politikai és gazdasági elemző vagy.
+        A feladatod a hírek dekonstrukciója. Ne csak azt nézd, mit írnak, hanem azt is, hogyan.
+        Keresd a 'keretezési' technikákat és a politikai marketinget.
+        Légy tömör és lényegretörő. Az egész elemzés ne legyen több 10-12 mondatnál.
+        
+        ELVÁRT STRUKTÚRA ÉS FORMÁTUM:
+        Pár mondatban foglald össze az eseményt. Csak a közös metszetet és a megkérdőjelezhetetlen tényeket írd le.
+        
+        NARRATÍVÁK ÉS ELEMZÉS: 
+        - Fejtsd ki a különböző politikai oldalak (konzervatív vs. liberális) tálalási módját.
+        - KÜLÖNÖS FIGYELEM: Ha egy forrás a saját besorolásától eltérő (váratlanul kritikus vagy szokatlanul támogató) hangvételt üt meg, azt mindenképpen emeld ki!
+        - Nevezd meg a konkrét manipulációs technikákat, érzelmi hergelést vagy elhallgatásokat.
+        - Az egyes narratívák elemzése is csak 1-2 mondat legyen
+        - Ha nincs érdemi különbség az oldalak között, ne gyártsd le mesterségesen, hanem írd le: 'A hír tálalása egységes'.
+
+        ELVÁRÁSOK:
+        - Nem kell bevezető ("Rendben, nézzük meg ezt az ...")
+        - Kezdd az elemzést azonnal az érdemi összefoglalóval, ne írd ki fejlécként az esemény nevét (azt a rendszer automatikusan hozzáadja).
+        - Ami a címben benne van azt már tudjuk, azt ne ismételd sehol.
+        - Az egyes bekezdések legyenek lényegretörőek, csak pár mondat
+        - Kerüld a felesleges köröket, szófordulatokat ("Fontos megjegyezni...").
+        - Használj Markdown formázást (vastagítás a kulcsszavaknál).
+        """
     )
 
     res = _gemini_engine(prompt, system_msg)
     
     return res if res else "Nem sikerült generálni az elemzést."
     
-def get_gemini_embeddings(texts):
+def get_gemini_embeddings(texts: List[str]) -> List[List[float]]:
     """Vektorok lekérése újrapróbálkozási logikával."""
     all_embeddings = []
     
-    # 100-as batch-ek (ez jó)
     for i in range(0, len(texts), 100):
         batch = texts[i:i + 100]
         
-        # Belső újrapróbálkozás a 429-es hiba kezelésére
         for attempt in range(5):
             try:
                 response = client.models.embed_content(
@@ -418,10 +418,8 @@ def get_gemini_embeddings(texts):
                     config=types.EmbedContentConfig(task_type="CLUSTERING")
                 )
                 all_embeddings.extend([embedding.values for embedding in response.embeddings])
-                
-                # Siker esetén várunk egy kicsit, hogy ne fussunk bele a következő limitbe
                 time.sleep(1) 
-                break # Kilépünk az attempt ciklusból
+                break
                 
             except Exception as e:
                 error_msg = str(e).lower()
@@ -431,17 +429,12 @@ def get_gemini_embeddings(texts):
                     print(f"⚠️ Átmeneti API hiba ({e}), várakozás {wait_time}s...")
                     time.sleep(wait_time)
                 else:
-                    # Ez tényleg valami ismeretlen, komoly hiba
                     print(f"❌ Kritikus hiba az embedding során: {e}")
                     raise e
                     
     return all_embeddings
 
-def translate_if_needed(text):
-    """
-    Lefordítja a szöveget magyarra, ha az idegen nyelvű. 
-    Ha a modell üres választ ad (mert már magyar), az eredeti szöveget adja vissza.
-    """
+def translate_if_needed(text: str) -> str:
     sys_instruct = """Te egy fordító vagy. 
     FELADAT:
     1. Ha a bemeneti szöveg NEM magyar, fordítsd le magyarra.
@@ -451,17 +444,14 @@ def translate_if_needed(text):
     
     res = _gemini_engine(text, sys_instruct)
     
-    # Ha kaptunk választ és nem csak üres karaktereket tartalmaz
     if res and res.strip():
         return res.strip()
-    
-    # Ha a válasz None vagy üres string, akkor az eredeti szöveget küldjük vissza
     return text
 
-def get_dynamic_prompt(event_name, source_biases):
+def get_dynamic_prompt(event_name: str, source_biases: List[str]) -> str:
     # Meghatározzuk, milyen típusú forrásaink vannak
-    has_right = any("konzervatív" in b or "kormánypárti" in b for b in source_biases)
-    has_left = any("liberális" in b or "baloldali" in b or "kritikai" in b for b in source_biases)
+    has_right: bool = any("konzervatív" in b or "kormánypárti" in b for b in source_biases)
+    has_left: bool = any("liberális" in b or "baloldali" in b or "kritikai" in b for b in source_biases)
     
     base_info = f"Esemény: {event_name}\n"
 

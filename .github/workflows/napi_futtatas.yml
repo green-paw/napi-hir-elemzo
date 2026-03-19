@@ -10,6 +10,9 @@ permissions:
   pages: write
   id-token: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   analyze_and_save:
     runs-on: ubuntu-latest
@@ -21,7 +24,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
@@ -30,25 +33,32 @@ jobs:
           python -m pip install --upgrade pip
           pip install google-genai feedparser requests pyTelegramBotAPI pytz scikit-learn markdown
 
+      - name: Set safe output filename
+        run: |
+          # Tiltott karakterek cseréje aláhúzásra
+          SAFE_BRANCH=$(echo "${{ github.ref_name }}" | tr '/\\*?:"<>|' '_')
+          
+          if [ "${{ github.ref_name }}" == "main" ]; then
+            echo "OUTPUT_FILENAME=index.html" >> $GITHUB_ENV
+          else
+            echo "OUTPUT_FILENAME=${SAFE_BRANCH}_index.html" >> $GITHUB_ENV
+          fi
+
       - name: Run AI News Agent
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          # Kiszámoljuk a fájlnevet a branch alapján
-          OUTPUT_FILENAME: >-
-            ${{ github.ref_name == 'release/v1.0' && 'index.html' || format('{0}_index.html', github.ref_name) }}
         run: python -u main.py
+
+      - name: Prepare public directory
+        run: |
+          mkdir public
+          cp *.html public/
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
-          # Csak a HTML fájlokat vigye át (opcionális, de tisztább)
-          publish_whitelist: "*.html"
-          # Nagyon fontos: ne törölje a többi branch fájljait a gh-pages ágról!
+          publish_dir: ./public # Csak a tiszta mappát publikáljuk
           keep_files: true
-          # Csak akkor fusson le az időzített frissítés, ha a v1.0-n vagyunk
-          # (Manuális indításnál bármelyik branch frissít)
-          enable_jail: true

@@ -6,15 +6,15 @@ import output_handler
 from gemini_handler import (
     get_strategic_topics, validate_news_clusters, 
     generate_event_summary, get_gemini_embeddings, 
-    translate_if_needed, MultiClusterResponse,
-    refine_event_list
+    translate_if_needed, MultiClusterResponse, refine_event_list
 )
+from models import Article, ArticleSource, FinalEvent
 
 from rss_handler import fetch_news
 
 # általános importok
 import math
-import time
+
 from concurrent.futures import ThreadPoolExecutor # A gyors fordításhoz
 from sklearn.cluster import AgglomerativeClustering
 
@@ -22,7 +22,6 @@ from datetime import datetime
 import random
 
 def myPrint(message):
-    """Timestampet ad minden üzenet elé (HH:MM:SS format)."""
     timestamp = datetime.now().strftime("%H:%M:%S")
     print(f"[{timestamp}] {message}")
 
@@ -71,12 +70,9 @@ def semantic_filter(news_pool, topics, top_p=0.85):
     filtered = [n for n in news_pool if n.get('match_score', 0) > top_p]
     filtered.sort(key=lambda x: x['match_score'], reverse=True)
     
-    #final_selection = filtered[:top_k]
-    final_selection = filtered
+    myPrint(f"✅ Rangsorolás kész: {len(filtered)} hír továbbküldve (átlagos relevancia: {sum(n['match_score'] for n in filtered)/len(filtered) if filtered else 0:.2f})")
     
-    myPrint(f"✅ Rangsorolás kész: {len(final_selection)} hír továbbküldve (átlagos relevancia: {sum(n['match_score'] for n in final_selection)/len(final_selection) if final_selection else 0:.2f})")
-    
-    return final_selection
+    return filtered
 
 def cluster_news(news_pool):
     if not news_pool: return []
@@ -91,7 +87,7 @@ def cluster_news(news_pool):
     discarded_summaries = []
     for label, news_list in groups.items():
         count = len(news_list)
-        avg_relevance = sum(n.get('relevance_score', 0) for n in news_list) / count
+        avg_relevance = sum(n.get('relevance_score', 0) for n in news_list) / count if count > 0 else 0
 
         top_news = news_list[0] 
         summary_text = f"{top_news['title']} ({count} hír)"
@@ -147,8 +143,6 @@ def cluster_news(news_pool):
                     ev_dict = ev.dict() if hasattr(ev, 'dict') else vars(ev)
                     ev_dict['ids'] = all_cluster_ids
                     final_clusters.append(ev_dict)
-            
-        time.sleep(2.0) # Biztonságos várakozás a Lite hívások között a kvóta miatt
 
     return final_clusters, discarded_summaries
 
@@ -197,9 +191,6 @@ def filter_and_rank_clusters(clusters_data):
     
     # Egy utolsó biztonsági sorbarendezés
     return sorted(final_selection, key=lambda x: getattr(x, 'total_score', 0) if not isinstance(x, dict) else x.get('total_score', 0), reverse=True)
-
-import random
-import time
 
 def main():
     myPrint("🚀 Hírfigyelő rendszer indítása...")
@@ -300,8 +291,6 @@ def main():
             'sources': sources_data,
             'score': c_score
         })
-        
-        time.sleep(3) # Biztonsági szünet a Flash hívások között
 
     # 7. Kimenetek (HTML, Deploy, stb.)
     if final_data_package:

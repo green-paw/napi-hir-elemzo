@@ -206,6 +206,78 @@ def _gemini_engine(prompt: str, sys_instruct: str, model_type:str="lite", is_jso
     print(f"❌ KRITIKUS HIBA ({model_name}): nem sikerült 5 próbálkozás alatt sem")
     raise SystemExit(1)
 
+def validate_news_clusters_batch(cluster_batch: List[List[Article]]) -> MultiClusterResponse:
+    """
+    Több hír-klasztert validál egyszerre a Flash-Lite modellel (Batching).
+    A bemenet Article objektumok listájának a listája.
+    """
+    if not cluster_batch:
+        return MultiClusterResponse(events=[])
+
+    # 1. Prompt felépítése a batch-hez
+    prompt_intro = (
+        "Elemezd az alábbi, MI által elő-csoportosított hír-klasztereket. "
+        "Válaszd ki azokat, amik valódi, jelentős eseményekről szólnak, és töltsd ki a sémát.\n\n"
+    )
+    
+    clusters_formatted = []
+    for idx, cluster in enumerate(cluster_batch, 1):
+        # Csak az első 15 hírt mutatjuk meg klaszterenként a token-limit miatt
+        representative_news = cluster[:15]
+        news_text = "\n".join([
+            f"  - ID:{n.id} | Cím: {n.title} | Kivonat: {n.content[:200] if hasattr(n, 'content') else n.summary[:200]}" 
+            for n in representative_news
+        ])
+        clusters_formatted.append(f"### {idx}. KLASZTER ###\n{news_text}")
+
+    full_prompt = prompt_intro + "\n\n".join(clusters_formatted)
+
+    # 2. Rendszerutasítás (A meglévő validate_news_clusters logikájára építve)
+    sys_instruct = """Te egy vezető hírszerkesztő vagy. A feladatod a hír-klaszterek validálása és szintézise.
+
+    STRATÉGIAI SZABÁLYOK:
+    1. SZINTÉZIS: Minden klasztert egyetlen fő eseménnyé gyúrj össze. Adj neki profi, újságírós címet (name) és egy 1 mondatos tényszerű összefoglalót (summary).
+    2. KATEGÓRIÁK: A 'category' mezőbe CSAK az alábbiak közül válassz: HAZAI, GLOBÁLIS, EGYÉB.
+    3. ZAJ KISZŰRÉSE: Ha egy klaszter nem egy konkrét eseményről szól, vagy jelentéktelen bulvár (Relevance < 4), hagyd ki a válaszból!
+    4. ID KEZELÉS: Az 'ids' mezőbe másold be az adott klaszterben szereplő ÖSSZES releváns hírazonosítót (ID).
+    5. NYELV: A 'name' és 'summary' mezők KIZÁRÓLAG MAGYAR nyelvűek lehetnek!
+
+    PONTOZÁSI ÚTMUTATÓ (Scores 1-10):
+    Legyél kíméletlen az Impact pontszámmal:
+    - 9-10: Világméretű katasztrófa, háborús eszkaláció, kritikus piaci sokk.
+    - 7-8: Államfői bejelentések, jelentős magyar politikai/gazdasági események, deviza-krízis.
+    - 4-6: Fontos vállalati hírek, sport (BL-döntő szint), tudományos áttörések.
+    - 1-3: Bulvár, celebhírek, technológiai pletykák.
+
+    VÁLASZ: Kizárólag a megadott MultiClusterResponse JSON sémát használd!"""
+
+    # 3. Hívás a meglévő _gemini_engine segítségével
+    # Megjegyzés: a schema=MultiClusterResponse biztosítja a strukturált kimenetet
+    raw_json = _gemini_engine(
+        prompt=full_prompt, 
+        sys_instruct=sys_instruct, 
+        model_type="lite", 
+        is_json=True, 
+        schema=MultiClusterResponse
+    )
+    
+    if not raw_json:
+        return MultiClusterResponse(events=[])
+
+    try:
+        # Pydantic-alapú validálás a JSON szövegből
+        return MultiClusterResponse.model_validate_json(raw_json)
+    except Exception as e:
+        print(f"❌ Hiba a batch validációs JSON feldolgozásánál: {e}")
+        # Megpróbáljuk a sima json.loads-ot, ha a model_validate_json elbukna
+        try:
+            import json
+            data = json.loads(raw_json)
+            return MultiClusterResponse(**data)
+        except:
+            return MultiClusterResponse(events=[])
+
+
 def get_strategic_topics(titles_sample: str) -> List[str]:
     prompt = f"""
     Elemezd a következő hírcímeket, és határozz meg maximum 7 darab kiemelt stratégiai fókuszpontot, amelyek a mai napot dominálják.

@@ -68,8 +68,8 @@ def fetch_news():
                     link=entry.link,
                     source=name,
                     summary=summary,
-                    content=summary, # Kezdetnek a tartalom megegyezik a kivonattal
-                    date=dt
+                    content=summary,
+                    published=dt  # <--- Itt a 'published' nevet használd
                 ))
                 
                 seen_links.add(entry.link)
@@ -79,7 +79,7 @@ def fetch_news():
             print(f"⚠️ Hiba a(z) {name} forrásnál: {e}")
     
     # Rendezés az Article objektum 'date' mezője alapján
-    news_pool.sort(key=lambda x: x.date, reverse=True)
+    news_pool.sort(key=lambda x: x.published, reverse=True)
     
     print(f"✅ Begyűjtés kész: {len(news_pool)} egyedi, releváns hír.")
     return news_pool

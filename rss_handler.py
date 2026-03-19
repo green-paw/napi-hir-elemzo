@@ -67,15 +67,27 @@ def fetch_news():
                 raw_summary = entry.get('summary', entry.get('description', ''))
                 summary = smart_truncate(clean_news_text({'summary': raw_summary}, 'summary'), 600)
 
-                news_pool.append({
-                    "id": item_id,
-                    "source": name,
-                    "title": title,
-                    "summary": summary,
-                    "link": entry.link,
-                    "tags": tags,
-                    "published": dt
-                })
+
+                news_items.append(Article(
+                    id=item_id,
+                    title=title,
+                    link=entry.link,
+                    source=name,
+                    summary=summary,
+                    content=summary,
+                    date=dt
+                ))
+
+                # ez volt   
+                #news_pool.append({
+                #    "id": item_id,
+                #    "source": name,
+                #    "title": title,
+                #    "summary": summary,
+                #    "link": entry.link,
+                #    "tags": tags,
+                #    "published": dt
+                #})
                 
                 seen_links.add(entry.link)
                 item_id += 1
@@ -84,7 +96,8 @@ def fetch_news():
             print(f"⚠️ Hiba a(z) {name} forrásnál: {e}")
             
     # Időrendbe tétel (legfrissebb elöl), hogy a main() fixen a legújabbakat lássa
-    news_pool.sort(key=lambda x: x['published'], reverse=True)
+    #news_pool.sort(key=lambda x: x['published'], reverse=True)
+    news_pool.sort(key=lambda x: x.dt, reverse=True)
     
     print(f"✅ Begyűjtés kész: {len(news_pool)} egyedi, releváns hír.")
     return news_pool

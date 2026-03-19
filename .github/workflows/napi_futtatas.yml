@@ -33,14 +33,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install google-genai feedparser requests pyTelegramBotAPI pytz scikit-learn markdown
 
+      - name: Set safe output filename
+        run: |
+          # Tiltott karakterek cseréje aláhúzásra
+          SAFE_BRANCH=$(echo "${{ github.ref_name }}" | tr '/\\*?:"<>|' '_')
+          
+          if [ "${{ github.ref_name }}" == "main" ]; then
+            echo "OUTPUT_FILENAME=index.html" >> $GITHUB_ENV
+          else
+            echo "OUTPUT_FILENAME=${SAFE_BRANCH}_index.html" >> $GITHUB_ENV
+          fi
+
       - name: Run AI News Agent
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          # Kiszámoljuk a fájlnevet a branch alapján
-          OUTPUT_FILENAME: >-
-            ${{ github.ref_name == 'main' && 'index.html' || format('{0}_index.html', github.ref_name) }}
         run: python -u main.py
 
       - name: Prepare public directory

@@ -357,10 +357,10 @@ def generate_event_summary(event_name, news_items):
     
     for n in news_items:
         # A config.RSS_SOURCES már tuple: (url, bias)
-        source_data = config.RSS_SOURCES.get(n['source'], (None, "Ismeretlen"))
+        source_data = config.RSS_SOURCES.get(n.source, (None, "Ismeretlen"))
         bias = source_data[1] 
         biases.append(bias)
-        context_parts.append(f"FORRÁS: {n['source']} ({bias})\nCÍM: {n['title']}\nKIVONAT: {n['summary'][:500]}\n---")
+        context_parts.append(f"FORRÁS: {n.source} ({bias})\nCÍM: {n.title}\nKIVONAT: {n.summary[:500]}\n---")
 
     # Dinamikus prompt meghatározása
     dynamic_instruction = get_dynamic_prompt(event_name, biases)

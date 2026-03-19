@@ -1,14 +1,15 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
+from datetime import datetime # Ezt add hozzá az importokhoz!
 
-# 1. Egyetlen hír objektuma (az RSS letöltés után azonnal ilyenné alakítjuk)
 class Article(BaseModel):
     id: int
     title: str
     link: str
     source: str
     content: str
-    embedding: Optional[List[float]] = None  # Később adjuk hozzá
+    published: datetime
+    embedding: Optional[List[float]] = None
 
 # 2. A hírforrás objektuma a végső kimenethez
 class ArticleSource(BaseModel):

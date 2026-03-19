@@ -1,5 +1,6 @@
 import json
 import config
+from models import Article, ArticleSource, FinalEvent
 
 from google import genai
 from google.genai import types

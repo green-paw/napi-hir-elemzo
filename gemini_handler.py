@@ -111,7 +111,7 @@ def refine_event_list(event_candidates, strategic_topics):
         print(f"❌ Hiba a szerkesztett lista feldolgozásánál: {e}")
         return {"refined_events": []}
 
-def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schema=None):
+def _gemini_engine(prompt: str, sys_instruct: str, model_type:str="lite", is_json:bool=False, schema=None) -> str:
     model_name = "gemini-2.5-flash-lite"
     if model_type == "flash":
         model_name = "gemini-2.5-flash"
@@ -205,9 +205,8 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
     # nem sikerült 5 próbálkozás alatt sem
     print(f"❌ KRITIKUS HIBA ({model_name}): nem sikerült 5 próbálkozás alatt sem")
     raise SystemExit(1)
-    return None
 
-def get_strategic_topics(titles_sample):
+def get_strategic_topics(titles_sample: str) -> List[str]:
     prompt = f"""
     Elemezd a következő hírcímeket, és határozz meg maximum 7 darab kiemelt stratégiai fókuszpontot, amelyek a mai napot dominálják.
 

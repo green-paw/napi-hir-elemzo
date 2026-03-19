@@ -14,7 +14,8 @@ from rss_handler import fetch_news
 
 # általános importok
 import math
-
+from pydantic import BaseModel, Field
+from typing import List, Optional
 from concurrent.futures import ThreadPoolExecutor # A gyors fordításhoz
 from sklearn.cluster import AgglomerativeClustering
 
@@ -196,7 +197,7 @@ def main():
     myPrint("🚀 Hírfigyelő rendszer indítása...")
     
     # 1. Lekérés
-    raw_news = fetch_news()
+    raw_news: List[Article] = fetch_news()
     if not raw_news:
         myPrint("❌ Nincs bejövő hír, leállás.")
         return
@@ -205,7 +206,7 @@ def main():
     seen_titles = set()
     unique_news = []
     for n in raw_news:
-        clean_title = n['title'].strip().lower()
+        clean_title = n.title.strip().lower()
         if clean_title not in seen_titles:
             seen_titles.add(clean_title)
             unique_news.append(n)
@@ -214,7 +215,7 @@ def main():
     
     # 2. Stratégiai témák generálása
     sample_size = min(len(unique_news), 300)
-    titles_sample = "\n".join([n['title'] for n in random.sample(unique_news, sample_size)])
+    titles_sample = "\n".join([n.title for n in random.sample(unique_news, sample_size)])
     topics = get_strategic_topics(titles_sample)
     
     if not topics:

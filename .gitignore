@@ -1,0 +1,8 @@
+# Generált webes fájlok
+*.html
+public/
+
+# Python cache és virtuális környezet (ha esetleg még nincsenek benne)
+__pycache__/
+venv/
+.env

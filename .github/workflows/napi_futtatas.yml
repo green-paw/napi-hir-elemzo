@@ -53,8 +53,13 @@ jobs:
 
       - name: Prepare public directory
         run: |
-          mkdir public
-          cp *.html public/
+          mkdir -p public
+          # Az index.html-t átnevezzük a korábban beállított változó alapján
+          if [ -f index.html ]; then
+            cp index.html public/${{ env.OUTPUT_FILENAME }}
+          else
+            cp *.html public/
+          fi
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

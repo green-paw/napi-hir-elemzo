@@ -62,6 +62,7 @@ usage_tracker = TokenLogger()
 
 def _gemini_engine(prompt: str, sys_instruct: str ="Te egy AI asszisztens vagy.", model_type: str="lite", is_json: bool=False, schema=None) -> str:
     model_type = str(model_type).lower() or "lite"
+
     match model_type:
         case "free":
             current_client = client_free
@@ -74,7 +75,7 @@ def _gemini_engine(prompt: str, sys_instruct: str ="Te egy AI asszisztens vagy."
         case _:
             current_client = client_main
             current_model = config.MODEL_LITE_ID  # gemini-2.5-flash-lite
-            #max_out = 2048  # A Lite-nak elég az összefoglalókhoz
+            max_out = 2048  # A Lite-nak elég az összefoglalókhoz
 
     safety_settings = [
         types.SafetySetting(category=cat, threshold="BLOCK_ONLY_HIGH")
@@ -90,7 +91,7 @@ def _gemini_engine(prompt: str, sys_instruct: str ="Te egy AI asszisztens vagy."
     generation_config = {
         "system_instruction": sys_instruct,
         "temperature": 0.0 if is_json else 0.2,
-        "max_output_tokens": max_out,
+        #"max_output_tokens": max_out,
         "response_mime_type": "application/json" if is_json else "text/plain",        
         "response_schema": schema if is_json and schema else None,
         "safety_settings": safety_settings

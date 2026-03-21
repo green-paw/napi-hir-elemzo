@@ -132,16 +132,16 @@ def process_and_send(final_data_package, topics_html):
         print("Nincs küldhető hír.")
         return
 
+    # telegram és notify kihagyása
+    return
+
     try:
         generate_html(final_data_package, topics_html)
     except Exception as e:
         print(f"❌ Hiba a HTML generálás során: {e}")
 
     send_ntfy_alert()
-    
-    # telegram kihagyása
-    return
-    
+   
     try:
         report_parts = []
         categories = [('HAZAI', 'MAGYARORSZÁG'), ('GLOBÁLIS', 'VILÁGHÍREK'), ('EGYÉB', 'EGYÉB')]

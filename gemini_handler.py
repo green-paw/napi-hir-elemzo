@@ -476,7 +476,7 @@ def batch_cluster_news(formatted_news: str) -> MultiClusterIdResponse:
         response = _gemini_engine(
             prompt,
             sys_instruct=sys_instruct,
-            model_type="free",
+            model_type="lite",
             is_json=True,
             schema=MultiClusterIdResponse
         )

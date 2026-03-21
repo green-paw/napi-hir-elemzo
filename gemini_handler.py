@@ -74,7 +74,7 @@ def _gemini_engine(prompt: str, sys_instruct: str ="Te egy AI asszisztens vagy."
         case _:
             current_client = client_main
             current_model = config.MODEL_LITE_ID  # gemini-2.5-flash-lite
-            max_out = 2048  # A Lite-nak elég az összefoglalókhoz
+            #max_out = 2048  # A Lite-nak elég az összefoglalókhoz
 
     safety_settings = [
         types.SafetySetting(category=cat, threshold="BLOCK_ONLY_HIGH")

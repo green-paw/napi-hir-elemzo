@@ -1,26 +1,21 @@
-import json
 import config
-
+import json
 from google import genai
 from google.genai import types
 import time
 from pydantic import BaseModel, Field
 from typing import List
 
-class Scores(BaseModel):
-    relevance: int = Field(description="Mennyire kritikus a magyar vagy globális gazdaság/politika szempontjából (1-10)")
-    impact: int = Field(description="Az esemény súlya (1-10)")
-    novelty: int = Field(description="Mennyire tartalmaz új információt (1-10)")
+from models import Article, EventSummaryResult, MultiClusterIdResponse, MultiClusterResponse
 
-class ClusterResultSingle(BaseModel):
-    name: str = Field(description="Az esemény rövid, magyar neve")
-    ids: List[int] = Field(description="A hírek ID-jai, amik EBBEN az eseményben összeillenek")
-    scores: Scores # Itt marad a pontozás (relevance, impact, novelty)
-    category: str = Field(description="HAZAI, GLOBÁLIS vagy EGYÉB")
 
-class MultiClusterResponse(BaseModel):
-    # Ez fogadja be a laza matematikai csoportot
-    events: List[ClusterResultSingle] = Field(description="Az azonosított különálló, releváns események")
+
+# 1. Globális kliens létrehozása itt, a handlerben
+client_main = genai.Client(api_key=config.GOOGLE_API_KEY)
+client_free = genai.Client(api_key=config.GOOGLE_API_KEY_FREE)
+
+
+
 
 class TokenLogger:
     def __init__(self):
@@ -64,13 +59,79 @@ class TokenLogger:
 # Hozz létre egy példányt a modul szintjén
 usage_tracker = TokenLogger()
 
-# 1. Globális kliens létrehozása itt, a handlerben
-client = genai.Client(
-    api_key=config.GOOGLE_API_KEY, 
-    http_options={'api_version': 'v1beta'}
-)
 
-def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schema=None):
+def _gemini_engine(prompt: str, sys_instruct: str ="Te egy AI asszisztens vagy.", model_type: str="lite", is_json: bool=False, schema=None) -> str:
+    model_type = str(model_type).lower() or "lite"
+    match model_type:
+        case "free":
+            current_client = client_free
+            current_model = config.MODEL_ID  # gemini-2.5-flash
+            max_out = 8192  # A Flash maximuma, hogy biztosan ne vágja le a JSON-t
+        case "flash":
+            current_client = client_main
+            current_model = config.MODEL_ID  # gemini-2.5-flash
+            max_out = 2048  # A Lite-nak elég az összefoglalókhoz
+        case _:
+            current_client = client_main
+            current_model = config.MODEL_LITE_ID  # gemini-2.5-flash-lite
+            max_out = 2048  # A Lite-nak elég az összefoglalókhoz
+
+    safety_settings = [
+        types.SafetySetting(category=cat, threshold="BLOCK_ONLY_HIGH")
+        for cat in [
+            "HARM_CATEGORY_HATE_SPEECH", 
+            "HARM_CATEGORY_HARASSMENT", 
+            "HARM_CATEGORY_SEXUALLY_EXPLICIT", 
+            "HARM_CATEGORY_DANGEROUS_CONTENT", 
+            "HARM_CATEGORY_CIVIC_INTEGRITY"
+        ]
+    ]
+    
+    generation_config = {
+        "system_instruction": sys_instruct,
+        "temperature": 0.0 if is_json else 0.2,
+        "max_output_tokens": max_out,
+        "response_mime_type": "application/json" if is_json else "text/plain",        
+        "response_schema": schema if is_json and schema else None,
+        "safety_settings": safety_settings
+    }
+
+    for attempt in range(5):
+        try:
+            # Itt a kiválasztott current_client-et használjuk!
+            response = current_client.models.generate_content(
+                model=current_model,
+                contents=prompt,
+                config=types.GenerateContentConfig(**generation_config)
+            )
+            if response.candidates[0].finish_reason != "STOP":
+                print(f"DEBUG: Finish reason: {response.candidates[0].finish_reason}")
+
+            usage_tracker.add(model_type, response)     
+                
+            return response.text
+        except ValueError as ve:
+            # Ha a response.text nem elérhető (pl. teljesen blokkolt tartalom)
+            print(f"⚠️ Kimeneti hiba (blokkolt tartalom?): {ve}")
+            raise SystemExit(1) 
+        except Exception as e:
+            error_msg = str(e).lower()
+            
+            # Csak ezeknél a hibáknál érdemes újrapróbálkozni (Network/Rate limit)
+            retry_errors = ["503", "429", "quota", "overloaded", "unavailable"]
+            
+            if any(err in error_msg for err in retry_errors):
+                wait_time = (attempt + 1) * 5
+                print(f"⚠️ Szerver túlterhelt, várakozás {wait_time}s... ({attempt+1}/5)")
+                time.sleep(wait_time)
+            else:
+                print(f"Hiba a Gemini motorban ({model_type}): {e}")
+                raise SystemExit(1) 
+
+    print(f"Hiba a Gemini motorban ({model_type}): 5 retry után sem sikerült választ kapni.")
+    raise SystemExit(1) 
+
+def _gemini_engine_old(prompt, sys_instruct, model_type="lite", is_json=False, schema=None):
     model_name = "gemini-2.5-flash-lite"
     if model_type == "flash":
         model_name = "gemini-2.5-flash"
@@ -81,7 +142,7 @@ def _gemini_engine(prompt, sys_instruct, model_type="lite", is_json=False, schem
     # Újrapróbálkozási logika (maximum 5 kísérlet)
     for attempt in range(5):
         try:
-            response = client.models.generate_content(
+            response = client_main.models.generate_content(
                 model=model_name,
                 contents=prompt,
                 config=types.GenerateContentConfig(
@@ -189,12 +250,12 @@ def get_strategic_topics(titles_sample):
     Példa: ["Téma 1", "Téma 2", "Téma 3"]
     """
     
-    res_text = _gemini_engine(
+    res_text = str(_gemini_engine(
         prompt=prompt, 
         sys_instruct="Te egy stratégiai politikai, gazdasági elemző vagy.",
         is_json=True,
         schema=list[str] 
-    )
+    ))
 
     try:
         import json
@@ -242,55 +303,62 @@ def validate_news_clusters(cluster_data, schema=MultiClusterResponse):
         print(f"⚠️ JSON hiba a validációnál: {e}")
         return {"events": []}
 
-def generate_event_summary(event_name, news_items):
+def generate_event_summary(news_items: List[Article] = []) -> EventSummaryResult:
+    if not news_items:
+        return EventSummaryResult()
+    
     biases = []
     context_parts = []
     
     for n in news_items:
         # A config.RSS_SOURCES már tuple: (url, bias)
-        source_data = config.RSS_SOURCES.get(n['source'], (None, "Ismeretlen"))
+        source_data = config.RSS_SOURCES.get(n.source, (None, "Ismeretlen"))
         bias = source_data[1] 
         biases.append(bias)
-        context_parts.append(f"FORRÁS: {n['source']} ({bias})\nCÍM: {n['title']}\nKIVONAT: {n['summary'][:500]}\n---")
+        context_parts.append(f"FORRÁS: {n.source} ({bias})\nCÍM: {n.title}\nKIVONAT: {n.summary[:500]}\n---")
 
     # Dinamikus prompt meghatározása
-    dynamic_instruction = get_dynamic_prompt(event_name, biases)
+    #dynamic_instruction = get_dynamic_prompt(biases)
     
     prompt = f"""
-    {dynamic_instruction}
-    
-    ELEMEZENDŐ ADATOK:
-    {chr(10).join(context_parts)}
-    
-    ELVÁRT STRUKTÚRA ÉS FORMÁTUM:
-    Pár mondatban foglald össze az eseményt. Csak a közös metszetet és a megkérdőjelezhetetlen tényeket írd le.
-    
-    NARRATÍVÁK ÉS ELEMZÉS: 
-       - Fejtsd ki a különböző politikai oldalak (konzervatív vs. liberális) tálalási módját.
-       - KÜLÖNÖS FIGYELEM: Ha egy forrás a saját besorolásától eltérő (váratlanul kritikus vagy szokatlanul támogató) hangvételt üt meg, azt mindenképpen emeld ki!
-       - Nevezd meg a konkrét manipulációs technikákat, érzelmi hergelést vagy elhallgatásokat.
-       - Az egyes narratívák elemzése is csak 1-2 mondat legyen
-       - Ha nincs érdemi különbség az oldalak között, ne gyártsd le mesterségesen, hanem írd le: 'A hír tálalása egységes'.
-
-    ELVÁRÁSOK:
-    - Nem kell bevezető ("Rendben, nézzük meg ezt az ...")
-    - Kezdd az elemzést azonnal az érdemi összefoglalóval, ne írd ki fejlécként az esemény nevét (azt a rendszer automatikusan hozzáadja).
-    - Ami a címben benne van azt már tudjuk, azt ne ismételd sehol.
-    - Az egyes bekezdések legyenek lényegretörőek, csak pár mondat
-    - Kerüld a felesleges köröket, szófordulatokat ("Fontos megjegyezni...").
-    - Használj Markdown formázást (vastagítás a kulcsszavaknál).
-    """
+        Az alábbi hírek egyetlen konkrét eseményről szólnak különböző forrásokból.
+        
+        FELADATOK:
+        1. Cím (title): Adj az eseménynek egy kifejező, rövid címet.
+        2. Tények (core_fact): Írd le a puszta tényeket. Mi történt valójában? (Objektív, száraz összefoglaló).
+        3. Narratíva (narrative_conflict): Elemezd a források közötti különbségeket! Ki mit emel ki, mit hallgat el, hogyan keretezi vagy csavarja az eseményt?
+        4. Kategória (category): Sorold be a megfelelőbe.
+        5. Pontszám (score): Pontozd a hír fontosságát 1-100 között.
+        
+        HÍREK:
+        {chr(10).join(context_parts)}
+        """
 
     system_msg = (
         "Te egy tapasztalt, cinikus, de szigorúan objektív politikai és gazdasági elemző vagy. "
         "A feladatod a hírek dekonstrukciója. Ne csak azt nézd, mit írnak, hanem azt is, hogyan. "
         "Keresd a 'keretezési' technikákat és a politikai marketinget. "
         "Légy tömör és lényegretörő. Az egész elemzés ne legyen több 10-12 mondatnál. "
+        "ELVÁRÁSOK:"
+        "- Nem kell bevezető (Rendben, nézzük meg ezt az ...)"
+        "- Kezdd az elemzést azonnal az érdemi összefoglalóval, ne írd ki fejlécként az esemény nevét (azt a rendszer automatikusan hozzáadja)."
+        "- Ami a címben benne van azt már tudjuk, azt ne ismételd sehol."
+        "- Az egyes bekezdések legyenek lényegretörőek, csak pár mondat"
+        "- Kerüld a felesleges köröket, szófordulatokat (Fontos megjegyezni...)."
+        "- Használj Markdown formázást (vastagítás a kulcsszavaknál)."
     )
 
-    res = _gemini_engine(prompt, system_msg)
-    
-    return res if res else "Nem sikerült generálni az elemzést."
+    result = _gemini_engine(prompt, system_msg, model_type="lite", is_json=True, schema=EventSummaryResult.schema())
+
+    # convert the json output to EventSummaryResult Pydantic model
+    try:
+        if not result: return EventSummaryResult()
+        data = json.loads(result)
+        return EventSummaryResult(**data)
+    except Exception as e:
+        print(f"❌ Hiba az esemény összefoglaló generálásánál: {e}")
+        print(f"Nyers válasz: {result}")
+        return EventSummaryResult()
     
 def get_gemini_embeddings(texts):
     """Vektorok lekérése újrapróbálkozási logikával."""
@@ -303,7 +371,7 @@ def get_gemini_embeddings(texts):
         # Belső újrapróbálkozás a 429-es hiba kezelésére
         for attempt in range(5):
             try:
-                response = client.models.embed_content(
+                response = client_main.models.embed_content(
                     model="gemini-embedding-001",
                     contents=batch,
                     config=types.EmbedContentConfig(task_type="CLUSTERING")
@@ -380,3 +448,39 @@ def get_dynamic_prompt(event_name, source_biases):
         KÜLDETÉS: OBJEKTÍV ÖSSZEGZÉS. 
         Elemezd a híreket tényalapú megközelítéssel, fókuszálj a geopolitikai és gazdasági hatásokra.
         """
+
+
+def batch_cluster_news(formatted_news: str) -> MultiClusterIdResponse:
+    """Ez a függvény végzi a nagy, egyben történő klaszterezést az INGYENES kulccsal."""
+    sys_instruct = f"""
+    Te egy precíz hírszerkesztő vagy. Csak a megadott sémát használd.
+
+    Itt a mai hírek listája azonosítókkal.
+    
+    FELADATOK:
+    1. SZŰRÉS: Szigorúan hagyd figyelmen kívül a bulvár, sport, divat, időjárás, életmód és egyéb érdektelen témákat. Ezeket a híreket dobd el!
+    2. KLASZTEREZÉS: A megmaradt, komoly híreket csoportosítsd KÜLÖNÁLLÓ ESEMÉNYEK szerint.
+    
+    SZABÁLYOK:
+    - Csak azokat a híreket tedd egy csoportba, amik PONTOSAN ugyanarról a konkrét eseményről szólnak.
+    - Ami nem illik sehova (zaj), azt hagyd ki. Ne csinálj "Egyéb" jellegű gyűjtő kategóriákat!
+    """
+
+    prompt = f"""
+    HÍREK:
+    {formatted_news}
+    """
+    
+    try:
+        # Itt a client_FREE-t használjuk!
+        response = _gemini_engine(
+            prompt,
+            sys_instruct=sys_instruct,
+            model_type="free",
+            is_json=True,
+            schema=MultiClusterIdResponse
+        )
+        return json.loads(response)
+    except Exception as e:
+        print(f"Hiba a Flash klaszterezésnél: {e}")
+        return MultiClusterIdResponse(events=[])

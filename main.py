@@ -50,7 +50,7 @@ def run_news_pipeline():
     except Exception as e:
         print(f"❌ Végzetes hiba a folyamatban: {e}")
     finally:
-        cleanup_cache(client=client_main)
+        #cleanup_cache(client=client_main)
 
 if __name__ == "__main__":
     run_news_pipeline()

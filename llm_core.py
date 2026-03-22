@@ -13,9 +13,20 @@ def get_token_count(client: Client, model_id: str, text: str) -> int:
 
 def setup_gemini_cache(client: Client, formatted_json_text: str, model_id: str = 'gemini-2.5-flash') -> bool:
     """
-    Megméri a szöveget, és ha meghaladja a 32 768 tokent, létrehoz egy 
-    Gemini Context Cache objektumot a globális memóriában.
+    1. Megnézi a Google szerverén, van-e már élő cache-ünk.
+    2. Ha nincs, megméri a szöveget, és ha > 32k, létrehoz egy újat.
     """
+    # 1. Lekérdezzük a szerverről az élő cache-eket
+    try:
+        for existing_cache in client.caches.list():
+            if existing_cache.display_name == "napi_hir_cache":
+                print(f"♻️ Élő cache megtalálva a Google szerverén! Újracsatlakozás: {existing_cache.name}")
+                shared_state.active_cache = existing_cache
+                return True
+    except Exception as e:
+        print(f"⚠️ Hiba a cache-ek lekérdezésekor: {e}")
+
+    # 2. Ha nem találtunk (vagy lejárt), jöhet a mérés és létrehozás
     token_count: int = get_token_count(client, model_id, formatted_json_text)
     print(f"📊 Bemeneti tokenek száma: {token_count}")
 
@@ -36,11 +47,11 @@ def setup_gemini_cache(client: Client, formatted_json_text: str, model_id: str =
     return False
 
 def cleanup_cache(client: Client) -> None:
-    """Törli az aktív cache-t a Google szervereiről, ha létezik, hogy ne generáljon extra költséget."""
+    """Törli az aktív cache-t a Google szervereiről."""
     if shared_state.active_cache is not None:
         try:
             client.caches.delete(name=shared_state.active_cache.name)
-            print("🗑️ Cache sikeresen törölve.")
+            print("🗑️ Cache sikeresen törölve a Google szervereiről.")
         except Exception as e:
             print(f"⚠️ Hiba a cache törlésekor: {e}")
         finally:

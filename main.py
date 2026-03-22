@@ -219,7 +219,7 @@ def main():
     topics_html = "<ul>" + "".join([f"<li>{t}</li>" for t in topics]) + "</ul>"
         
     # 3. Szemantikus szűrés
-    filtered_news = semantic_filter(raw_news: List[Article], topics: List[str], top_k=300)
+    filtered_news = semantic_filter(raw_news, topics, top_k=300)
     if not filtered_news:
         myPrint("no semantic filtered news, exiting") 
         return

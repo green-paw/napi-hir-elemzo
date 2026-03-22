@@ -33,7 +33,7 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
             contents = f"{prompt}\n\nHírek: {json.dumps([n.model_dump() for n in chunk], default=str)}"
 
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-2.5-flash-lite',
             contents=contents,
             config=types.GenerateContentConfig(
                 cached_content=shared_state.active_cache.name if shared_state.active_cache else None,
@@ -79,7 +79,7 @@ def refine_to_top_30(client: Client, raw_topics: List[str]) -> List[str]:
     """
     
     response = client.models.generate_content(
-        model='gemini-2.5-flash',
+        model='gemini-2.5-flash-lite',
         contents=prompt,
         config=types.GenerateContentConfig(
             cached_content=shared_state.active_cache.name if shared_state.active_cache else None,

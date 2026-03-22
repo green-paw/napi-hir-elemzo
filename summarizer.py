@@ -5,6 +5,7 @@ from typing import List, Dict, Any
 from google.genai import Client, types
 import shared_state
 from models import Article, SingleCluster, Summary
+import config
 
 def generate_final_reports(client: Client, valid_clusters: List[SingleCluster]) -> List[Summary]:
     """
@@ -41,12 +42,13 @@ def generate_final_reports(client: Client, valid_clusters: List[SingleCluster]) 
 
         try:
             response = client.models.generate_content(
-                model='gemini-2.5-flash',
+                model=config.MODEL_LITE_ID,
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    response_schema=list[Summary], # Közvetlenül a Pydantic lista sémája
-                    temperature=0.3
+                    response_schema=list[Summary], 
+                    temperature=0.3,
+                    max_output_tokens=4096 # BIZTONSÁGI GÁT: 2 összefoglaló sosem lehet ennél hosszabb!
                 )
             )
             

@@ -1,15 +1,15 @@
 # classifier.py
 import json
 from typing import List, Dict, Any
-from urllib import response
 from google.genai import Client, types
 import shared_state
 from models import Article, SingleCluster, MultiClusterIdResponse
+import config
 
 def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
     """
     1. Fázis: Végigmegy a híreken 100-as csomagokban, és felépíti a témák listáját.
-    A fizetős gemini-2.5-flash modellt használja az összefüggések felismerésére.
+    Erős prompt-szabályokkal kényszerítjük a modellt a rövid kategórianevek használatára.
     """
     current_list: List[str] = []
     total_news: int = len(shared_state.filtered_news)
@@ -17,14 +17,17 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
     for i in range(0, total_news, chunk_size):
         end_idx: int = min(i + chunk_size - 1, total_news - 1)
         
-        instruction: str = f"Elemezd a híreket a(z) {i} és {end_idx} ID-k között."
+        # --- ÚJ, SZIGORÍTOTT PROMPT A LITE MODELLHEZ ---
+        instruction: str = f"""Elemezd a híreket a(z) {i} és {end_idx} ID-k között.
+            SZIGORÚ SZABÁLY: NE másold ki a hírek címét vagy szövegét! Csak rövid, 3-5 szavas, átfogó esemény-neveket (kategóriákat/témákat) generálj!
+            Példa jó kimenetre: ["USA választások", "Németországi sztrájkok", "Gázai konfliktus", "Tech cégek leépítései"]"""
+
         if not current_list:
-            prompt: str = f"{instruction} Gyűjtsd ki az 5-10 legfontosabb egyedi eseményt."
+            prompt: str = f"{instruction}\nGyűjtsd ki az 5-10 legfontosabb egyedi eseményt."
         else:
             prompt = f"""{instruction}
             Itt az eddigi lista: {current_list}. 
-            Add hozzá az ÚJ fontos eseményeket. 
-            Ha egy esemény túl tág (pl. 'Háború'), bontsd szét konkrétabb al-eseményekre!"""
+            Csak teljesen ÚJ, fajsúlyos eseményeket adj hozzá. Maximum 15 elem lehet a teljes listában!"""
 
         # Ha nincs cache, beküldjük a nyers szöveget is
         contents: str = prompt
@@ -33,19 +36,19 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
             contents = f"{prompt}\n\nHírek: {json.dumps([n.model_dump() for n in chunk], default=str)}"
 
         response = client.models.generate_content(
-            model='gemini-2.5-flash-lite',
+            model=config.MODEL_LITE_ID, # Használjuk a Lite modellt a config-ból
             contents=contents,
             config=types.GenerateContentConfig(
                 cached_content=shared_state.active_cache.name if shared_state.active_cache else None,
                 response_mime_type="application/json",
                 response_schema=list[str],
-                temperature=0.2
+                temperature=0.1, # Még alacsonyabb hőmérséklet a fegyelmezettebb válaszért
+                max_output_tokens=1024 # FIZIKAI GÁT: Maximum kb. 800 szót generálhat!
             )
         )
         
         raw_text: str = response.text.strip()
         
-        # Ha a modell véletlenül markdown blokkba tette a JSON-t:
         if raw_text.startswith("```json"):
             raw_text = raw_text[7:]
         elif raw_text.startswith("```"):
@@ -62,8 +65,7 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
             print(f"⚠️ JSON hiba a(z) {i}-{end_idx} blokkban: {e}")
             print(f"Nyers szöveg:\n{raw_text[:200]}... (levágva)")
             print("Folytatjuk az eddigi listával, ezt a 100-as csomagot átugorjuk.")
-            # Itt nem írjuk felül a current_list-et, így nem veszik el az eddigi munka!
-
+    
     return current_list
 
 def refine_to_top_30(client: Client, raw_topics: List[str]) -> List[str]:
@@ -76,16 +78,18 @@ def refine_to_top_30(client: Client, raw_topics: List[str]) -> List[str]:
     
     Szempontok: globális hatás, rendkívüli események, társadalmi jelentőség.
     A bulvárt és a jelentéktelen ismétlődő híreket hagyd el.
+    SZIGORÚ SZABÁLY: KIZÁRÓLAG a kiválasztott témák rövid neveit add vissza egy listában! Ne fűzz hozzájuk semmilyen magyarázatot vagy kommentárt!
     """
     
     response = client.models.generate_content(
-        model='gemini-2.5-flash-lite',
+        model=config.MODEL_LITE_ID, # Figyelj, hogy itt a standard modell fusson!
         contents=prompt,
         config=types.GenerateContentConfig(
             cached_content=shared_state.active_cache.name if shared_state.active_cache else None,
             response_mime_type="application/json",
             response_schema=list[str],
-            temperature=0.1
+            temperature=0.1,
+            max_output_tokens=1024 # Fizikai korlát: max ~800 szó
         )
     )
     refined_list: List[str] = json.loads(response.text)
@@ -114,13 +118,14 @@ def classify_news_with_lite(client: Client, chunk_size: int = 100) -> List[Singl
             contents = f"{prompt}\n\nHírek: {json.dumps([n.model_dump() for n in chunk], default=str)}"
 
         response = client.models.generate_content(
-            model='gemini-2.5-flash-lite',
+            model=config.MODEL_LITE_ID,
             contents=contents,
             config=types.GenerateContentConfig(
                 cached_content=shared_state.active_cache.name if shared_state.active_cache else None,
                 response_mime_type="application/json",
                 response_schema=MultiClusterIdResponse,
-                temperature=0.0
+                temperature=0.0,
+                max_output_tokens=2048 # BIZTONSÁGI GÁT: Ne tudjon végtelen ciklusba esni a JSON generálásakor
             )
         )
         

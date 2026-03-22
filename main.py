@@ -56,7 +56,7 @@ def semantic_filter(news_pool, topics, top_k=300):
     # 1. Témák és hírek vektorizálása
     topic_embs = get_gemini_embeddings(topics)
     # A cím és a tagek együtt jobb kontextust adnak az embeddingnek
-    news_texts = [f"[{', '.join(n['tags'])}] {n['title']}" if n['tags'] else n['title'] for n in news_pool]
+    news_texts = [f"[{', '.join(n.tags)}] {n.title}" if n.tags else n.title for n in news_pool]
     news_embs = get_gemini_embeddings(news_texts)
     
     # 2. Relevancia számítása
@@ -66,18 +66,18 @@ def semantic_filter(news_pool, topics, top_k=300):
         max_sim = max(sims) if sims else 0
         
         # Elmentjük a pontszámot a hír objektumba
-        news_pool[i]['match_score'] = max_sim
+        news_pool[i].match_score = max_sim
 
     # 3. Sorbarendezés (legmagasabb pontszám elöl) és vágás
     # Csak azokat tartjuk meg, amiknek van egy minimális közük a témákhoz (pl. > 0.3), 
     # hogy a totál zajt (pl. sporthírek, ha nem kérted) kidobjuk.
-    filtered = [n for n in news_pool if n.get('match_score', 0) > 0.3]
-    filtered.sort(key=lambda x: x['match_score'], reverse=True)
+    filtered = [n for n in news_pool if n.match_score > 0.3]
+    filtered.sort(key=lambda x: x.match_score, reverse=True)
     
     # Kivesszük az első top_k darabot
     final_selection = filtered[:top_k]
     
-    myPrint(f"✅ Rangsorolás kész: {len(final_selection)} hír továbbküldve (átlagos relevancia: {sum(n['match_score'] for n in final_selection)/len(final_selection) if final_selection else 0:.2f})")
+    myPrint(f"✅ Rangsorolás kész: {len(final_selection)} hír továbbküldve (átlagos relevancia: {sum(n.match_score for n in final_selection)/len(final_selection) if final_selection else 0:.2f})")
     
     return final_selection
 
@@ -86,7 +86,7 @@ def cluster_news(news_pool):
     myPrint(f"🧩 Klaszterezés ({len(news_pool)} hír)...")
     
     # Szövegek előkészítése az embeddinghez
-    texts = [f"CÍM: {n['title']} KIVONAT: {n['summary'][:200]}" for n in news_pool]
+    texts = [f"CÍM: {n.title} KIVONAT: {n.summary[:200]}" for n in news_pool]
     embeddings = get_gemini_embeddings(texts)
 
     groups = {}

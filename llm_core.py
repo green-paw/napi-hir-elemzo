@@ -23,7 +23,7 @@ def setup_gemini_cache(client: Client, formatted_json_text: str, model_id: str =
         print("🧠 Küszöb felett: Context Cache létrehozása (TTL: 1 óra)...")
         shared_state.active_cache = client.caches.create(
             model=model_id,
-            config=types.CreateCacheConfig(
+            config=types.CreateCachedContentConfig(
                 display_name="napi_hir_cache",
                 contents=[formatted_json_text],
                 ttl="3600s"

@@ -257,7 +257,7 @@ def main():
         c_cat = cluster.category if hasattr(cluster, 'category') else cluster.get('category', 'EGYÉB')
         c_score = getattr(cluster, 'total_score', 0) if not isinstance(cluster, dict) else cluster.get('total_score', 0)
 
-        relevant_news_objects = [n for n in filtered_news if n['id'] in c_ids]
+        relevant_news_objects = [n for n in filtered_news if n.id in c_ids]
         
         if not relevant_news_objects:
             continue
@@ -269,7 +269,7 @@ def main():
         summary = generate_event_summary(c_name, relevant_news_objects)
         
         sources_data = [
-            {"name": n['source'], "url": n.get('link', '')} 
+            {"name": n.source, "url": n.link or ''} 
             for n in relevant_news_objects
         ]
         
@@ -281,7 +281,7 @@ def main():
             'score': c_score
         })
         
-        time.sleep(1.2) # Kicsit több szünet a biztonság kedvéért
+        #time.sleep(1.2) # Kicsit több szünet a biztonság kedvéért
 
     # 6. Kimenetek (ntfy, HTML, stb.)
     if final_data_package:

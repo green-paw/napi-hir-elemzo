@@ -43,7 +43,7 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
                 response_mime_type="application/json",
                 response_schema=list[str],
                 temperature=0.1, # Még alacsonyabb hőmérséklet a fegyelmezettebb válaszért
-                max_output_tokens=1024 # FIZIKAI GÁT: Maximum kb. 800 szót generálhat!
+                max_output_tokens=2048 # FIZIKAI GÁT: Maximum kb. 800 szót generálhat!
             )
         )
         
@@ -89,7 +89,7 @@ def refine_to_top_30(client: Client, raw_topics: List[str]) -> List[str]:
             response_mime_type="application/json",
             response_schema=list[str],
             temperature=0.1,
-            max_output_tokens=1024 # Fizikai korlát: max ~800 szó
+            max_output_tokens=2048 # Fizikai korlát: max ~800 szó
         )
     )
     refined_list: List[str] = json.loads(response.text)
@@ -129,7 +129,7 @@ def classify_news_with_lite(client: Client, chunk_size: int = 100) -> List[Singl
                     response_mime_type="application/json",
                     response_schema=MultiClusterIdResponse,
                     temperature=0.0,
-                    max_output_tokens=2048 # Biztonsági gát
+                    max_output_tokens=4096 # Biztonsági gát
                 )
             )
             

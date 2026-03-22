@@ -7,6 +7,7 @@ from llm_core import setup_gemini_cache, cleanup_cache
 from classifier import discover_rolling_topics, refine_to_top_30, classify_news_with_lite, clean_clusters
 from summarizer import generate_final_reports
 from html_exporter import export_to_html
+import os
 
 def run_news_pipeline():
     # 1. Kliensek inicializálása
@@ -38,8 +39,10 @@ def run_news_pipeline():
         print("✍️ 7. Összefoglalók írása (Free Flash)...")
         final_reports = generate_final_reports(client=client_free, valid_clusters=valid_clusters)
 
-        print("🌐 8. HTML generálása és mentése...")
-        export_to_html(summaries=final_reports, filename="napi_hirek.html")
+        output_filename: str = os.getenv("OUTPUT_FILENAME", "index.html")
+
+        print(f"🌐 8. HTML generálása és mentése ide: {output_filename}...")
+        export_to_html(summaries=final_reports, filename=output_filename)
 
         print("✅ Kész! Sikeres feldolgozás.")
         return True

@@ -10,7 +10,7 @@ HISTORY_FILE = "history.json"
 MODEL_ID = "gemini-2.5-flash"
 MODEL_LITE_ID = "gemini-2.5-flash-lite"
 
-RSS_SOURCES = {
+RSS_FEEDS = {
     # Nemzetközi források (Angol) - Hírügynökségi / Üzleti
     "reuters": ("https://news.google.com/rss/search?q=site:reuters.com+when:24h&hl=en-US&gl=US&ceid=US:en", "Nemzetközi, hírügynökségi, objektív"),
     "bloomberg": ("https://feeds.bloomberg.com/markets/news.rss", "Nemzetközi, üzleti, piacvezérelt"),

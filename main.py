@@ -22,7 +22,7 @@ def run_news_pipeline():
         news_json = json.dumps([n.model_dump() for n in shared_state.filtered_news], default=str)
 
         print("🧠 2. Cache inicializálása...")
-        setup_gemini_cache(client=client_main, formatted_json_text=news_json)
+        setup_gemini_cache(client=client_main, formatted_json_text=news_json, model_id=config.MODEL_LITE_ID)
 
         print("🔍 3. Témák felderítése (Flash)...")
         raw_topics = discover_rolling_topics(client=client_main)

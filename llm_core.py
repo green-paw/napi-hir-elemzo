@@ -3,6 +3,8 @@ from google.genai import Client, types
 from typing import Any
 import shared_state
 
+cache_name: str = "napi_hir_cache_lite"
+
 def get_token_count(client: Client, model_id: str, text: str) -> int:
     """Kiszámolja a bemeneti szöveg tokenjeinek számát."""
     response = client.models.count_tokens(
@@ -19,7 +21,7 @@ def setup_gemini_cache(client: Client, formatted_json_text: str, model_id: str =
     # 1. Lekérdezzük a szerverről az élő cache-eket
     try:
         for existing_cache in client.caches.list():
-            if existing_cache.display_name == "napi_hir_cache":
+            if existing_cache.display_name == cache_name:
                 print(f"♻️ Élő cache megtalálva a Google szerverén! Újracsatlakozás: {existing_cache.name}")
                 shared_state.active_cache = existing_cache
                 return True
@@ -35,7 +37,7 @@ def setup_gemini_cache(client: Client, formatted_json_text: str, model_id: str =
         shared_state.active_cache = client.caches.create(
             model=model_id,
             config=types.CreateCachedContentConfig(
-                display_name="napi_hir_cache",
+                display_name=cache_name,
                 contents=[formatted_json_text],
                 ttl="3600s"
             )

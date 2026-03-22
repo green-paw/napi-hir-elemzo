@@ -1,6 +1,9 @@
 import os
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+GOOGLE_API_KEY_MAIN = os.getenv("GOOGLE_API_KEY") # A Tier 1 (fizetős) kulcsod
+GOOGLE_API_KEY_FREE = os.getenv("GOOGLE_API_KEY_FREE") # Az ingyenes, nagy limites kulcsod
+
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 HISTORY_FILE = "history.json"

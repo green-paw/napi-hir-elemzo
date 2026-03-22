@@ -1,5 +1,8 @@
 # saját importok
+from typing import List
+
 import config
+from models import Article, ClusterResultSingle
 import output_handler
 
 # Csak a szükséges handler funkciók
@@ -46,14 +49,14 @@ def calculate_priority_score(scores):
            (s.get('impact', 0) * 0.5) + \
            (s.get('novelty', 0) * 0.2)
     
-def semantic_filter(news_pool, topics, top_k=300):
+def semantic_filter(news_pool: List[Article], topics: List[str], top_k=300):
     if not topics or not news_pool: return news_pool
     myPrint(f"🔍 Szemantikus rangsorolás: {len(news_pool)} hír...")
     
     # 1. Témák és hírek vektorizálása
     topic_embs = get_gemini_embeddings(topics)
     # A cím és a tagek együtt jobb kontextust adnak az embeddingnek
-    news_texts = [f"[{', '.join(n['tags'])}] {n['title']}" if n['tags'] else n['title'] for n in news_pool]
+    news_texts = [f"[{', '.join(n.tags)}] {n.title}" if n.tags else n.title for n in news_pool]
     news_embs = get_gemini_embeddings(news_texts)
     
     # 2. Relevancia számítása
@@ -63,27 +66,27 @@ def semantic_filter(news_pool, topics, top_k=300):
         max_sim = max(sims) if sims else 0
         
         # Elmentjük a pontszámot a hír objektumba
-        news_pool[i]['match_score'] = max_sim
+        news_pool[i].match_score = max_sim
 
     # 3. Sorbarendezés (legmagasabb pontszám elöl) és vágás
     # Csak azokat tartjuk meg, amiknek van egy minimális közük a témákhoz (pl. > 0.3), 
     # hogy a totál zajt (pl. sporthírek, ha nem kérted) kidobjuk.
-    filtered = [n for n in news_pool if n.get('match_score', 0) > 0.3]
-    filtered.sort(key=lambda x: x['match_score'], reverse=True)
+    filtered = [n for n in news_pool if n.match_score > 0.3]
+    filtered.sort(key=lambda x: x.match_score, reverse=True)
     
     # Kivesszük az első top_k darabot
     final_selection = filtered[:top_k]
     
-    myPrint(f"✅ Rangsorolás kész: {len(final_selection)} hír továbbküldve (átlagos relevancia: {sum(n['match_score'] for n in final_selection)/len(final_selection) if final_selection else 0:.2f})")
+    myPrint(f"✅ Rangsorolás kész: {len(final_selection)} hír továbbküldve (átlagos relevancia: {sum(n.match_score for n in final_selection)/len(final_selection) if final_selection else 0:.2f})")
     
     return final_selection
 
-def cluster_news(news_pool):
+def cluster_news(news_pool: List[Article]) -> List[ClusterResultSingle]:
     if not news_pool: return []
     myPrint(f"🧩 Klaszterezés ({len(news_pool)} hír)...")
     
     # Szövegek előkészítése az embeddinghez
-    texts = [f"CÍM: {n['title']} KIVONAT: {n['summary'][:200]}" for n in news_pool]
+    texts = [f"CÍM: {n.title} KIVONAT: {n.summary[:200]}" for n in news_pool]
     embeddings = get_gemini_embeddings(texts)
 
     groups = {}
@@ -95,7 +98,7 @@ def cluster_news(news_pool):
     for label, items in groups.items():
         i += 1
         formatted_list = "\n".join([
-            f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {n['summary'][:150]}" 
+            f"ID:{n.id} | CÍM: {n.title} | KIVONAT: {n.summary[:150]}" 
             for n in items
         ])
 
@@ -117,7 +120,7 @@ def cluster_news(news_pool):
 
     return final_clusters
 
-def auto_cluster(embeddings, news_pool, initial_threshold=0.7, max_cluster_size=20):
+def auto_cluster(embeddings: List[List[float]], news_pool: List[Article], initial_threshold=0.7, max_cluster_size=20) -> dict:
     current_threshold = initial_threshold
     attempts = 0
     max_attempts = 20
@@ -152,12 +155,12 @@ def auto_cluster(embeddings, news_pool, initial_threshold=0.7, max_cluster_size=
             
     return groups
 
-def filter_and_rank_clusters(clusters_data):
+def filter_and_rank_clusters(clusters_data: List[ClusterResultSingle]) -> List[ClusterResultSingle]:
     """
     Végső szűrés a súlyozott pontszám alapján. 
     Csak a tényleg fontos hírek mennek tovább elemzésre.
     """
-    final_selection = []
+    final_selection: List[ClusterResultSingle] = []
     
     for c in clusters_data:
         # Meghívjuk a korábban megírt pontozó függvényt
@@ -185,24 +188,11 @@ def main():
     if not raw_news:
         myPrint("no raw news, exiting")
         return
-
-    # --- ÚJ: Duplikátum szűrés ---
-    seen_titles = set()
-    unique_news = []
-    for n in raw_news:
-        # Tisztítjuk a címet (kisbetű, szóközök le) a pontosabb egyezésért
-        clean_title = n['title'].strip().lower()
-        if clean_title not in seen_titles:
-            seen_titles.add(clean_title)
-            unique_news.append(n)
-    
-    myPrint(f"🧹 Duplikátumok kiszűrve: {len(raw_news)} -> {len(unique_news)} hír.")
-    raw_news = unique_news # Ezzel dolgozunk tovább
     
     # 2. Stratégiai témák
     # Megjegyzés: random helyett az utolsó N hír is jó lehet, de a random segít a diverzitásban
     sample_size = min(len(raw_news), 300)
-    titles_sample = "\n".join([n['title'] for n in random.sample(raw_news, sample_size)])
+    titles_sample = "\n".join([n.title for n in random.sample(raw_news, sample_size)])
     topics = get_strategic_topics(titles_sample)
     
     if not topics:
@@ -254,7 +244,7 @@ def main():
         c_cat = cluster.category if hasattr(cluster, 'category') else cluster.get('category', 'EGYÉB')
         c_score = getattr(cluster, 'total_score', 0) if not isinstance(cluster, dict) else cluster.get('total_score', 0)
 
-        relevant_news_objects = [n for n in filtered_news if n['id'] in c_ids]
+        relevant_news_objects = [n for n in filtered_news if n.id in c_ids]
         
         if not relevant_news_objects:
             continue
@@ -266,7 +256,7 @@ def main():
         summary = generate_event_summary(c_name, relevant_news_objects)
         
         sources_data = [
-            {"name": n['source'], "url": n.get('link', '')} 
+            {"name": n.source, "url": n.link or ''} 
             for n in relevant_news_objects
         ]
         
@@ -278,7 +268,7 @@ def main():
             'score': c_score
         })
         
-        time.sleep(1.2) # Kicsit több szünet a biztonság kedvéért
+        #time.sleep(1.2) # Kicsit több szünet a biztonság kedvéért
 
     # 6. Kimenetek (ntfy, HTML, stb.)
     if final_data_package:

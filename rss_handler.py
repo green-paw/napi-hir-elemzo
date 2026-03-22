@@ -5,6 +5,9 @@ import feedparser
 import config
 from datetime import datetime, timedelta
 
+from typing import List
+from models import Article
+
 def clean_news_text(entry, field='title'):
     """Kinyeri és megtisztítja a szöveget (HTML mentesítés, unescape)."""
     raw = entry.get(f"{field}_detail", {}).get('value', entry.get(field, ''))
@@ -21,8 +24,8 @@ def smart_truncate(text, max_length=600):
         return text
     return text[:max_length].rsplit(' ', 1)[0] + "..."
 
-def fetch_news():
-    news_pool = []
+def fetch_news() -> List[Article]:
+    news_pool: List[Article] = []
     seen_links = set() # Duplikáció szűréshez
     item_id = 0
     now = datetime.now()
@@ -67,15 +70,15 @@ def fetch_news():
                 raw_summary = entry.get('summary', entry.get('description', ''))
                 summary = smart_truncate(clean_news_text({'summary': raw_summary}, 'summary'), 600)
 
-                news_pool.append({
-                    "id": item_id,
-                    "source": name,
-                    "title": title,
-                    "summary": summary,
-                    "link": entry.link,
-                    "tags": tags,
-                    "published": dt
-                })
+                news_pool.append(Article(
+                    id=item_id,
+                    source=name,
+                    title=title,
+                    summary=summary,
+                    link=entry.link,
+                    tags=tags,
+                    published=dt
+                ))
                 
                 seen_links.add(entry.link)
                 item_id += 1
@@ -83,8 +86,20 @@ def fetch_news():
         except Exception as e:
             print(f"⚠️ Hiba a(z) {name} forrásnál: {e}")
             
+    seen_titles = set()
+    unique_news = []
+    for n in news_pool:
+        # Tisztítjuk a címet (kisbetű, szóközök le) a pontosabb egyezésért
+        clean_title = n.title.strip().lower()
+        if clean_title not in seen_titles:
+            seen_titles.add(clean_title)
+            unique_news.append(n)
+    
+    print(f"🧹 Duplikátumok kiszűrve: {len(news_pool)} -> {len(unique_news)} hír.")
+    news_pool = unique_news # Ezzel dolgozunk tovább
+
     # Időrendbe tétel (legfrissebb elöl), hogy a main() fixen a legújabbakat lássa
-    news_pool.sort(key=lambda x: x['published'], reverse=True)
+    news_pool.sort(key=lambda x: x.published, reverse=True)
     
     print(f"✅ Begyűjtés kész: {len(news_pool)} egyedi, releváns hír.")
     return news_pool

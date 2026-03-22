@@ -1,5 +1,8 @@
 # saját importok
+from typing import List
+
 import config
+from models import Article
 import output_handler
 
 # Csak a szükséges handler funkciók
@@ -188,10 +191,10 @@ def main():
 
     # --- ÚJ: Duplikátum szűrés ---
     seen_titles = set()
-    unique_news = []
+    unique_news: List[Article] = []
     for n in raw_news:
         # Tisztítjuk a címet (kisbetű, szóközök le) a pontosabb egyezésért
-        clean_title = n['title'].strip().lower()
+        clean_title = n.title.strip().lower()
         if clean_title not in seen_titles:
             seen_titles.add(clean_title)
             unique_news.append(n)
@@ -202,7 +205,7 @@ def main():
     # 2. Stratégiai témák
     # Megjegyzés: random helyett az utolsó N hír is jó lehet, de a random segít a diverzitásban
     sample_size = min(len(raw_news), 300)
-    titles_sample = "\n".join([n['title'] for n in random.sample(raw_news, sample_size)])
+    titles_sample = "\n".join([n.title for n in random.sample(raw_news, sample_size)])
     topics = get_strategic_topics(titles_sample)
     
     if not topics:

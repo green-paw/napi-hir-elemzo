@@ -1,6 +1,7 @@
 # classifier.py
 import json
 from typing import List, Dict, Any
+from urllib import response
 from google.genai import Client, types
 import shared_state
 from models import Article, SingleCluster, MultiClusterIdResponse
@@ -41,9 +42,28 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
                 temperature=0.2
             )
         )
-        current_list = json.loads(response.text)
-        print(f"🔄 Rolling fázis: {i}-{end_idx} feldolgozva, jelenleg {len(current_list)} téma van.")
-    
+        
+        raw_text: str = response.text.strip()
+        
+        # Ha a modell véletlenül markdown blokkba tette a JSON-t:
+        if raw_text.startswith("```json"):
+            raw_text = raw_text[7:]
+        elif raw_text.startswith("```"):
+            raw_text = raw_text[3:]
+        if raw_text.endswith("```"):
+            raw_text = raw_text[:-3]
+            
+        raw_text = raw_text.strip()
+
+        try:
+            current_list = json.loads(raw_text)
+            print(f"🔄 Rolling fázis: {i}-{end_idx} feldolgozva, jelenleg {len(current_list)} téma van.")
+        except json.JSONDecodeError as e:
+            print(f"⚠️ JSON hiba a(z) {i}-{end_idx} blokkban: {e}")
+            print(f"Nyers szöveg:\n{raw_text[:200]}... (levágva)")
+            print("Folytatjuk az eddigi listával, ezt a 100-as csomagot átugorjuk.")
+            # Itt nem írjuk felül a current_list-et, így nem veszik el az eddigi munka!
+
     return current_list
 
 def refine_to_top_30(client: Client, raw_topics: List[str]) -> List[str]:

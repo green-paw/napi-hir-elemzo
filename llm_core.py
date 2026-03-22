@@ -3,7 +3,7 @@ from google.genai import Client, types
 from typing import Any
 import shared_state
 
-cache_name: str = "napi_hir_cache_lite"
+cache_name: str = "napi_hir_cache"
 
 def get_token_count(client: Client, model_id: str, text: str) -> int:
     """Kiszámolja a bemeneti szöveg tokenjeinek számát."""

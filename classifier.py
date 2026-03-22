@@ -91,7 +91,7 @@ def refine_to_top_30(client: Client, raw_topics: List[str]) -> List[str]:
     """
     
     response = client.models.generate_content(
-        model=config.MODEL_LITE_ID, # Figyelj, hogy itt a standard modell fusson!
+        model=config.MODEL_ID, # Figyelj, hogy itt a standard modell fusson!
         contents=prompt,
         config=types.GenerateContentConfig(
             cached_content=shared_state.active_cache.name if shared_state.active_cache else None,

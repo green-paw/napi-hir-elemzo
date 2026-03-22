@@ -269,7 +269,7 @@ def get_strategic_topics(titles_sample):
         print(res_text)
         return []
 
-def validate_news_clusters(cluster_data, schema=MultiClusterResponse):
+def validate_news_clusters(cluster_data: str, schema=MultiClusterResponse) -> dict:
     """Lite modell: Szétválasztja a matematikai klasztert valódi eseményekre és pontoz."""
     
     sys_instruct = """Te egy cinikus, de tűpontos hírszerkesztő algoritmus vagy. 
@@ -304,16 +304,16 @@ def validate_news_clusters(cluster_data, schema=MultiClusterResponse):
         print(f"⚠️ JSON hiba a validációnál: {e}")
         return {"events": []}
 
-def generate_event_summary(event_name, news_items):
+def generate_event_summary(event_name: str, news_items: List[Article]) -> str:
     biases = []
     context_parts = []
     
     for n in news_items:
         # A config.RSS_SOURCES már tuple: (url, bias)
-        source_data = config.RSS_SOURCES.get(n['source'], (None, "Ismeretlen"))
+        source_data = config.RSS_SOURCES.get(n.source, (None, "Ismeretlen"))
         bias = source_data[1] 
         biases.append(bias)
-        context_parts.append(f"FORRÁS: {n['source']} ({bias})\nCÍM: {n['title']}\nKIVONAT: {n['summary'][:500]}\n---")
+        context_parts.append(f"FORRÁS: {n.source} ({bias})\nCÍM: {n.title}\nKIVONAT: {n.summary[:500]}\n---")
 
     # Dinamikus prompt meghatározása
     dynamic_instruction = get_dynamic_prompt(event_name, biases)

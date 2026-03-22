@@ -18,9 +18,17 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
         end_idx: int = min(i + chunk_size - 1, total_news - 1)
         
         # --- ÚJ, SZIGORÍTOTT PROMPT A LITE MODELLHEZ ---
-        instruction: str = f"""Elemezd a híreket a(z) {i} és {end_idx} ID-k között.
+        instruction: str = f"""
+            Te egy profi hírelemző vagy, aki a híreket csoportosítja és kategorizálja.
+        
+            FONTOS SZABÁLY: Elemezd a híreket a(z) {i} és {end_idx} ID-k között, CSAK EZEN ID-K alapján! Ne engedj meg semmilyen ID szivárgást (leakage) a bemeneti szövegből a kimenetbe!
+
+            A feladatod a hírek alapján eseményeket (témákat) generálni, amelyek a hírek mögött állnak.
+            Minden esemény legyen egy rövid, 5-8 szavas kategória, ami összefoglalja a mögöttes hírek lényegét.
+            Azok a hírek fontosak amelyek Magyarország gazdasági vagy politikai életére hatással vannak, vagy globális jelentőségűek (háborúk, természeti katasztrófák, gazdasági válságok, stb).
             SZIGORÚ SZABÁLY: NE másold ki a hírek címét vagy szövegét! Csak rövid, 5-8 szavas, átfogó esemény-neveket (kategóriákat/témákat) generálj!
-            Példa jó kimenetre: ["USA választások", "Németországi sztrájkok", "Gázai konfliktus", "Tech cégek leépítései"]"""
+            Példa jó kimenetre: ["USA választások", "Németországi sztrájkok", "Gázai konfliktus", "Tech cégek leépítései"]
+            """
 
         if not current_list:
             prompt: str = f"{instruction}\nGyűjtsd ki az 5-10 legfontosabb egyedi eseményt."

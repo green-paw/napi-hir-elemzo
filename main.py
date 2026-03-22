@@ -49,7 +49,7 @@ def calculate_priority_score(scores):
            (s.get('impact', 0) * 0.5) + \
            (s.get('novelty', 0) * 0.2)
     
-def semantic_filter(news_pool, topics, top_k=300):
+def semantic_filter(news_pool: List[Article], topics: List[str], top_k=300):
     if not topics or not news_pool: return news_pool
     myPrint(f"🔍 Szemantikus rangsorolás: {len(news_pool)} hír...")
     
@@ -219,7 +219,7 @@ def main():
     topics_html = "<ul>" + "".join([f"<li>{t}</li>" for t in topics]) + "</ul>"
         
     # 3. Szemantikus szűrés
-    filtered_news = semantic_filter(raw_news, topics, top_k=300)
+    filtered_news = semantic_filter(raw_news: List[Article], topics: List[str], top_k=300)
     if not filtered_news:
         myPrint("no semantic filtered news, exiting") 
         return

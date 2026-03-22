@@ -11,6 +11,7 @@ class Article(BaseModel):
     link: str = Field(description="A hír eredeti URL-je")
     tags: List[str] = Field(description="A hírhez kapcsolódó címkék/kategóriák")
     published: datetime = Field(description="A hír megjelenésének időpontja")
+    match_score: float = Field(default=0.0, description="A hír relevancia pontszáma a témákhoz (0-1 között)")
 
 class EventSummaryResult(BaseModel):
     title: str = Field(description="Az esemény rövid, találó magyar neve (pl. 'Kormányinfó: Új adók')")

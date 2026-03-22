@@ -64,6 +64,7 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
             raw_text = raw_text[:-3]
             
         raw_text = raw_text.strip()
+        print(f"Nyers szöveg:\n{raw_text[:50]} ... {raw_text[-50:]}")
 
         try:
             current_list = json.loads(raw_text)

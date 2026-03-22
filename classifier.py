@@ -19,7 +19,7 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
         
         # --- ÚJ, SZIGORÍTOTT PROMPT A LITE MODELLHEZ ---
         instruction: str = f"""Elemezd a híreket a(z) {i} és {end_idx} ID-k között.
-            SZIGORÚ SZABÁLY: NE másold ki a hírek címét vagy szövegét! Csak rövid, 3-5 szavas, átfogó esemény-neveket (kategóriákat/témákat) generálj!
+            SZIGORÚ SZABÁLY: NE másold ki a hírek címét vagy szövegét! Csak rövid, 5-8 szavas, átfogó esemény-neveket (kategóriákat/témákat) generálj!
             Példa jó kimenetre: ["USA választások", "Németországi sztrájkok", "Gázai konfliktus", "Tech cégek leépítései"]"""
 
         if not current_list:
@@ -99,7 +99,7 @@ def refine_to_top_30(client: Client, raw_topics: List[str]) -> List[str]:
 def classify_news_with_lite(client: Client, chunk_size: int = 100) -> List[SingleCluster]:
     """
     3. Fázis: Minden hírt besorol a 30 fő téma egyikébe.
-    Itt a költséghatékony gemini-2.5-flash-lite modellt használjuk!
+    Itt a költséghatékony gemini-2.5-flash-lite modellt használjuk hibatűrő logikával!
     """
     final_clusters: List[SingleCluster] = []
     total_news: int = len(shared_state.filtered_news)
@@ -108,8 +108,11 @@ def classify_news_with_lite(client: Client, chunk_size: int = 100) -> List[Singl
         end_idx: int = min(i + chunk_size - 1, total_news - 1)
         
         prompt: str = f"""
-        Rendeld hozzá a(z) {i} és {end_idx} közötti ID-val rendelkező híreket a következő témákhoz:
+        Rendeld hozzá a(z) {i} és {end_idx} közötti ID-val rendelkező híreket a következő témákhoz, amennyiben relevánsak:
         {shared_state.master_topics}
+
+        FONTOS: Csak akkor rendeld hozzá egy hír ID-ját egy témához, ha az esemény szorosan kapcsolódik a témához! Ne engedj meg lazán kapcsolódó besorolásokat!
+        A kimenet egy JSON objektum legyen, ahol minden téma egy esemény, és az eseményekhez tartozó ID-k egy listában vannak.
         """
         
         contents: str = prompt
@@ -117,28 +120,46 @@ def classify_news_with_lite(client: Client, chunk_size: int = 100) -> List[Singl
             chunk: List[Article] = shared_state.filtered_news[i : end_idx + 1]
             contents = f"{prompt}\n\nHírek: {json.dumps([n.model_dump() for n in chunk], default=str)}"
 
-        response = client.models.generate_content(
-            model=config.MODEL_LITE_ID,
-            contents=contents,
-            config=types.GenerateContentConfig(
-                cached_content=shared_state.active_cache.name if shared_state.active_cache else None,
-                response_mime_type="application/json",
-                response_schema=MultiClusterIdResponse,
-                temperature=0.0,
-                max_output_tokens=2048 # BIZTONSÁGI GÁT: Ne tudjon végtelen ciklusba esni a JSON generálásakor
+        try:
+            response = client.models.generate_content(
+                model=config.MODEL_LITE_ID,
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    cached_content=shared_state.active_cache.name if shared_state.active_cache else None,
+                    response_mime_type="application/json",
+                    response_schema=MultiClusterIdResponse,
+                    temperature=0.0,
+                    max_output_tokens=2048 # Biztonsági gát
+                )
             )
-        )
-        
-        raw_data: Dict[str, Any] = json.loads(response.text)
-        
-        # ID szivárgás elleni védelem (leakage protection)
-        for event in raw_data.get("events", []):
-            valid_ids: List[int] = [idx for idx in event["ids"] if i <= idx <= end_idx]
-            if valid_ids:
-                final_clusters.append(SingleCluster(title=event["title"], ids=valid_ids))
+            
+            # --- HIBATŰRŐ TISZTÍTÁS ÉS FELDOLGOZÁS ---
+            raw_text: str = response.text.strip()
+            
+            if raw_text.startswith("```json"):
+                raw_text = raw_text[7:]
+            elif raw_text.startswith("```"):
+                raw_text = raw_text[3:]
+            if raw_text.endswith("```"):
+                raw_text = raw_text[:-3]
                 
-        print(f"🗂️ Klaszterezés fázis: {i}-{end_idx} ID-k besorolva.")
-        
+            raw_text = raw_text.strip()
+            
+            raw_data: Dict[str, Any] = json.loads(raw_text)
+            
+            # ID szivárgás elleni védelem (leakage protection)
+            for event in raw_data.get("events", []):
+                valid_ids: List[int] = [idx for idx in event["ids"] if i <= idx <= end_idx]
+                if valid_ids:
+                    final_clusters.append(SingleCluster(title=event["title"], ids=valid_ids))
+                    
+            print(f"🗂️ Klaszterezés fázis: {i}-{end_idx} ID-k besorolva.")
+            
+        except Exception as e:
+            # Ha bármi hiba történik (JSON, hálózat, API vágás), jelezzük, de nem állunk le!
+            print(f"⚠️ Hiba a(z) {i}-{end_idx} besorolásakor: {e}")
+            print("Ezt a 100-as csomagot átugorjuk, megyünk tovább...")
+
     return final_clusters
 
 def clean_clusters(raw_clusters: List[SingleCluster], min_news: int = 3) -> List[SingleCluster]:

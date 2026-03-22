@@ -17,7 +17,6 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
     for i in range(0, total_news, chunk_size):
         end_idx: int = min(i + chunk_size - 1, total_news - 1)
         
-        # --- ÚJ, SZIGORÍTOTT PROMPT A LITE MODELLHEZ ---
         instruction: str = f"""
             Te egy profi hírelemző vagy, aki a híreket csoportosítja és kategorizálja.
         
@@ -44,14 +43,14 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
             contents = f"{prompt}\n\nHírek: {json.dumps([n.model_dump() for n in chunk], default=str)}"
 
         response = client.models.generate_content(
-            model=config.MODEL_LITE_ID, # Használjuk a Lite modellt a config-ból
+            model=config.MODEL_ID, # Használjuk a Lite modellt a config-ból
             contents=contents,
             config=types.GenerateContentConfig(
                 cached_content=shared_state.active_cache.name if shared_state.active_cache else None,
                 response_mime_type="application/json",
                 response_schema=list[str],
                 temperature=0.1, # Még alacsonyabb hőmérséklet a fegyelmezettebb válaszért
-                max_output_tokens=2048 # FIZIKAI GÁT: Maximum kb. 800 szót generálhat!
+                max_output_tokens=800 # FIZIKAI GÁT: Maximum kb. 800 szót generálhat!
             )
         )
         
@@ -71,7 +70,8 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
             print(f"🔄 Rolling fázis: {i}-{end_idx} feldolgozva, jelenleg {len(current_list)} téma van.")
         except json.JSONDecodeError as e:
             print(f"⚠️ JSON hiba a(z) {i}-{end_idx} blokkban: {e}")
-            print(f"Nyers szöveg:\n{raw_text[:200]}... (levágva)")
+            print(f"Nyers szöveg eleje:\n{raw_text[:50]}")
+            print(f"Nyers szöveg vége:\n{raw_text[-50:]}")
             print("Folytatjuk az eddigi listával, ezt a 100-as csomagot átugorjuk.")
     
     return current_list

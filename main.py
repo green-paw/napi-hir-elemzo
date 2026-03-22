@@ -2,7 +2,7 @@
 from typing import List
 
 import config
-from models import Article
+from models import Article, ClusterResultSingle
 import output_handler
 
 # Csak a szükséges handler funkciók
@@ -81,7 +81,7 @@ def semantic_filter(news_pool: List[Article], topics: List[str], top_k=300):
     
     return final_selection
 
-def cluster_news(news_pool):
+def cluster_news(news_pool: List[Article]) -> List[ClusterResultSingle]:
     if not news_pool: return []
     myPrint(f"🧩 Klaszterezés ({len(news_pool)} hír)...")
     
@@ -98,7 +98,7 @@ def cluster_news(news_pool):
     for label, items in groups.items():
         i += 1
         formatted_list = "\n".join([
-            f"ID:{n['id']} | CÍM: {n['title']} | KIVONAT: {n['summary'][:150]}" 
+            f"ID:{n.id} | CÍM: {n.title} | KIVONAT: {n.summary[:150]}" 
             for n in items
         ])
 
@@ -120,7 +120,7 @@ def cluster_news(news_pool):
 
     return final_clusters
 
-def auto_cluster(embeddings, news_pool, initial_threshold=0.7, max_cluster_size=20):
+def auto_cluster(embeddings: List[List[float]], news_pool: List[Article], initial_threshold=0.7, max_cluster_size=20) -> dict:
     current_threshold = initial_threshold
     attempts = 0
     max_attempts = 20
@@ -155,12 +155,12 @@ def auto_cluster(embeddings, news_pool, initial_threshold=0.7, max_cluster_size=
             
     return groups
 
-def filter_and_rank_clusters(clusters_data):
+def filter_and_rank_clusters(clusters_data: List[ClusterResultSingle]) -> List[ClusterResultSingle]:
     """
     Végső szűrés a súlyozott pontszám alapján. 
     Csak a tényleg fontos hírek mennek tovább elemzésre.
     """
-    final_selection = []
+    final_selection: List[ClusterResultSingle] = []
     
     for c in clusters_data:
         # Meghívjuk a korábban megírt pontozó függvényt

@@ -53,6 +53,11 @@ def run_news_pipeline():
         print("🧹 6. Klaszterek tisztítása és darabolása...")
         valid_clusters = clean_clusters(raw_clusters=raw_clusters, min_news=3)
 
+        #print out the valid clusters and their news counts
+        print(f"Valid klaszterek száma: {len(valid_clusters)}")
+        for idx, cluster in enumerate(valid_clusters):
+            print(f"{idx + 1}. {cluster.title} - {len(cluster.ids)} hír")
+
         return
 
         print("✍️ 7. Összefoglalók írása (Free Flash)...")

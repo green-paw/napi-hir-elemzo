@@ -184,7 +184,7 @@ def classify_news_with_lite(client: Client, chunk_size: int = 100) -> List[Singl
 
     return final_clusters
 
-def clean_clusters(raw_clusters: List[SingleCluster], min_news: int = 3) -> List[SingleCluster]:
+def clean_clusters(raw_clusters: List[SingleCluster], min_news: int = 2) -> List[SingleCluster]:
     """
     4. Fázis: Összevonja az azonos című klasztereket és kidobja a túl kicsiket.
     Tiszta Python logika, LLM hívás nélkül.

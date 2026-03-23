@@ -24,12 +24,12 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
 
             FELADAT:
             - a hírek alapján eseményeket (témákat) gyűjteni, amelyek a hírek mögött állnak, összefogják az ugyanazon eseményhez kapcsolódó híreket.
-            - Minden esemény legyen egy rövid mondat, max 10 szó, ami összefoglalja a mögöttes hírek lényegét. Ha országok, helyszínek, személyek szerepelnek, azokat is említsd meg a címben, de csak a legfontosabbakat!
+            - Minden esemény legyen egy rövid mondat, max 15 szó, ami összefoglalja a mögöttes hírek lényegét. Ha országok, helyszínek, személyek szerepelnek, azokat is említsd meg a címben, de csak a legfontosabbakat!
             - Azok a hírek fontosak amelyek Magyarország gazdasági vagy politikai életére hatással vannak, vagy globális jelentőségűek (háborúk, természeti katasztrófák, gazdasági válságok, stb).
             - maximum 10 eseményt gyűjts, csak a legfontosabbakat!
 
             SZIGORÚ SZABÁLY:
-            NE másold ki a hírek címét vagy szövegét! Csak egy rövid, átfogó, max 10 szavas mondatot generálj, SZIGORÚAN MAGYAR NYELVEN!
+            NE másold ki a hírek címét vagy szövegét! Csak egy rövid, átfogó, max 15 szavas mondatot generálj, SZIGORÚAN MAGYAR NYELVEN!
                 Példa jó kimenetre: ["USA választások", "Németországi sztrájkok", "Gázai konfliktus", "Tech cégek leépítései"]
 
             SZŰRÉS: bulvár, pletyka, jelentéktelen híreket NE engedj meg! Csak a legfontosabb, egyedi eseményeket gyűjtsd ki!
@@ -42,7 +42,8 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
         #    contents = f"{prompt}\n\nHírek: {json.dumps([n.title for n in chunk], default=str, ensure_ascii=False)}"
 
         chunk: List[Article] = shared_state.filtered_news[i : end_idx + 1]
-        contents = f"Hírek: {json.dumps([n.title for n in chunk], default=str, ensure_ascii=False)}"
+        news_data = [f"Cím: {n.title} | Kivonat: {n.summary[:50]}..." for n in chunk]
+        contents = f"Hírek: {json.dumps(news_data, default=str, ensure_ascii=False)}"
 
         result_list = gemini_call(
             client=client,

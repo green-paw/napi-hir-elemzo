@@ -1,4 +1,4 @@
-import telebot
+#import telebot
 import config
 import markdown  # pip install markdown
 import re
@@ -6,7 +6,26 @@ from datetime import datetime
 from collections import defaultdict
 import requests
 
-bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
+#bot = telebot.TeleBot(config.TELEGRAM_TOKEN)
+
+import urllib.parse
+
+def generate_ai_search_url(topic_title: str, service: str = "perplexity") -> str:
+    """
+    Legenerál egy kereső URL-t a megadott AI szolgáltatáshoz.
+    """
+    # A keresési kifejezés finomítása a jobb találat érdekében
+    query = f"Nézz utána ennek a friss eseménynek és foglald össze a részleteket: {topic_title}"
+    encoded_query = urllib.parse.quote(query)
+    
+    urls = {
+        "perplexity": f"https://www.perplexity.ai/search?q={encoded_query}",
+        "chatgpt": f"https://chatgpt.com/?q={encoded_query}",
+        "google": f"https://www.google.com/search?q={encoded_query}",
+        "gemini": f"https://gemini.google.com/app?q={encoded_query}"
+    }
+    
+    return urls.get(service, urls["perplexity"])
 
 def clean_markdown_for_telegram(text):
     """
@@ -108,10 +127,12 @@ def generate_html(final_data_package, topics_html):
                 # Markdown átalakítása HTML-re a böngészőhöz
                 summary_rendered = markdown.markdown(item['summary'])
                 
+                ai_url = generate_ai_search_url(item['title'], "gemini")
+
                 html_template += f"""
                 <div class="news-card">
                     <span class="score">{item['score']}</span>
-                    <div class="title">{item['title']}</div>
+                    <div class="title"><a href="{ai_url}" target="_blank" class="ai-button" title="Mélyelemzés AI-val">{item['title']}</a></div>
                     <div class="summary">{summary_rendered}</div>
                     <div class="sources">Források: {sources_html}</div>
                 </div>
@@ -137,10 +158,10 @@ def process_and_send(final_data_package, topics_html):
     except Exception as e:
         print(f"❌ Hiba a HTML generálás során: {e}")
 
-    send_ntfy_alert()
-    
-    # telegram kihagyása
+    # telegram és notify kihagyása
     return
+
+    send_ntfy_alert()
     
     try:
         report_parts = []

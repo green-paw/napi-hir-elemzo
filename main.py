@@ -47,13 +47,13 @@ def run_news_pipeline():
         for idx, topic in enumerate(shared_state.master_topics):
             print(f"{idx + 1}. {topic}")
 
-        return
-
         print("🗂️ 5. Hírek besorolása (Flash Lite)...")
         raw_clusters = classify_news_with_lite(client=client_main)
 
         print("🧹 6. Klaszterek tisztítása és darabolása...")
         valid_clusters = clean_clusters(raw_clusters=raw_clusters, min_news=3)
+
+        return
 
         print("✍️ 7. Összefoglalók írása (Free Flash)...")
         final_reports = generate_final_reports(client=client_free, valid_clusters=valid_clusters)

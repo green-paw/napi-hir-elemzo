@@ -124,66 +124,63 @@ def refine_to_top_30(client: Client, raw_topics: list[str]) -> list[str]:
 def classify_news_with_lite(client: Client, chunk_size: int = 100) -> List[SingleCluster]:
     """
     3. Fázis: Minden hírt besorol a 30 fő téma egyikébe.
-    Itt a költséghatékony gemini-2.5-flash-lite modellt használjuk hibatűrő logikával!
+    Használja a gemini_call-t és a MultiClusterIdResponse sémát.
     """
     final_clusters: List[SingleCluster] = []
     total_news: int = len(shared_state.filtered_news)
 
+    # Szigorú rendszerutasítás a besoroláshoz
+    sys_instr: str = f"""
+    Te egy precíz hírszerkesztő vagy. A feladatod a hírek (ID és tartalom) besorolása a megadott témák alá.
+
+    TÉMÁK (MASTER LIST):
+    {shared_state.master_topics}
+
+    SZIGORÚ SZABÁLYOK:
+    1. Csak a megadott témák közül választhatsz! Ne találj ki új témát.
+    2. Ha egy hír nem illik tökéletesen egyik témához sem, hagyd ki (NE sorold be sehova)!
+    3. Különösen figyelj a relevanciára: a helyi baleseteket, bulvárt és irreleváns külföldi híreket (pl. brit/amerikai helyi ügyek) dobd el, hacsak nem illeszkednek szorosan egy globális/stratégiai témához.
+    4. Egy hír ID-ja csak egyetlen témához tartozhat.
+    
+    FORMÁTUM: A megadott JSON sémát használd (events lista, benne a title és az ids lista).
+    """
+
     for i in range(0, total_news, chunk_size):
         end_idx: int = min(i + chunk_size - 1, total_news - 1)
         
-        prompt: str = f"""
-        Rendeld hozzá a(z) {i} és {end_idx} közötti ID-val rendelkező híreket a következő témákhoz, amennyiben relevánsak:
-        {shared_state.master_topics}
+        # Csak a címet és a summary elejét küldjük, hogy spóroljunk a tokennel
+        chunk: List[Article] = shared_state.filtered_news[i : end_idx + 1]
+        news_payload = [
+            {"id": n.id, "title": n.title, "text": (n.summary or "")[:100]} 
+            for n in chunk
+        ]
 
-        FONTOS: Csak akkor rendeld hozzá egy hír ID-ját egy témához, ha az esemény szorosan kapcsolódik a témához! Ne engedj meg lazán kapcsolódó besorolásokat!
-        A kimenet egy JSON objektum legyen, ahol minden téma egy esemény, és az eseményekhez tartozó ID-k egy listában vannak.
-        """
-        
-        contents: str = prompt
-        if not shared_state.active_cache:
-            chunk: List[Article] = shared_state.filtered_news[i : end_idx + 1]
-            contents = f"{prompt}\n\nHírek: {json.dumps([n.model_dump() for n in chunk], default=str)}"
+        contents = f"Sorold be az alábbi híreket az ID-k alapján:\n{json.dumps(news_payload, ensure_ascii=False)}"
 
-        try:
-            response = client.models.generate_content(
-                model=config.MODEL_LITE_ID,
-                contents=contents,
-                config=types.GenerateContentConfig(
-                    cached_content=shared_state.active_cache.name if shared_state.active_cache else None,
-                    response_mime_type="application/json",
-                    response_schema=MultiClusterIdResponse,
-                    temperature=0.0,
-                    max_output_tokens=4096 # Biztonsági gát
-                )
-            )
-            
-            # --- HIBATŰRŐ TISZTÍTÁS ÉS FELDOLGOZÁS ---
-            raw_text: str = response.text.strip()
-            
-            if raw_text.startswith("```json"):
-                raw_text = raw_text[7:]
-            elif raw_text.startswith("```"):
-                raw_text = raw_text[3:]
-            if raw_text.endswith("```"):
-                raw_text = raw_text[:-3]
-                
-            raw_text = raw_text.strip()
-            
-            raw_data: Dict[str, Any] = json.loads(raw_text)
-            
-            # ID szivárgás elleni védelem (leakage protection)
-            for event in raw_data.get("events", []):
-                valid_ids: List[int] = [idx for idx in event["ids"] if i <= idx <= end_idx]
+        # Hívás a közös függvényeddel
+        # A MultiClusterIdResponse sémát használjuk a modellek.py-ból
+        response_data: MultiClusterIdResponse = gemini_call(
+            client=client,
+            model=config.MODEL_LITE_ID,
+            schema=MultiClusterIdResponse,
+            sys_instr=sys_instr,
+            contents=contents,
+            max_output_tokens=4096
+        )
+
+        # Ellenőrizzük, kaptunk-e adatot (MultiClusterIdResponse objektumot várunk)
+        if response_data and hasattr(response_data, 'events'):
+            count_in_batch = 0
+            for event in response_data.events:
+                # ID szivárgás elleni védelem: csak az ebben a batchben lévő ID-kat fogadjuk el
+                valid_ids: List[int] = [idx for idx in event.ids if i <= idx <= end_idx]
                 if valid_ids:
-                    final_clusters.append(SingleCluster(title=event["title"], ids=valid_ids))
-                    
-            print(f"🗂️ Klaszterezés fázis: {i}-{end_idx} ID-k besorolva.")
+                    final_clusters.append(SingleCluster(title=event.title, ids=valid_ids))
+                    count_in_batch += len(valid_ids)
             
-        except Exception as e:
-            # Ha bármi hiba történik (JSON, hálózat, API vágás), jelezzük, de nem állunk le!
-            print(f"⚠️ Hiba a(z) {i}-{end_idx} besorolásakor: {e}")
-            print("Ezt a 100-as csomagot átugorjuk, megyünk tovább...")
+            print(f"🗂️ Klaszterezés: {i}-{end_idx} tartomány kész. ({count_in_batch} hír besorolva)")
+        else:
+            print(f"⚠️ Hiba vagy üres válasz a(z) {i}-{end_idx} tartományban.")
 
     return final_clusters
 

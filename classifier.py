@@ -37,7 +37,7 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
             prompt: str = f"{instruction}\nGyűjtsd ki az 5-10 legfontosabb egyedi eseményt."
         else:
             prompt = f"""{instruction}
-            Itt az eddigi lista: {json.dumps([n for n in current_list], default=str)}. 
+            Itt az eddigi lista: {json.dumps([n for n in current_list], default=str, ensure_ascii=False)}. 
 
             Csak teljesen ÚJ, fajsúlyos eseményeket adj hozzá. Maximum 30 elem lehet a teljes listában!
             FONTOS: A kimenet tartalmazza az eddigi eseményeket és az újakat is, de ne legyen benne semmilyen magyarázat vagy kommentár, csak a tiszta lista JSON formában!"""
@@ -46,7 +46,7 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
         contents: str = prompt
         if not shared_state.active_cache:
             chunk: List[Article] = shared_state.filtered_news[i : end_idx + 1]
-            contents = f"{prompt}\n\nHírek: {json.dumps([n.title for n in chunk], default=str)}"
+            contents = f"{prompt}\n\nHírek: {json.dumps([n.title for n in chunk], default=str, ensure_ascii=False)}"
 
         #print contents line by line for debugging
         print("🚀 Küldött prompt:")

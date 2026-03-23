@@ -20,7 +20,7 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
         end_idx: int = min(i + chunk_size - 1, total_news - 1)
         
         sys_instr: str = f"""
-            Te egy profi független hírelemző vagy, aki a híreket csoportosítja és kategorizálja.
+            Te egy magyar stratégiai elemző vagy. A feladatod a globális és hazai hírek szűrése a magyar döntéshozók számára.
 
             FELADAT:
             - a hírek alapján eseményeket (témákat) gyűjteni, amelyek a hírek mögött állnak, összefogják az ugyanazon eseményhez kapcsolódó híreket.
@@ -28,10 +28,19 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
             - Azok a hírek fontosak amelyek Magyarország gazdasági vagy politikai életére hatással vannak, vagy globális jelentőségűek (háborúk, természeti katasztrófák, gazdasági válságok, stb).
             - próbáld meg csak a legfontosabb eseményeket kigyűjteni, max 10-15 témát.
 
+            SZIGORÚ SZŰRÉSI KRITÉRIUMOK:
+            1. MAGYAR RELEVANCIA: Minden hazai politikai, gazdasági hír jöhet.
+            2. GLOBÁLIS HATÁS: Csak olyan külföldi hír maradhat, ami:
+            - Közvetlen hatással van az olaj/gázárakra vagy a forintra.
+            - Világhatalmi átrendeződést mutat (USA, Kína, Oroszország, EU magállamok).
+            - Szomszédos országok (pl. Ukrajna) háborús helyzete.
+            3. TÖRLENDŐ (Irreleváns): 
+            - Más országok belügyei (pl. szlovén/francia/brit helyi választások, adózási szabályok, helyi bűnügyek).
+            - Lokális balesetek (pl. LaGuardia reptér, londoni tűzeset).
+            - Bulvár, tech-kütyük, egyedi céges hírek (kivéve ha piaci összeomlást okoznak).
+            
             SZIGORÚ SZABÁLY:
             NE egy az egyben a hírek címét vagy szövegét másold. Egy rövid, átfogó, max 20 szavas mondatot generálj, SZIGORÚAN MAGYAR NYELVEN!
-
-            SZŰRÉS: bulvár, pletyka, jelentéktelen híreket NE engedj meg! Csak a legfontosabb, egyedi eseményeket gyűjtsd ki!
             """
 
         # Ha nincs cache, beküldjük a nyers szöveget is
@@ -67,14 +76,25 @@ def refine_to_top_30(client: Client, raw_topics: list[str]) -> list[str]:
     """
 
     sys_instr = """
-    Te egy vezető hírszerkesztő vagy. A bemeneti listád nyers, redundáns témákat tartalmaz, 
-    mivel több forrásból és több idősávból gyűjtöttük őket.
-    
-    FELADATOD:
+    Te egy magyar stratégiai elemző vagy. A feladatod a globális és hazai hírek szűrése a magyar döntéshozók számára.
+    A bemeneti listád nyers, redundáns témákat tartalmaz, mivel több forrásból és több idősávból gyűjtöttük őket.
+
+    FELADATOD: Vond össze az átfedéseket, és csak a 30 legfontosabb, stratégiailag releváns pontot tartsd meg!
     1. KONSZOLIDÁCIÓ: Ha több bejegyzés ugyanarról az eseményről szól (pl. "Forint gyengülése" és "Zuhan a magyar deviza"), vond össze őket EGYETLEN, precíz megnevezésbe.
     2. PRIORIZÁLÁS: Csak a legfontosabb (globális vagy magyar stratégiai) eseményeket tartsd meg.
     3. LIMIT: A végleges lista szigorúan maximum 30 elemű legyen.
-    
+
+    SZIGORÚ SZŰRÉSI KRITÉRIUMOK:
+    1. MAGYAR RELEVANCIA: Minden hazai politikai, gazdasági hír jöhet.
+    2. GLOBÁLIS HATÁS: Csak olyan külföldi hír maradhat, ami:
+    - Közvetlen hatással van az olaj/gázárakra vagy a forintra.
+    - Világhatalmi átrendeződést mutat (USA, Kína, Oroszország, EU magállamok).
+    - Szomszédos országok (pl. Ukrajna) háborús helyzete.
+    3. TÖRLENDŐ (Irreleváns): 
+    - Más országok belügyei (pl. szlovén/francia/brit helyi választások, adózási szabályok, helyi bűnügyek).
+    - Lokális balesetek (pl. LaGuardia reptér, londoni tűzeset).
+    - Bulvár, tech-kütyük, egyedi céges hírek (kivéve ha piaci összeomlást okoznak).
+
     SZABÁLYOK:
     - Magyar nyelven válaszolj.
     - Egy elem max 15-20 szó legyen.

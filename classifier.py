@@ -36,8 +36,9 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
         if not current_list:
             prompt: str = f"{instruction}\nGyűjtsd ki az 5-10 legfontosabb egyedi eseményt."
         else:
+            list_with_breaks = "\n".join(current_list)
             prompt = f"""{instruction}
-            Itt az eddigi lista: {current_list}. 
+            Itt az eddigi lista: {list_with_breaks}. 
             Csak teljesen ÚJ, fajsúlyos eseményeket adj hozzá. Maximum 30 elem lehet a teljes listában!
             
             FONTOS: A kimenet tartalmazza az eddigi eseményeket és az újakat is, de ne legyen benne semmilyen magyarázat vagy kommentár, csak a tiszta lista JSON formában!"""

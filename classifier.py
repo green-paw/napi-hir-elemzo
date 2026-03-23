@@ -50,7 +50,7 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
             schema=list[str],
             sys_instr=sys_instr,
             contents=contents,
-            max_output_tokens=1024
+            max_output_tokens=2048
         )
 
         if result_list and isinstance(result_list, list):

@@ -88,7 +88,7 @@ def refine_to_top_30(client: Client, raw_topics: List[str]) -> List[str]:
         schema=list[str],
         sys_instr=sys_instr,
         contents=contents,
-        max_output_tokens=1024
+        max_output_tokens=2048
     )
     
     if result_list and isinstance(result_list, list):

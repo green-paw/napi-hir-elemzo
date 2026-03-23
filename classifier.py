@@ -65,27 +65,37 @@ def refine_to_top_30(client: Client, raw_topics: List[str]) -> List[str]:
     """
     2. Fázis: A nyers témalistából kiválogatja a 30 legfontosabbat.
     """
-    prompt: str = f"""
-    Rangsorold és válogasd ki a maximum 30 legfontosabb eseményt ebből a listából:
-    {raw_topics}
-    
-    Szempontok: globális hatás, rendkívüli események, társadalmi jelentőség.
-    A bulvárt és a jelentéktelen ismétlődő híreket hagyd el.
-    SZIGORÚ SZABÁLY: KIZÁRÓLAG a kiválasztott témák rövid neveit add vissza egy listában! Ne fűzz hozzájuk semmilyen magyarázatot vagy kommentárt!
-    """
-    
-    response = client.models.generate_content(
-        model=config.MODEL_ID, # Figyelj, hogy itt a standard modell fusson!
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            cached_content=shared_state.active_cache.name if shared_state.active_cache else None,
-            response_mime_type="application/json",
-            response_schema=list[str],
-            temperature=0.1,
-            max_output_tokens=2048 # Fizikai korlát: max ~800 szó
-        )
+
+    sys_instr: str = f"""
+        Te egy profi független hírelemző vagy, aki a híreket csoportosítja és kategorizálja.
+
+        FELADAT:
+        - a hírek alapján eseményeket (témákat) gyűjteni, amelyek a hírek mögött állnak, összefogják az ugyanazon eseményhez kapcsolódó híreket.
+        - Minden esemény legyen egy rövid mondat, max 20 szó, ami összefoglalja a mögöttes hírek lényegét. Ha országok, helyszínek, személyek szerepelnek, azokat is említsd meg a címben, de csak a legfontosabbakat!
+        - Azok a hírek fontosak amelyek Magyarország gazdasági vagy politikai életére hatással vannak, vagy globális jelentőségűek (háborúk, természeti katasztrófák, gazdasági válságok, stb).
+        - próbáld meg csak a legfontosabb eseményeket kigyűjteni, maximum 30 témát!
+
+        SZIGORÚ SZABÁLY:
+        NE egy az egyben a hírek címét vagy szövegét másold. Egy rövid, átfogó, max 20 szavas mondatot generálj, SZIGORÚAN MAGYAR NYELVEN!
+
+        SZŰRÉS: bulvár, pletyka, jelentéktelen híreket NE engedj meg! Csak a legfontosabb, egyedi eseményeket gyűjtsd ki!
+        """
+    contents = f"Hírek: {json.dumps(raw_topics, default=str, ensure_ascii=False)}"
+
+    result_list = gemini_call(
+        client=client,
+        model=config.MODEL_LITE_ID,
+        schema=list[str],
+        sys_instr=sys_instr,
+        contents=contents,
+        max_output_tokens=1024
     )
-    refined_list: List[str] = json.loads(response.text)
+    
+    if result_list and isinstance(result_list, list):
+        print(f"✅ Finomhangolás kész, {len(result_list)} fő téma maradt.")
+        return result_list
+    
+    refined_list: List[str] = json.loads(result_list.text)
     print(f"🎯 Finomhangolás kész, {len(refined_list)} fő téma maradt.")
     return refined_list
 

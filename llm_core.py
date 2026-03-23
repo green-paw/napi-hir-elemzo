@@ -64,7 +64,7 @@ def cleanup_cache(client: Client) -> None:
         finally:
             shared_state.active_cache = None
 
-def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any = None, sys_instr: str = "Te egy objektív, független hírelemző vagy.", contents: str = "", max_output_tokens: int = 1024) -> str:
+def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any = None, sys_instr: str = "Te egy objektív, független hírelemző vagy.", contents: str = "", max_output_tokens: int = 1024) -> Any:
     if not contents:
         print("⚠️ Figyelmeztetés: Nincs bemeneti tartalom a Gemini híváshoz.")
         return ""

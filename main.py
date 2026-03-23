@@ -40,10 +40,14 @@ def run_news_pipeline():
         for idx, topic in enumerate(raw_topics):
             print(f"{idx + 1}. {topic}")
 
-        return
-
         print("🎯 4. Top 30 téma kiválasztása (Flash)...")
         shared_state.master_topics = refine_to_top_30(client=client_main, raw_topics=raw_topics)
+
+        print(f"🎯 Felfedezett témák:")
+        for idx, topic in enumerate(shared_state.master_topics):
+            print(f"{idx + 1}. {topic}")
+
+        return
 
         print("🗂️ 5. Hírek besorolása (Flash Lite)...")
         raw_clusters = classify_news_with_lite(client=client_main)

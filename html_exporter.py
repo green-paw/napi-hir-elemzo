@@ -5,15 +5,15 @@ import shared_state
 from models import Summary, Article
 
 def get_url_by_id(article_id: int) -> str:
-    """Kikeresi egy hír ID-ja alapján az eredeti URL-t a globális memóriából."""
+    """Kikeresi egy hír ID-ja alapján az eredeti URL-t."""
     for article in shared_state.filtered_news:
         if article.id == article_id:
             return article.link
     return "#"
 
-def export_to_html(summaries: List[Summary], filename: str = "napi_hirek.html") -> None:
+def export_to_html(summaries: List[Summary], filename: str = "index.html") -> None:
     """
-    A kész összefoglalókból egy formázott, reszponzív HTML fájlt generál.
+    A kész összefoglalókból a korábbi letisztult, kártyás stílusú HTML-t generálja.
     """
     current_time: str = datetime.datetime.now().strftime("%Y. %m. %d. %H:%M")
     
@@ -24,20 +24,92 @@ def export_to_html(summaries: List[Summary], filename: str = "napi_hirek.html") 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Napi Hírösszefoglaló</title>
     <style>
-        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f4f7f6; max-width: 800px; margin: 0 auto; padding: 20px; }}
-        h1 {{ text-align: center; color: #2c3e50; }}
-        .date {{ text-align: center; color: #7f8c8d; margin-bottom: 40px; font-size: 0.9em; }}
-        .cluster-card {{ background: #fff; border-radius: 8px; padding: 25px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }}
-        .cluster-title {{ color: #2980b9; margin-top: 0; }}
-        .cluster-summary {{ margin-bottom: 20px; white-space: pre-wrap; }}
-        .sources {{ font-size: 0.85em; border-top: 1px solid #eee; padding-top: 15px; }}
-        .sources a {{ color: #3498db; text-decoration: none; margin-right: 15px; display: inline-block; margin-bottom: 5px; }}
-        .sources a:hover {{ text-decoration: underline; }}
+        :root {{
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #333;
+            --secondary-text: #666;
+        }}
+        body {{ 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+            line-height: 1.6; 
+            color: var(--text); 
+            background-color: var(--bg); 
+            max-width: 900px; 
+            margin: 0 auto; 
+            padding: 40px 20px; 
+        }}
+        header {{
+            text-align: center;
+            margin-bottom: 50px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 20px;
+        }}
+        h1 {{ color: var(--primary); margin-bottom: 5px; font-weight: 800; }}
+        .date {{ color: var(--secondary-text); font-size: 0.9em; }}
+        
+        .cluster-card {{ 
+            background: var(--card-bg); 
+            border-radius: 12px; 
+            padding: 30px; 
+            margin-bottom: 25px; 
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+            border-left: 5px solid var(--accent);
+        }}
+        .cluster-title {{ 
+            color: var(--primary); 
+            margin-top: 0; 
+            font-size: 1.4em;
+            line-height: 1.3;
+        }}
+        .cluster-summary {{ 
+            margin: 15px 0 25px 0; 
+            color: #444;
+            font-size: 1.05em;
+        }}
+        .sources-container {{ 
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }}
+        .source-label {{
+            font-size: 0.85em;
+            color: var(--secondary-text);
+            font-weight: 600;
+            margin-right: 10px;
+        }}
+        .source-badge {{ 
+            background: #ebf5fb;
+            color: var(--accent);
+            text-decoration: none;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            border: 1px solid #d6eaf8;
+        }}
+        .source-badge:hover {{ 
+            background: var(--accent);
+            color: white;
+            transform: translateY(-1px);
+        }}
+        @media (max-width: 600px) {{
+            body {{ padding: 20px 15px; }}
+            .cluster-card {{ padding: 20px; }}
+        }}
     </style>
 </head>
 <body>
-    <h1>Napi Hírösszefoglaló</h1>
-    <div class="date">Frissítve: {current_time}</div>
+    <header>
+        <h1>Napi Hírösszefoglaló</h1>
+        <div class="date">Frissítve: {current_time}</div>
+    </header>
 """
 
     for summary in summaries:
@@ -45,25 +117,23 @@ def export_to_html(summaries: List[Summary], filename: str = "napi_hirek.html") 
     <div class="cluster-card">
         <h2 class="cluster-title">{summary.title}</h2>
         <div class="cluster-summary">{summary.summary_text}</div>
-        <div class="sources">
-            <strong>Források: </strong>
+        <div class="sources-container">
+            <span class="source-label">FORRÁSOK:</span>
 """
-        # Forráslinkek legenerálása
-        for article_id in summary.source_ids:
+        # Forrásbadge-ek legenerálása (csak számokkal, mint a képen)
+        for i, article_id in enumerate(summary.source_ids):
             url: str = get_url_by_id(article_id)
-            if url != "#":
-                html_content += f'<a href="{url}" target="_blank">🔗 Cikk #{article_id}</a>'
-
+            html_content += f'<a href="{url}" class="source-badge" target="_blank">#{article_id}</a>'
+            
         html_content += """
         </div>
-    </div>"""
+    </div>
+"""
 
     html_content += """
 </body>
 </html>"""
 
-    # Fájlba írás
     with open(filename, "w", encoding="utf-8") as f:
         f.write(html_content)
-        
-    print(f"🌐 HTML sikeresen legenerálva és elmentve: {filename}")
+    print(f"✅ HTML export kész: {filename}")

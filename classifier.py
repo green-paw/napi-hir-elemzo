@@ -1,15 +1,10 @@
 # classifier.py
 import json
-from random import random
-import sys
-import time
 from typing import List, Dict, Any
 from google.genai import Client, types
 import shared_state
 from models import Article, SingleCluster, MultiClusterIdResponse
 import config
-import random
-from types import Schema
 
 from llm_core import gemini_call
 

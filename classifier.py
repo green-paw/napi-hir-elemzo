@@ -11,6 +11,7 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
     1. Fázis: Végigmegy a híreken 100-as csomagokban, és felépíti a témák listáját.
     Erős prompt-szabályokkal kényszerítjük a modellt a rövid kategórianevek használatára.
     """
+    final_list: List[str] = []
     current_list: List[str] = []
     total_news: int = len(shared_state.filtered_news)
 
@@ -40,11 +41,6 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
 
         chunk: List[Article] = shared_state.filtered_news[i : end_idx + 1]
         contents = f"Hírek: {json.dumps([n.title for n in chunk], default=str, ensure_ascii=False)}"
-
-        #print contents line by line for debugging
-        print("🚀 Küldött prompt:")
-        for line in contents.split('\n'):
-            print(line)
 
         response = client.models.generate_content(
             model=config.MODEL_LITE_ID,
@@ -77,6 +73,8 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
 
         try:
             current_list = json.loads(raw_text)
+            final_list.extend(current_list)
+
             print(f"🔄 Rolling fázis: {i}-{end_idx} feldolgozva, jelenleg {len(current_list)} téma van.")
         except json.JSONDecodeError as e:
             print(f"⚠️ JSON hiba a(z) {i}-{end_idx} blokkban: {e}")
@@ -84,7 +82,7 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
             print(f"Nyers szöveg vége:\n{raw_text[-50:]}")
             print("Folytatjuk az eddigi listával, ezt a 100-as csomagot átugorjuk.")
     
-    return current_list
+    return final_list
 
 def refine_to_top_30(client: Client, raw_topics: List[str]) -> List[str]:
     """

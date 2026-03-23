@@ -127,7 +127,7 @@ def generate_html(final_data_package, topics_html):
                 # Markdown átalakítása HTML-re a böngészőhöz
                 summary_rendered = markdown.markdown(item['summary'])
                 
-                ai_url = generate_ai_search_url(item['title'], "gemini")
+                ai_url = generate_ai_search_url(item['title'], "chatgpt")
 
                 html_template += f"""
                 <div class="news-card">

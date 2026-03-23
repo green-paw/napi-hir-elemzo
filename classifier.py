@@ -40,10 +40,10 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
         contents: str = prompt
         if not shared_state.active_cache:
             chunk: List[Article] = shared_state.filtered_news[i : end_idx + 1]
-            contents = f"{prompt}\n\nHírek: {json.dumps([n.model_dump() for n in chunk], default=str)}"
+            contents = f"{prompt}\n\nHírek: {json.dumps([n.title for n in chunk], default=str)}"
 
         response = client.models.generate_content(
-            model=config.MODEL_ID, # Használjuk a Lite modellt a config-ból
+            model=config.MODEL_LITE_ID, # Használjuk a Lite modellt a config-ból
             contents=contents,
             config=types.GenerateContentConfig(
                 cached_content=shared_state.active_cache.name if shared_state.active_cache else None,
@@ -64,7 +64,6 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
             raw_text = raw_text[:-3]
             
         raw_text = raw_text.strip()
-        print(f"Nyers szöveg:\n{raw_text[:50]} ... {raw_text[-50:]}")
 
         try:
             current_list = json.loads(raw_text)

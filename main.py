@@ -23,10 +23,6 @@ def run_news_pipeline():
         client.caches.delete(name=cache.name)
         print(f"Törölve: {cache.name}")
 
-    return
-
-
-    
     try:
         print("📥 1. Hírek letöltése...")
         shared_state.filtered_news = fetch_all_news(config.RSS_FEEDS)
@@ -35,11 +31,17 @@ def run_news_pipeline():
         news_json = json.dumps([n.model_dump() for n in shared_state.filtered_news], default=str)
 
         print("🧠 2. Cache inicializálása...")
-        setup_gemini_cache(client=client_main, formatted_json_text=news_json, model_id=config.MODEL_ID)
+        #setup_gemini_cache(client=client_main, formatted_json_text=news_json, model_id=config.MODEL_ID)
 
         print("🔍 3. Témák felderítése (Flash)...")
         raw_topics = discover_rolling_topics(client=client_main)
-        
+
+        print(f"🎯 Felfedezett témák:")
+        for idx, topic in enumerate(raw_topics):
+            print(f"{idx + 1}. {topic}")
+
+        return
+
         print("🎯 4. Top 30 téma kiválasztása (Flash)...")
         shared_state.master_topics = refine_to_top_30(client=client_main, raw_topics=raw_topics)
 

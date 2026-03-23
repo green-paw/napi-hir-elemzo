@@ -17,36 +17,29 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
     for i in range(0, total_news, chunk_size):
         end_idx: int = min(i + chunk_size - 1, total_news - 1)
         
-        instruction: str = f"""
+        sys_instr: str = f"""
             Te egy profi független hírelemző vagy, aki a híreket csoportosítja és kategorizálja.
-        
-            {f"FONTOS SZABÁLY: Elemezd a híreket a(z) {i} és {end_idx} ID-k között, CSAK EZEN ID-K alapján! Ne engedj meg semmilyen ID szivárgást (leakage) a bemeneti szövegből a kimenetbe!" if shared_state.active_cache else ""}
 
             FELADAT:
             - a hírek alapján eseményeket (témákat) gyűjteni, amelyek a hírek mögött állnak, összefogják az ugyanazon eseményhez kapcsolódó híreket.
             - Minden esemény legyen egy rövid, 5-8 szavas kategória, ami összefoglalja a mögöttes hírek lényegét.
             - Azok a hírek fontosak amelyek Magyarország gazdasági vagy politikai életére hatással vannak, vagy globális jelentőségűek (háborúk, természeti katasztrófák, gazdasági válságok, stb).
+            - maximum 10 eseményt gyűjts, csak a legfontosabbakat!
 
             SZIGORÚ SZABÁLY: NE másold ki a hírek címét vagy szövegét! Csak rövid, 5-8 szavas, átfogó esemény-neveket (kategóriákat/témákat) generálj!
             Példa jó kimenetre: ["USA választások", "Németországi sztrájkok", "Gázai konfliktus", "Tech cégek leépítései"]
 
-            SZŰRÉS: bulvár, pletyka, ismétlődő, jelentéktelen híreket NE engedj meg! Csak a legfontosabb, egyedi eseményeket gyűjtsd ki!
+            SZŰRÉS: bulvár, pletyka, jelentéktelen híreket NE engedj meg! Csak a legfontosabb, egyedi eseményeket gyűjtsd ki!
             """
 
-        if not current_list:
-            prompt: str = f"{instruction}\nGyűjtsd ki az 5-10 legfontosabb egyedi eseményt."
-        else:
-            prompt = f"""{instruction}
-            Itt az eddigi lista: {json.dumps([n for n in current_list], default=str, ensure_ascii=False)}. 
-
-            Csak teljesen ÚJ, fajsúlyos eseményeket adj hozzá. Maximum 30 elem lehet a teljes listában!
-            FONTOS: A kimenet tartalmazza az eddigi eseményeket és az újakat is, de ne legyen benne semmilyen magyarázat vagy kommentár, csak a tiszta lista JSON formában!"""
-
         # Ha nincs cache, beküldjük a nyers szöveget is
-        contents: str = prompt
-        if not shared_state.active_cache:
-            chunk: List[Article] = shared_state.filtered_news[i : end_idx + 1]
-            contents = f"{prompt}\n\nHírek: {json.dumps([n.title for n in chunk], default=str, ensure_ascii=False)}"
+        #contents: str = prompt
+        #if not shared_state.active_cache:
+        #    chunk: List[Article] = shared_state.filtered_news[i : end_idx + 1]
+        #    contents = f"{prompt}\n\nHírek: {json.dumps([n.title for n in chunk], default=str, ensure_ascii=False)}"
+
+        chunk: List[Article] = shared_state.filtered_news[i : end_idx + 1]
+        contents = f"Hírek: {json.dumps([n.title for n in chunk], default=str, ensure_ascii=False)}"
 
         #print contents line by line for debugging
         print("🚀 Küldött prompt:")
@@ -54,19 +47,20 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
             print(line)
 
         response = client.models.generate_content(
-            model=config.MODEL_LITE_ID, # Használjuk a Lite modellt a config-ból
+            model=config.MODEL_LITE_ID,
             contents=contents,
+            system_instruction=sys_instr,
             config=types.GenerateContentConfig(
                 cached_content=shared_state.active_cache.name if shared_state.active_cache else None,
                 response_mime_type="application/json",
                 response_schema=list[str],
-                temperature=0.1, # Még alacsonyabb hőmérséklet a fegyelmezettebb válaszért
-                max_output_tokens=800 # FIZIKAI GÁT: Maximum kb. 800 szót generálhat!
+                temperature=0.1,
+                max_output_tokens=1024
             )
         )
 
         try:        
-            print(f"📊 Válasz tokenek száma: {response.metadata.output_tokens or '<nem elérhető>'}")
+            print(f"📊 Output tokens: {response.usage_metadata.candidates_token_count}")
         except Exception as e:
             print(f"⚠️ Nem sikerült lekérdezni a token számot: {e}")
 

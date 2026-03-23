@@ -28,7 +28,7 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
             - Azok a hírek fontosak amelyek Magyarország gazdasági vagy politikai életére hatással vannak, vagy globális jelentőségűek (háborúk, természeti katasztrófák, gazdasági válságok, stb).
             - maximum 10 eseményt gyűjts, csak a legfontosabbakat!
 
-            SZIGORÚ SZABÁLY: NE másold ki a hírek címét vagy szövegét! Csak rövid, 5-8 szavas, átfogó esemény-neveket (kategóriákat/témákat) generálj!
+            SZIGORÚ SZABÁLY: NE másold ki a hírek címét vagy szövegét! Csak rövid, 5-8 szavas, átfogó esemény-neveket (kategóriákat/témákat) generálj, SZIGORÚAN MAGYAR NYELVEN!
             Példa jó kimenetre: ["USA választások", "Németországi sztrájkok", "Gázai konfliktus", "Tech cégek leépítései"]
 
             SZŰRÉS: bulvár, pletyka, jelentéktelen híreket NE engedj meg! Csak a legfontosabb, egyedi eseményeket gyűjtsd ki!

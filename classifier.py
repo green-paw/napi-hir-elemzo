@@ -18,13 +18,15 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
         end_idx: int = min(i + chunk_size - 1, total_news - 1)
         
         instruction: str = f"""
-            Te egy profi hírelemző vagy, aki a híreket csoportosítja és kategorizálja.
+            Te egy profi független hírelemző vagy, aki a híreket csoportosítja és kategorizálja.
         
             {f"FONTOS SZABÁLY: Elemezd a híreket a(z) {i} és {end_idx} ID-k között, CSAK EZEN ID-K alapján! Ne engedj meg semmilyen ID szivárgást (leakage) a bemeneti szövegből a kimenetbe!" if shared_state.active_cache else ""}
 
-            A feladatod a hírek alapján eseményeket (témákat) generálni, amelyek a hírek mögött állnak.
-            Minden esemény legyen egy rövid, 5-8 szavas kategória, ami összefoglalja a mögöttes hírek lényegét.
-            Azok a hírek fontosak amelyek Magyarország gazdasági vagy politikai életére hatással vannak, vagy globális jelentőségűek (háborúk, természeti katasztrófák, gazdasági válságok, stb).
+            FELADAT:
+            - a hírek alapján eseményeket (témákat) gyűjteni, amelyek a hírek mögött állnak, összefogják az ugyanazon eseményhez kapcsolódó híreket.
+            - Minden esemény legyen egy rövid, 5-8 szavas kategória, ami összefoglalja a mögöttes hírek lényegét.
+            - Azok a hírek fontosak amelyek Magyarország gazdasági vagy politikai életére hatással vannak, vagy globális jelentőségűek (háborúk, természeti katasztrófák, gazdasági válságok, stb).
+
             SZIGORÚ SZABÁLY: NE másold ki a hírek címét vagy szövegét! Csak rövid, 5-8 szavas, átfogó esemény-neveket (kategóriákat/témákat) generálj!
             Példa jó kimenetre: ["USA választások", "Németországi sztrájkok", "Gázai konfliktus", "Tech cégek leépítései"]
 
@@ -36,13 +38,20 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
         else:
             prompt = f"""{instruction}
             Itt az eddigi lista: {current_list}. 
-            Csak teljesen ÚJ, fajsúlyos eseményeket adj hozzá. Maximum 30 elem lehet a teljes listában! A kimenet tartalmazza az eddigi eseményeket és az újakat is, de ne legyen benne semmilyen magyarázat vagy kommentár, csak a tiszta lista JSON formában!"""
+            Csak teljesen ÚJ, fajsúlyos eseményeket adj hozzá. Maximum 30 elem lehet a teljes listában!
+            
+            FONTOS: A kimenet tartalmazza az eddigi eseményeket és az újakat is, de ne legyen benne semmilyen magyarázat vagy kommentár, csak a tiszta lista JSON formában!"""
 
         # Ha nincs cache, beküldjük a nyers szöveget is
         contents: str = prompt
         if not shared_state.active_cache:
             chunk: List[Article] = shared_state.filtered_news[i : end_idx + 1]
             contents = f"{prompt}\n\nHírek: {json.dumps([n.title for n in chunk], default=str)}"
+
+        #print contents line by line for debugging
+        print("🚀 Küldött prompt:")
+        for line in contents.split('\n'):
+            print(line)
 
         response = client.models.generate_content(
             model=config.MODEL_LITE_ID, # Használjuk a Lite modellt a config-ból

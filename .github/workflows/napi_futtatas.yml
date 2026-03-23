@@ -31,7 +31,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install google-genai feedparser requests pyTelegramBotAPI pytz scikit-learn markdown
+          pip install google-genai feedparser requests pyTelegramBotAPI pytz scikit-learn markdown google-api-core
+          pip install --upgrade google-genai google-api-core
 
       - name: Set safe output filename
         run: |

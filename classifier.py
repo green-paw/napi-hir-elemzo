@@ -12,7 +12,6 @@ import config
 import time
 import random
 from google.genai import types
-from google.api_core import exceptions
 
 def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
     """
@@ -66,23 +65,19 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
                     )
                 )
                 break  # Ha sikeres, kilépünk a retry loopból
-            except (exceptions.ServiceUnavailable, exceptions.InternalServerError) as e:
-                # 503 vagy 500 hiba
-                wait = (attempt + 1) * 5
-                print(f"⚠️ Szerver hiba ({e.code}). Újrapróbálkozás {wait} mp múlva... ({attempt+1}/{max_retries})")
-                time.sleep(wait)
-
-            except exceptions.ResourceExhausted as e:
-                # 429 hiba (Kvóta túllépés)
-                # Itt exponenciális várakozás + egy kis véletlen (jitter) a legjobb
-                wait = ((2 ** attempt) * 10) + random.uniform(0, 5)
-                print(f"🚫 Kvóta elfogyott (429). Hosszabb pihenő: {wait:.1f} mp... ({attempt+1}/{max_retries})")
-                time.sleep(wait)
-
             except Exception as e:
-                # Minden más végzetes hiba (pl. jogosultság, rossz paraméter)
-                print(f"❌ Végzetes hiba történt: {e}")
-                sys.exit(1)
+                if "429" in str(e):
+                    wait = ((2 ** attempt) * 10) + random.uniform(0, 5)
+                    print(f"🚫 Kvóta elfogyott (429). Hosszabb pihenő: {wait:.1f} mp... ({attempt+1}/{max_retries})")
+                    time.sleep(wait)
+                elif "503" in str(e) or "500" in str(e):
+                    wait = (attempt + 1) * 5
+                    print(f"⚠️ Szerver hiba (50x). Újrapróbálkozás {wait} mp múlva... ({attempt+1}/{max_retries})")
+                    time.sleep(wait)
+                else:
+                    # Minden más végzetes hiba (pl. jogosultság, rossz paraméter)
+                    print(f"❌ Végzetes hiba történt: {e}")
+                    sys.exit(1)
 
         try:        
             print(f"📊 Output tokens: {response.usage_metadata.candidates_token_count}")

@@ -1,4 +1,9 @@
 # llm_core.py
+import random
+import sys
+import time
+
+import config
 from google.genai import Client, types
 from typing import Any
 import shared_state
@@ -58,3 +63,62 @@ def cleanup_cache(client: Client) -> None:
             print(f"⚠️ Hiba a cache törlésekor: {e}")
         finally:
             shared_state.active_cache = None
+
+def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any = None, sys_instr: str = "Te egy objektív, független hírelemző vagy.", contents: str = "", max_output_tokens: int = 1024) -> str:
+    if not contents:
+        print("⚠️ Figyelmeztetés: Nincs bemeneti tartalom a Gemini híváshoz.")
+        return ""
+
+    response = None
+    max_retries: int = 5
+
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model=model,
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=sys_instr,
+                    cached_content=shared_state.active_cache.name if shared_state.active_cache else None,
+                    response_mime_type="application/json" if schema else "text/plain",
+                    response_schema=schema if schema else None,
+                    temperature=0.0 if schema else 0.2,
+                    max_output_tokens=max_output_tokens
+                )
+            )
+            break  # Ha sikeres, kilépünk a retry loopból
+        except Exception as e:
+            if "429" in str(e):
+                wait = ((2 ** attempt) * 10) + random.uniform(0, 5)
+                print(f"🚫 Kvóta elfogyott (429). Hosszabb pihenő: {wait:.1f} mp... ({attempt+1}/{max_retries})")
+                time.sleep(wait)
+            elif "503" in str(e) or "500" in str(e):
+                wait = (attempt + 1) * 5
+                print(f"⚠️ Szerver hiba (50x). Újrapróbálkozás {wait} mp múlva... ({attempt+1}/{max_retries})")
+                time.sleep(wait)
+            else:
+                # Minden más végzetes hiba (pl. jogosultság, rossz paraméter)
+                print(f"❌ Végzetes hiba történt: {e}")
+                sys.exit(1)
+
+    if response is None:
+        print("❌ Kritikus: Minden újrapróbálkozás sikertelen volt.")
+        sys.exit(1)
+
+    # Token használat naplózása (biztonságosan)
+    try:
+        if hasattr(response, 'usage_metadata'):
+            print(f"📊 Output tokens: {response.usage_metadata.candidates_token_count}")
+    except:
+        pass
+
+    # 3. OKOS VISSZATÉRÉS
+    if schema:
+        try:
+            # Ha van schema, a .parsed adja a tiszta Python típust (pl. listát)
+            return response.parsed
+        except Exception as e:
+            print(f"⚠️ Parsing hiba, fallback nyers szövegre: {e}")
+            return response.text.strip()
+    
+    return response.text.strip()

@@ -8,10 +8,10 @@ from google.genai import Client, types
 import shared_state
 from models import Article, SingleCluster, MultiClusterIdResponse
 import config
-
-import time
 import random
-from google.genai import types
+from types import Schema
+
+from llm_core import gemini_call
 
 def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
     """
@@ -19,7 +19,6 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
     Erős prompt-szabályokkal kényszerítjük a modellt a rövid kategórianevek használatára.
     """
     final_list: List[str] = []
-    current_list: List[str] = []
     total_news: int = len(shared_state.filtered_news)
 
     for i in range(0, total_news, chunk_size):
@@ -49,60 +48,20 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
         chunk: List[Article] = shared_state.filtered_news[i : end_idx + 1]
         contents = f"Hírek: {json.dumps([n.title for n in chunk], default=str, ensure_ascii=False)}"
 
-        max_retries: int = 5
-        for attempt in range(max_retries):
-            try:
-                response = client.models.generate_content(
-                    model=config.MODEL_LITE_ID,
-                    contents=contents,
-                    config=types.GenerateContentConfig(
-                        system_instruction=sys_instr,
-                        #cached_content=shared_state.active_cache.name if shared_state.active_cache else None,
-                        response_mime_type="application/json",
-                        response_schema=list[str],
-                        temperature=0.1,
-                        max_output_tokens=1024
-                    )
-                )
-                break  # Ha sikeres, kilépünk a retry loopból
-            except Exception as e:
-                if "429" in str(e):
-                    wait = ((2 ** attempt) * 10) + random.uniform(0, 5)
-                    print(f"🚫 Kvóta elfogyott (429). Hosszabb pihenő: {wait:.1f} mp... ({attempt+1}/{max_retries})")
-                    time.sleep(wait)
-                elif "503" in str(e) or "500" in str(e):
-                    wait = (attempt + 1) * 5
-                    print(f"⚠️ Szerver hiba (50x). Újrapróbálkozás {wait} mp múlva... ({attempt+1}/{max_retries})")
-                    time.sleep(wait)
-                else:
-                    # Minden más végzetes hiba (pl. jogosultság, rossz paraméter)
-                    print(f"❌ Végzetes hiba történt: {e}")
-                    sys.exit(1)
+        result_list = gemini_call(
+            client=client,
+            model=config.MODEL_LITE_ID,
+            schema=list[str],
+            sys_instr=sys_instr,
+            contents=contents,
+            max_output_tokens=1024
+        )
 
-        try:        
-            print(f"📊 Output tokens: {response.usage_metadata.candidates_token_count}")
-        except Exception as e:
-            print(f"⚠️ Nem sikerült lekérdezni a token számot: {e}")
-
-        raw_text: str = response.text.strip()
-        
-        if raw_text.startswith("```json"):
-            raw_text = raw_text[7:]
-        elif raw_text.startswith("```"):
-            raw_text = raw_text[3:]
-        if raw_text.endswith("```"):
-            raw_text = raw_text[:-3]
-            
-        raw_text = raw_text.strip()
-
-        try:
-            current_list = json.loads(raw_text)
-            final_list.extend(current_list)
-
-            print(f"🔄 Rolling fázis: {i}-{end_idx} feldolgozva, jelenleg {len(current_list)} téma van.")
-        except json.JSONDecodeError as e:
-            print(f"⚠️ JSON hiba a(z) {i}-{end_idx} blokkban: {e}")
-            print("Folytatjuk az eddigi listával, ezt a 100-as csomagot átugorjuk.")
+        if result_list and isinstance(result_list, list):
+            final_list.extend(result_list)
+            print(f"✅ Hozzáadva {len(result_list)} új téma.")
+        else:
+            print("⚠️ Nem érkezett feldolgozható lista ebből a szakaszból.")
     
     return final_list
 

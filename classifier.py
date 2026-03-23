@@ -23,7 +23,7 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
 
             FELADAT:
             - a hírek alapján eseményeket (témákat) gyűjteni, amelyek a hírek mögött állnak, összefogják az ugyanazon eseményhez kapcsolódó híreket.
-            - Minden esemény legyen egy rövid, 5-8 szavas kategória, ami összefoglalja a mögöttes hírek lényegét.
+            - Minden esemény legyen egy rövid mondat, max 10 szó, ami összefoglalja a mögöttes hírek lényegét.
             - Azok a hírek fontosak amelyek Magyarország gazdasági vagy politikai életére hatással vannak, vagy globális jelentőségűek (háborúk, természeti katasztrófák, gazdasági válságok, stb).
             - maximum 10 eseményt gyűjts, csak a legfontosabbakat!
 

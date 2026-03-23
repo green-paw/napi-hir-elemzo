@@ -34,7 +34,7 @@ def run_news_pipeline():
         #setup_gemini_cache(client=client_main, formatted_json_text=news_json, model_id=config.MODEL_ID)
 
         print("🔍 3. Témák felderítése (Flash)...")
-        raw_topics = discover_rolling_topics(client=client_main, chunk_size=50)
+        raw_topics = discover_rolling_topics(client=client_main, chunk_size=100)
 
         print(f"🎯 Felfedezett témák:")
         for idx, topic in enumerate(raw_topics):

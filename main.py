@@ -58,8 +58,6 @@ def run_news_pipeline():
         for idx, cluster in enumerate(valid_clusters):
             print(f"{idx + 1}. {cluster.title} - {len(cluster.ids)} hír")
 
-        return
-
         print("✍️ 7. Összefoglalók írása (Free Flash)...")
         final_reports = generate_final_reports(client=client_free, valid_clusters=valid_clusters)
 

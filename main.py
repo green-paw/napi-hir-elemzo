@@ -1,4 +1,5 @@
 import json
+from google import genai
 from google.genai import Client
 import config
 import shared_state
@@ -14,6 +15,18 @@ def run_news_pipeline():
     client_main = Client(api_key=config.GOOGLE_API_KEY_MAIN)
     client_free = Client(api_key=config.GOOGLE_API_KEY_FREE)
 
+    # Az összes aktív cache törlése:
+    for cache in client_main.caches.list():
+        client.caches.delete(name=cache.name)
+        print(f"Törölve: {cache.name}")
+    for cache in client_free.caches.list():
+        client.caches.delete(name=cache.name)
+        print(f"Törölve: {cache.name}")
+
+    return
+
+
+    
     try:
         print("📥 1. Hírek letöltése...")
         shared_state.filtered_news = fetch_all_news(config.RSS_FEEDS)

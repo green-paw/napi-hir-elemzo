@@ -65,8 +65,6 @@ def refine_to_top_30(client: Client, raw_topics: list[str]) -> list[str]:
     """
     2. Fázis: Konszolidálja a redundáns témákat és kiválasztja a 30 legfontosabbat.
     """
-    # Ehhez a logikai művelethez mindenképp a sima Flash kell, nem a Lite!
-    model_to_use = config.MODEL_ID 
 
     sys_instr = """
     Te egy vezető hírszerkesztő vagy. A bemeneti listád nyers, redundáns témákat tartalmaz, 
@@ -88,7 +86,7 @@ def refine_to_top_30(client: Client, raw_topics: list[str]) -> list[str]:
 
     result_list = gemini_call(
         client=client,
-        model=model_to_use,
+        model=config.MODEL_LITE_ID,
         schema=list[str],
         sys_instr=sys_instr,
         contents=contents,

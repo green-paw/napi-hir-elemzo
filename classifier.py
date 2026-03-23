@@ -1,10 +1,18 @@
 # classifier.py
 import json
+from random import random
+import sys
+import time
 from typing import List, Dict, Any
 from google.genai import Client, types
 import shared_state
 from models import Article, SingleCluster, MultiClusterIdResponse
 import config
+
+import time
+import random
+from google.genai import types
+from google.api_core import exceptions
 
 def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
     """
@@ -42,18 +50,39 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
         chunk: List[Article] = shared_state.filtered_news[i : end_idx + 1]
         contents = f"Hírek: {json.dumps([n.title for n in chunk], default=str, ensure_ascii=False)}"
 
-        response = client.models.generate_content(
-            model=config.MODEL_LITE_ID,
-            contents=contents,
-            config=types.GenerateContentConfig(
-                system_instruction=sys_instr,
-                #cached_content=shared_state.active_cache.name if shared_state.active_cache else None,
-                response_mime_type="application/json",
-                response_schema=list[str],
-                temperature=0.1,
-                max_output_tokens=1024
-            )
-        )
+        max_retries: int = 5
+        for attempt in range(max_retries):
+            try:
+                response = client.models.generate_content(
+                    model=config.MODEL_LITE_ID,
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        system_instruction=sys_instr,
+                        #cached_content=shared_state.active_cache.name if shared_state.active_cache else None,
+                        response_mime_type="application/json",
+                        response_schema=list[str],
+                        temperature=0.1,
+                        max_output_tokens=1024
+                    )
+                )
+                break  # Ha sikeres, kilépünk a retry loopból
+            except (exceptions.ServiceUnavailable, exceptions.InternalServerError) as e:
+                # 503 vagy 500 hiba
+                wait = (attempt + 1) * 5
+                print(f"⚠️ Szerver hiba ({e.code}). Újrapróbálkozás {wait} mp múlva... ({attempt+1}/{max_retries})")
+                time.sleep(wait)
+
+            except exceptions.ResourceExhausted as e:
+                # 429 hiba (Kvóta túllépés)
+                # Itt exponenciális várakozás + egy kis véletlen (jitter) a legjobb
+                wait = ((2 ** attempt) * 10) + random.uniform(0, 5)
+                print(f"🚫 Kvóta elfogyott (429). Hosszabb pihenő: {wait:.1f} mp... ({attempt+1}/{max_retries})")
+                time.sleep(wait)
+
+            except Exception as e:
+                # Minden más végzetes hiba (pl. jogosultság, rossz paraméter)
+                print(f"❌ Végzetes hiba történt: {e}")
+                sys.exit(1)
 
         try:        
             print(f"📊 Output tokens: {response.usage_metadata.candidates_token_count}")
@@ -78,8 +107,6 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
             print(f"🔄 Rolling fázis: {i}-{end_idx} feldolgozva, jelenleg {len(current_list)} téma van.")
         except json.JSONDecodeError as e:
             print(f"⚠️ JSON hiba a(z) {i}-{end_idx} blokkban: {e}")
-            print(f"Nyers szöveg eleje:\n{raw_text[:50]}")
-            print(f"Nyers szöveg vége:\n{raw_text[-50:]}")
             print("Folytatjuk az eddigi listával, ezt a 100-as csomagot átugorjuk.")
     
     return final_list

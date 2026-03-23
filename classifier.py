@@ -36,11 +36,10 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
         if not current_list:
             prompt: str = f"{instruction}\nGyűjtsd ki az 5-10 legfontosabb egyedi eseményt."
         else:
-            list_with_breaks = "\n".join(current_list)
             prompt = f"""{instruction}
-            Itt az eddigi lista: {list_with_breaks}. 
+            Itt az eddigi lista: {json.dumps([n for n in current_list], default=str)}. 
+
             Csak teljesen ÚJ, fajsúlyos eseményeket adj hozzá. Maximum 30 elem lehet a teljes listában!
-            
             FONTOS: A kimenet tartalmazza az eddigi eseményeket és az újakat is, de ne legyen benne semmilyen magyarázat vagy kommentár, csak a tiszta lista JSON formában!"""
 
         # Ha nincs cache, beküldjük a nyers szöveget is
@@ -65,7 +64,12 @@ def discover_rolling_topics(client: Client, chunk_size: int = 100) -> List[str]:
                 max_output_tokens=800 # FIZIKAI GÁT: Maximum kb. 800 szót generálhat!
             )
         )
-        
+
+        try:        
+            print(f"📊 Válasz tokenek száma: {response.metadata.output_tokens or '<nem elérhető>'}")
+        except Exception as e:
+            print(f"⚠️ Nem sikerült lekérdezni a token számot: {e}")
+
         raw_text: str = response.text.strip()
         
         if raw_text.startswith("```json"):

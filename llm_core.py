@@ -99,8 +99,8 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
         config_args["response_schema"] = schema
         
     # A büntetést CSAK a normál flash modellnél alkalmazzuk, a lite-nál nem!
-    if "lite" not in model.lower():
-        config_args["frequency_penalty"] = 1.0
+    #if "lite" not in model.lower():
+    #    config_args["frequency_penalty"] = 1.0
 
     for attempt in range(max_retries):
         try:

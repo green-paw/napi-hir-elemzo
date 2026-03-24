@@ -32,7 +32,7 @@ class Scores(BaseModel):
     novelty: int = Field(description="Mennyire tartalmaz új információt (1-10)")
 
 class ClusterResultSingle(BaseModel):
-    name: str = Field(description="Az esemény rövid, magyar neve")
+    name: str = Field(description="Az esemény rövid, magyar neve: SZIGORÚAN MAGYAR NYELVEN, akkor is ha minden forrás angol, csak cégnevek vagy személynevek maradhatnak eredeti formában.")
     ids: List[int] = Field(description="A hírek ID-jai, amik EBBEN az eseményben összeillenek")
     scores: Scores # Itt marad a pontozás (relevance, impact, novelty)
     category: str = Field(description="HAZAI, GLOBÁLIS vagy EGYÉB")

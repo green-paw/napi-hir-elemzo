@@ -188,7 +188,7 @@ def process_and_send(final_data_package):
                 --secondary-text: #4a4a4a;
             }}
             body {{
-                font-family: 'Georgia', serif;
+                -font-family: 'Georgia', serif;
                 background-color: var(--bg-color);
                 color: var(--text-color);
                 line-height: 1.6;
@@ -280,15 +280,11 @@ def process_and_send(final_data_package):
             }}
             .deep-dive-link {{
                 font-weight: bold;
-                color: var(--accent-color);
-                text-decoration: none;
-                border: 1px solid var(--accent-color);
-                padding: 5px 15px;
-                transition: all 0.2s;
-            }}
-            .deep-dive-link:hover {{
-                background-color: var(--accent-color);
-                color: white;
+                -color: var(--accent-color);
+                -text-decoration: none;
+                -border: 1px solid var(--accent-color);
+                -padding: 5px 15px;
+                -transition: all 0.2s;
             }}
             @media (max-width: 600px) {{
                 .analysis-grid {{ grid-template-columns: 1fr; }}
@@ -305,8 +301,8 @@ def process_and_send(final_data_package):
     <body>
         <div class="container">
             <header>
-                <h1>Intelligence Report</h1>
-                <div class="report-meta">Automated Briefing &middot; {now_str}</div>
+                <h1>AI Hírelemzés</h1>
+                <div class="report-meta">{now_str}</div>
             </header>
     """
 
@@ -325,7 +321,6 @@ def process_and_send(final_data_package):
                 # de ha marad a felfűzött verzió, akkor a Markdown parser elvégzi a munkát.
                 
                 sources_html = format_sources_html(item['sources'])
-                #sources_html = ", ".join([f'<a href="{s["url"]}">{s["name"]}</a>' for s in item['sources']])
 
                 html_template += f"""
                 <div class="news-section">
@@ -335,7 +330,7 @@ def process_and_send(final_data_package):
                     
                     <div class="footer-meta">
                         <div class="source-links">Források: {sources_html}</div>
-                        <a href="{ai_url}" target="_blank" class="deep-dive-link">Perplexity keresés</a>
+                        <a href="{ai_url}" target="_blank" class="deep-dive-link">AI websearch</a>
                     </div>
                 </div>
                 """

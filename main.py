@@ -267,16 +267,16 @@ def main():
         # Baloldali narratíva kezelése
         left_analysis = summary_data.get('left_wing_analysis', '').strip()
         if left_analysis:
-            formatted_summary += f"🔵 **Baloldali / Liberális narratíva:**\n{left_analysis}\n\n"
+            formatted_summary += f"**Baloldali / Liberális narratíva:**\n{left_analysis}\n\n"
         else:
-            formatted_summary += f"🔵 **Baloldali / Liberális narratíva:**\n_Nincs releváns forrás ehhez az oldalhoz._\n\n"
+            formatted_summary += f"**Baloldali / Liberális narratíva:**\n_Nincs releváns forrás ehhez az oldalhoz._\n\n"
             
         # Jobboldali narratíva kezelése
         right_analysis = summary_data.get('right_wing_analysis', '').strip()
         if right_analysis:
-            formatted_summary += f"🟠 **Jobboldali / Konzervatív narratíva:**\n{right_analysis}\n\n"
+            formatted_summary += f"**Jobboldali / Konzervatív narratíva:**\n{right_analysis}\n\n"
         else:
-            formatted_summary += f"🟠 **Jobboldali / Konzervatív narratíva:**\n_Nincs releváns forrás ehhez az oldalhoz._\n\n"
+            formatted_summary += f"**Jobboldali / Konzervatív narratíva:**\n_Nincs releváns forrás ehhez az oldalhoz._\n\n"
 
         # 3. Források kigyűjtése
         sources_data = [

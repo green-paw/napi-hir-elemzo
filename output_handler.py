@@ -276,9 +276,7 @@ def process_and_send(final_data_package):
                 align-items: center;
             }}
             .source-links a {{
-                color: var(--text-color);
                 text-decoration: underline;
-                margin-right: 15px;
             }}
             .deep-dive-link {{
                 font-weight: bold;
@@ -296,6 +294,12 @@ def process_and_send(final_data_package):
                 .analysis-grid {{ grid-template-columns: 1fr; }}
                 h2.article-title {{ font-size: 26px; }}
             }}
+            .category-title {{ 
+                font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; 
+                color: var(--primary); margin: 40px 0 20px; font-weight: 800;
+                display: flex; align-items: center;
+            }}
+            .category-title::after {{ content: ""; flex: 1; height: 1px; background: #e2e8f0; margin-left: 15px; }}
         </style>
     </head>
     <body>
@@ -306,29 +310,35 @@ def process_and_send(final_data_package):
             </header>
     """
 
-    for item in final_data_package:
-        summary_html = markdown.markdown(item['summary'])
-        ai_url = generate_ai_search_url(item['title'], "perplexity")
-        
-        # Szétválasztjuk a fő összefoglalót és az elemzéseket a HTML-ben
-        # Mivel a main.py-ban összefűztük, itt érdemesebb lenne a summary_data dictet használni,
-        # de ha marad a felfűzött verzió, akkor a Markdown parser elvégzi a munkát.
-        
-        sources_html = format_sources_html(item['sources'])
-        #sources_html = ", ".join([f'<a href="{s["url"]}">{s["name"]}</a>' for s in item['sources']])
+    categories = [('HAZAI', 'Magyarország'), ('GLOBÁLIS', 'Világhírek'), ('EGYÉB', 'Egyéb')]
+    for cat_key, cat_label in categories:
+        items = [i for i in final_data_package if i['category'] == cat_key]
+        if items:
+            html_template += f"<div class='category-title'>{cat_label}</div>"
 
-        html_template += f"""
-        <div class="news-section">
-            <span class="category-tag">{item['category']} &nbsp;|&nbsp; Score: {item['score']}</span>
-            <h2 class="article-title">{item['title']}</h2>
-            <div class="summary-text">{summary_html}</div>
-            
-            <div class="footer-meta">
-                <div class="source-links">Források: {sources_html}</div>
-                <a href="{ai_url}" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
-            </div>
-        </div>
-        """
+            for item in items:
+                summary_html = markdown.markdown(item['summary'])
+                ai_url = generate_ai_search_url(item['title'], "perplexity")
+                
+                # Szétválasztjuk a fő összefoglalót és az elemzéseket a HTML-ben
+                # Mivel a main.py-ban összefűztük, itt érdemesebb lenne a summary_data dictet használni,
+                # de ha marad a felfűzött verzió, akkor a Markdown parser elvégzi a munkát.
+                
+                sources_html = format_sources_html(item['sources'])
+                #sources_html = ", ".join([f'<a href="{s["url"]}">{s["name"]}</a>' for s in item['sources']])
+
+                html_template += f"""
+                <div class="news-section">
+                    <span class="category-tag">{item['category']} &nbsp;|&nbsp; Score: {item['score']}</span>
+                    <h2 class="article-title">{item['title']}</h2>
+                    <div class="summary-text">{summary_html}</div>
+                    
+                    <div class="footer-meta">
+                        <div class="source-links">Források: {sources_html}</div>
+                        <a href="{ai_url}" target="_blank" class="deep-dive-link">Perplexity keresés</a>
+                    </div>
+                </div>
+                """
 
     html_template += """
         </div>

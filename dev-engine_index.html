@@ -4,453 +4,433 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>AI Hírelemzés - 2026-03-24 13:21</title>
+        <title>AI News Intelligence Report</title>
         <style>
             :root {
-                --primary: #2563eb;
-                --bg: #f8fafc;
-                --card-bg: #ffffff;
-                --text-main: #1e293b;
-                --text-muted: #64748b;
-                --accent: #10b981;
+                --bg-color: #fdfdfb;
+                --text-color: #1a1a1a;
+                --accent-color: #8b0000; /* Deep red for a classic look */
+                --border-color: #d1d1d1;
+                --secondary-text: #4a4a4a;
             }
-            body { font-family: 'Inter', -apple-system, sans-serif; line-height: 1.6; background: var(--bg); color: var(--text-main); margin: 0; padding: 20px; }
-            .container { max-width: 850px; margin: auto; }
-            header { text-align: left; padding: 40px 0; border-bottom: 1px solid #e2e8f0; margin-bottom: 30px; }
-            h1 { margin: 0; font-size: 2.5rem; letter-spacing: -1px; }
-            .date { color: var(--text-muted); font-weight: 500; }
-            
-            .category-title { 
-                font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; 
-                color: var(--primary); margin: 40px 0 20px; font-weight: 800;
-                display: flex; align-items: center;
+            body {
+                font-family: 'Georgia', serif;
+                background-color: var(--bg-color);
+                color: var(--text-color);
+                line-height: 1.6;
+                margin: 0;
+                padding: 40px 20px;
             }
-            .category-title::after { content: ""; flex: 1; height: 1px; background: #e2e8f0; margin-left: 15px; }
-
-            .news-card { 
-                background: var(--card-bg); padding: 25px; margin-bottom: 24px; 
-                border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
-                transition: transform 0.2s ease; border: 1px solid #f1f5f9;
+            .container {
+                max-width: 850px;
+                margin: 0 auto;
             }
-            .news-card:hover { transform: translateY(-2px); }
-            
-            .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
-            .score { background: #eff6ff; color: var(--primary); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; }
-            .title { font-size: 1.4rem; font-weight: 700; color: var(--text-main); line-height: 1.3; flex: 1; padding-right: 15px; }
-            
-            .summary { margin: 20px 0; color: #334155; font-size: 1.05rem; }
-            .summary ul { padding-left: 20px; }
-            
-            .footer-row { 
-                display: flex; justify-content: space-between; align-items: center;
-                margin-top: 20px; padding-top: 15px; border-top: 1px solid #f1f5f9;
+            header {
+                border-bottom: 3px solid var(--text-color);
+                margin-bottom: 50px;
+                padding-bottom: 10px;
+                text-align: center;
             }
-            .sources { font-size: 0.85rem; color: var(--text-muted); }
-            .sources a { color: var(--primary); text-decoration: none; font-weight: 500; }
-            
-            .ai-button {
-                display: inline-flex; align-items: center; background: var(--primary); color: white;
-                padding: 8px 16px; border-radius: 8px; text-decoration: none; font-size: 0.85rem;
-                font-weight: 600; transition: background 0.2s;
+            header h1 {
+                font-size: 42px;
+                margin: 0;
+                text-transform: uppercase;
+                letter-spacing: -1px;
+                font-weight: 900;
             }
-            .ai-button:hover { background: #1e40af; }
-            .ai-button svg { margin-right: 8px; }
-
-            .strategy-box { background: #ffffff; padding: 20px; border-radius: 12px; border-left: 4px solid var(--accent); box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 30px; }
+            .report-meta {
+                font-size: 14px;
+                font-family: 'Helvetica', sans-serif;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                margin-top: 10px;
+                color: var(--secondary-text);
+            }
+            .news-section {
+                margin-bottom: 60px;
+                border-bottom: 1px solid var(--border-color);
+                padding-bottom: 40px;
+            }
+            .category-tag {
+                font-family: 'Helvetica', sans-serif;
+                font-size: 12px;
+                font-weight: bold;
+                color: var(--accent-color);
+                text-transform: uppercase;
+                margin-bottom: 10px;
+                display: block;
+            }
+            h2.article-title {
+                font-size: 32px;
+                margin: 0 0 20px 0;
+                line-height: 1.1;
+                font-weight: bold;
+            }
+            .summary-text {
+                font-size: 19px;
+                margin-bottom: 30px;
+                color: var(--text-color);
+                text-align: justify;
+            }
+            .analysis-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 30px;
+                margin-top: 30px;
+                padding-top: 20px;
+                border-top: 1px double var(--border-color);
+            }
+            .analysis-column h3 {
+                font-family: 'Helvetica', sans-serif;
+                font-size: 14px;
+                text-transform: uppercase;
+                margin-top: 0;
+                border-bottom: 1px solid var(--text-color);
+                padding-bottom: 5px;
+            }
+            .analysis-content {
+                font-size: 15px;
+                color: var(--secondary-text);
+                font-style: italic;
+            }
+            .footer-meta {
+                margin-top: 30px;
+                font-family: 'Helvetica', sans-serif;
+                font-size: 13px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .source-links a {
+                color: var(--text-color);
+                text-decoration: underline;
+                margin-right: 15px;
+            }
+            .deep-dive-link {
+                font-weight: bold;
+                color: var(--accent-color);
+                text-decoration: none;
+                border: 1px solid var(--accent-color);
+                padding: 5px 15px;
+                transition: all 0.2s;
+            }
+            .deep-dive-link:hover {
+                background-color: var(--accent-color);
+                color: white;
+            }
+            @media (max-width: 600px) {
+                .analysis-grid { grid-template-columns: 1fr; }
+                h2.article-title { font-size: 26px; }
+            }
         </style>
     </head>
     <body>
         <div class="container">
             <header>
-                <h1>🗞 Hírelemzés</h1>
-                <div class="date">Frissítve: 2026-03-24 13:21</div>
+                <h1>Intelligence Report</h1>
+                <div class="report-meta">Automated Briefing &middot; 2026. 03. 24. 13:50</div>
             </header>
     
-        <div class="strategy-box">
-            <h3 style="margin-top: 0; color: var(--accent);">🎯 Stratégiai fókuszpontok</h3>
-            <div style="font-size: 0.95rem;"><ul><li>Geopolitikai feszültségek és globális konfliktusok (Irán, Ukrajna, USA-Kína)</li><li>Magyarország belpolitikai válsága és a Tisza Párt szerepe</li><li>Energiaellátási válság és olajár-emelkedés</li><li>Magyar gazdasági kihívások (infláció, forint, reklámadó)</li><li>Nemzetbiztonsági kérdések és külföldi titkosszolgálati tevékenység Magyarországon</li><li>Az amerikai elnökválasztási kampány és annak globális hatásai</li><li>Kritikus infrastrukturális problémák (repülőterek, energiaellátás)</li></ul></div>
+        <div class="news-section">
+            <span class="category-tag">GLOBÁLIS &nbsp;|&nbsp; Score: 7.8</span>
+            <h2 class="article-title">Zaporizzsjai Atomerőmű áramellátási problémái</h2>
+            <div class="summary-text"><p>A Zaporizzsjai Atomerőmű elvesztette kapcsolatát az áramellátást biztosító fővezetékkel. Ez a létesítmény kritikus infrastruktúrájának működését befolyásolja.</p>
+<p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
+<em>Nincs releváns forrás ehhez az oldalhoz.</em></p>
+<p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
+A Mandiner a hírt <strong>drámai veszélyhelyzetként</strong> tálalja, a címben egyenesen <strong>atomkatasztrófával</strong> fenyegetve Európát. A narratíva a <strong>félelemkeltésre</strong> épül, és azt sugallja, hogy a helyzet annyira súlyos, hogy akár a fegyvereket is le kellene tenni az ukrán fronton. Ez a megközelítés a <strong>háború mielőbbi befejezésének szükségességét</strong> hangsúlyozza, ami összhangban van a kormánypárti kommunikációval. A tényszerű információt egy rendkívül erős, <strong>érzelmi töltetű címmel</strong> vezetik fel, ami a <strong>narratíva formálásának</strong> tipikus példája, elterelve a figyelmet a konkrét felelősség kérdéséről.</p></div>
+            
+            <div class="footer-meta">
+                <div class="source-links">Források: <a href="https://mandiner.hu/kulfold/2026/03/atomkatasztrofa-fenyegeti-europat-a-helyzet-annyira-sulyos-hogy-az-ukran-fronton-letehetik-a-fegyvert" target="_blank">mandiner</a></div>
+                <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Zaporizzsjai%20Atomer%C5%91m%C5%B1%20%C3%A1ramell%C3%A1t%C3%A1si%20probl%C3%A9m%C3%A1i" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
+            </div>
         </div>
-        <div class='category-title'>Magyarország</div>
-                <div class="news-card">
-                    <div class="card-header">
-                        <div class="title">Tisza Párt elleni titkosszolgálati akció</div>
-                        <span class="score">7.3 / 10</span>
-                    </div>
-                    <div class="summary"><p>Hiba történt az elemzés során.</p>
+        
+        <div class="news-section">
+            <span class="category-tag">GLOBÁLIS &nbsp;|&nbsp; Score: 7.5</span>
+            <h2 class="article-title">Iráni támadás hatása Izraelre</h2>
+            <div class="summary-text"><p>Tel-Avivot iráni rakétatámadás érte, melynek következtében hatan megsérültek, és az infrastruktúra jelentős károkat szenvedett.</p>
+<p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
+A hvg, mint liberális forrás, a címet leszámítva (súlyos károk) meglepően <strong>tényközlő</strong> hangnemet üt meg. A kivonatban <strong>objektíven</strong> számol be a sérültek számáról és az infrastrukturális károkról, elkerülve az érzelmi felhangokat vagy a politikai állásfoglalást. Ez a <strong>semleges tálalás</strong> eltér a forrásra jellemző kritikai hangvételtől, ami arra utalhat, hogy a közvetlen eseményről szóló beszámolóban a tények dominálnak.</p>
+<p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
+<em>Nincs releváns forrás ehhez az oldalhoz.</em></p></div>
+            
+            <div class="footer-meta">
+                <div class="source-links">Források: <a href="https://hvg.hu/vilag/20260324_sulyos-karokat-okozott-a-tel-avivot-ert-irani-raketatamadas" target="_blank">hvg</a></div>
+                <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Ir%C3%A1ni%20t%C3%A1mad%C3%A1s%20hat%C3%A1sa%20Izraelre" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
+            </div>
+        </div>
+        
+        <div class="news-section">
+            <span class="category-tag">GLOBÁLIS &nbsp;|&nbsp; Score: 7.5</span>
+            <h2 class="article-title">Kína tengeralatti hadviselésre készül az Egyesült Államokkal</h2>
+            <div class="summary-text"><p>Kína az óceánfenék részletes feltérképezését végzi. A tevékenység a potenciális tengeralattjáró-hadviselésre való felkészülés része az Egyesült Államokkal szemben, ami a tengeri hadműveletek szempontjából kritikus információkat szolgáltat.</p>
 <p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
 <em>Nincs releváns forrás ehhez az oldalhoz.</em></p>
 <p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
 <em>Nincs releváns forrás ehhez az oldalhoz.</em></p></div>
-                    <div class="footer-row">
-                        <div class="sources">Forrás: <a href="https://mandiner.hu/belfold/2026/03/megerkezett-az-ep-kepviselok-postaladajaba-az-igazsag-a-tisza-part-ugynokkormanyt-alakitana-magyarorszagon" target="_blank">mandiner</a> | hvg (<a href="https://hvg.hu/itthon/20260324_magyar-peter-tisza-titkosszolgalati-puccskiserlet" target="_blank">1</a>, <a href="https://hvg.hu/itthon/20260324_titkosszolgalatok-rendorsegi-nyomozas-tisza-vilag-applikacio-informatikai-rendszer-bedontes" target="_blank">2</a>, <a href="https://hvg.hu/eurologus/20260324_deutsch-tamas-dezinformaci-europai-parlament-ep2026" target="_blank">3</a>) | 444 (<a href="https://444.hu/2026/03/24/magyar-ez-az-ugy-a-legrosszabb-kommunista-idoket-idezi-es-sulyosabb-a-watergate-botranynal?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_syndication" target="_blank">1</a>, <a href="https://444.hu/2026/03/24/direkt36-az-alkotmanyvedelmi-hivatal-nyomasara-fals-indokkal-tartottak-hazkutatast-a-tisza-informatikusainal?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_syndication" target="_blank">2</a>) | telex (<a href="https://telex.hu/direkt36/2026/03/24/a-10-legfontosabb-allitas-a-tisza-elleni-muveletrol-szolo-direkt36-nyomozasbol" target="_blank">1</a>, <a href="https://telex.hu/belfold/2026/03/24/magyar-peter-a-direkt36-cikkerol-a-legrosszabb-kommunista-idoket-idezi-sulyosabb-az-amerikai-watergate-botranynal" target="_blank">2</a>, <a href="https://telex.hu/direkt36/2026/03/24/titkosszolgalati-nyomasra-tortent-hazkutatas-a-tiszat-segito-informatikusoknal-aztan-kibukott-egy-gyanus-muvelet-a-part-ellen-1" target="_blank">3</a>) | <a href="https://24.hu/belfold/2026/03/24/magyar-peter-onmerenylet/" target="_blank">24hu</a></div>
-                        <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Tisza%20P%C3%A1rt%20elleni%20titkosszolg%C3%A1lati%20akci%C3%B3" target="_blank" class="ai-button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            Mélyelemzés
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="news-card">
-                    <div class="card-header">
-                        <div class="title">S&P figyelmeztetése a magyar költségvetési helyzetre</div>
-                        <span class="score">7.3 / 10</span>
-                    </div>
-                    <div class="summary"><p>Az S&amp;P Global hitelminősítő szerint a magyar szociális kiadások jelenlegi pályája fenntarthatatlan. A választások utáni kormánynak pártállástól függetlenül költségvetési konszolidációt kell végrehajtania. A globális energiaár-sokk tovább rontja a kilátásokat. Érdemi középtávú kiigazítás hiányában Magyarország befektetésre nem ajánlott kategóriába kerülhet.</p>
+            
+            <div class="footer-meta">
+                <div class="source-links">Források: <a href="https://news.google.com/rss/articles/CBMiuAFBVV95cUxNUjBzWXRGUU5kejFFdXp0Ty1Vak8xaTBRdXpqRkhOVDZLT05hVDRQaUR6c3g3dlRrRDI5VGlPUkhZVjhHY0YyNnA4S0ZUVnJSbFlfcV9rZmE5NUMxdnJ5ZTRPN29JWHFiLTFYUWR5OFhoVFBNX1d0ZExqRklhMkFreE92d0dXVmhzTm14Rkx3Qk5aT2pYNGlJRzAtU0VQektmT3VSMlpoRGRZNWQ3Rm5ZVEFsSlYwTEct?oc=5" target="_blank">reuters</a></div>
+                <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20K%C3%ADna%20tengeralatti%20hadvisel%C3%A9sre%20k%C3%A9sz%C3%BCl%20az%20Egyes%C3%BClt%20%C3%81llamokkal" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
+            </div>
+        </div>
+        
+        <div class="news-section">
+            <span class="category-tag">GLOBÁLIS &nbsp;|&nbsp; Score: 7.3</span>
+            <h2 class="article-title">Olajár-emelkedés és geopolitikai feszültségek</h2>
+            <div class="summary-text"><p>A Közel-Keleten kiéleződő geopolitikai feszültségek, különösen az Iránnal kapcsolatos nyilatkozatháború és a Hormuzi-szorosban tapasztalható akadozó tankerforgalom miatt újra emelkedik a kőolaj világpiaci ára. Az energiaszállításokat érő támadások és a növekvő bizonytalanság globális energiakrízist idézhet elő, melynek legnagyobb nyertese Oroszország lehet.</p>
 <p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
-A liberális média (pl. hvg) a <strong>megszorítások</strong> és a <strong>leminősítés</strong> fenyegetésével tálalja a hírt, ezzel <strong>félelemkeltést</strong> alkalmazva. A „bóvliba vágnak” kifejezés drámai hangvételével a jelenlegi gazdaságpolitika kudarcát sugallja, anélkül, hogy expliciten kimondaná. A portfolio, bár elemző, a „fenntarthatatlan” és „azonnal hozzá kell nyúlni” kifejezésekkel a <strong>probléma súlyosságát</strong> és a sürgős beavatkozás szükségességét hangsúlyozza.</p>
+A liberális narratíva a <strong>Trump-adminisztráció felelőtlen külpolitikáját</strong> és a <strong>közel-keleti konfliktusok eszkalálódását</strong> emeli ki. A helyzetet <strong>globális válságként</strong> tálalja, amely a <strong>legszegényebb országokat</strong> sújtja leginkább, miközben a <strong>nagy olajtermelőket</strong> (mint Oroszország) hozza ki nyertesként. A <strong>manipuláció</strong> abban rejlik, hogy a felelősséget a <strong>demokratikus országok vezetőire</strong> hárítja, miközben a <strong>diktatórikus rezsimek</strong> profitálnak a káoszból.</p>
+<p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
+A konzervatív narratíva a <strong>magas olajárak negatív hatásait</strong> hangsúlyozza az energiaimportőr országokra, különösen azokra, amelyek <strong>gyenge fizetési mérleggel</strong> rendelkeznek. Az <strong>Iránnal szembeni konfrontációt</strong> és a <strong>NATO-országok kiszolgáltatottságát</strong> emeli ki, utalva arra, hogy még a legerősebb államok is nehéz helyzetbe kerülhetnek. A <strong>fókusz</strong> a gazdasági következményeken és a <strong>nemzetbiztonsági kockázatokon</strong> van, az érvek pedig a <strong>gazdasági stabilitás</strong> és az <strong>energiabiztonság</strong> fontosságát támasztják alá.</p></div>
+            
+            <div class="footer-meta">
+                <div class="source-links">Források: <a href="https://telex.hu/gazdasag/2026/03/24/koolaj-ar-donald-trump-iran-haboru" target="_blank">telex</a> | <a href="https://www.portfolio.hu/gazdasag/20260324/kirobbant-a-vilagvalsag-kit-sodor-el-az-uj-energiakrizis-825956" target="_blank">portfolio</a> | <a href="https://www.vg.hu/penz-es-tokepiac/2026/03/irani-haboru-devizavalsag-energiavalsag-aranytartalek?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank">vg</a></div>
+                <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Olaj%C3%A1r-emelked%C3%A9s%20%C3%A9s%20geopolitikai%20fesz%C3%BClts%C3%A9gek" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
+            </div>
+        </div>
+        
+        <div class="news-section">
+            <span class="category-tag">GLOBÁLIS &nbsp;|&nbsp; Score: 7.3</span>
+            <h2 class="article-title">Trump és Irán közötti tárgyalások és konfliktus</h2>
+            <div class="summary-text"><p>Donald Trump elhalasztotta az Irán elleni katonai akciót, és tárgyalásokat emlegetett. Az iráni rakétatámadások Izrael ellen történtek, miközben Irán tagadja a tárgyalásokat. Európai szövetségesek nincsenek informálva Trump lépéseiről, ami aggodalmat kelt.</p>
+<p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
+A baloldali narratíva Trump lépéseit <strong>időhúzásnak</strong> és <strong>szemfényvesztésnek</strong> állítja be, hangsúlyozva a tárgyalásokról szóló iráni tagadásokat és az európai szövetségesek <strong>információhiányát</strong>. A CNN cikkei a Trump-adminisztráció <strong>átláthatatlanságát</strong> és a szövetségesekkel való kommunikáció hiányát emelik ki, ami a <strong>bizalomvesztés</strong> kockázatát hordozza.</p>
+<p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
+A jobboldali narratíva Trump Iránnal kapcsolatos stratégiáját az <strong>'előre nem láthatóság doktrínájaként'</strong> jellemzi, kiemelve a fenyegetések és a hirtelen leállás közötti ellentétet. A Fox News a <strong>váratlan fordulatokat</strong> és a kiszámíthatatlan megközelítést hangsúlyozza, ami a Mandiner szerint egy <strong>rejtélyes, színfalak mögötti paktum</strong> körvonalazódását is sejtetheti.</p></div>
+            
+            <div class="footer-meta">
+                <div class="source-links">Források: <a href="https://hvg.hu/360/20260324_usa-iran-trump-haboru-izrael-hvg" target="_blank">hvg</a> | <a href="https://444.hu/2026/03/24/izraelt-lotte-raketakkal-iran-es-tovabbra-is-tagadjak-hogy-targyalnanak?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_syndication" target="_blank">444</a> | <a href="https://mandiner.hu/kulfold/2026/03/kiszivargott-trump-titkos-paktuma-rejtelyes-irani-vezetovel-egyezhetett-meg-a-szinfalak-mogott" target="_blank">mandiner</a> | cnn (<a href="https://news.google.com/rss/articles/CBMijAFBVV95cUxPR0F4VjQycnoycy1Nd1p3c1BZZlZNT2NVeXBSdTFqdzdoYVJ0WmFoRWNWRWFWaUF1cEhuQ2dNUG9BSUZxbWRVeXkyWGdGMUd5dnZERkg4SV94WmJkdS1UQTdQbDhzeHZaX2U1dVk3YXlMUXJPNlJaNzBZSXFETGZvNkFOc3ZUMnJEYkktQQ?oc=5" target="_blank">1</a>, <a href="https://news.google.com/rss/articles/CBMigAFBVV95cUxNZy1VUXRZeHYtT2Qzd1N4X2dWbFdRYVVfdVNucXRtTjFEWUVEQmszNkF5RXc3YmRNTFZRT2RXWEEtSkk5amtMT2VERU9HWXB4U1dvWndNcmJ0TVhqZ1ZkNG02d0FUMUM2VVVkMGt6NVJ1SkswdDdSNFdRbmYzRWRwSg?oc=5" target="_blank">2</a>, <a href="https://news.google.com/rss/articles/CBMic0FVX3lxTE9RTUFkazB3VERNSUFETUREMWwwdTVFdTRxRWI3VzV0eXhoNkpzMUw3eHhVVmcyRmtXbU03Q3lYMnFza2FncVQ2ZG8tbmFhc1JwZkY2YmlxYWV4NUlJRmRkaWVtQjhQYzMyOXRCNXJCaEtfdlU?oc=5" target="_blank">3</a>, <a href="https://news.google.com/rss/articles/CBMikAFBVV95cUxPMzJzREdpbEl6bjNkV1pxZF9NeDFYa0pDYWdEU0xnb0xpT2FXM0tUNFFKOFZaSlhRQ09nVmVPdFYzT3Z5NVlscy1IbktiZm5rM0tqZU8wdWRkVXp3MF92V05PS3k2Umh2RnpObjJuVmhWcnRKd1FQUjNEb1dWYWdLQ2NoM2o3cm9nOUhMT3k0c28?oc=5" target="_blank">4</a>, <a href="https://news.google.com/rss/articles/CBMirAFBVV95cUxNRklQZEJ0VUYydTdFa0VZLXN6Qnl5UnVmNGd2U08zTlRrNjJHUkhJQVNsY2JlYjE4dm5YQ1hhbGxXYWtzMTZBNzhlRkFIMWM0Q1hOelg2bGJYNGNseUU1ZkpKRl9MeU52bDJFX29rMlpkejVROXVVN244ZXVTdHVTT1dvYzIzMkg0Q1VhNWFIYXYzU0pnczhreTEyQ0V5ZXVuRTFIc3NPalBWTjYz?oc=5" target="_blank">5</a>, <a href="https://news.google.com/rss/articles/CBMib0FVX3lxTE45cTAwcUJLUFpBeVBfLWtwRTRRNUtSYWFwUWR6ZDdLODJrNmNpUzBPVDMxOEI0MFk3MlZmNkNIUlFJZ1ZheUxtSWI5LUcxZ1RnSHpiLVZoTW5mVXlNV1hCcnVCOUFwdFNfSjk1S3hjcw?oc=5" target="_blank">6</a>) | <a href="https://news.google.com/rss/articles/CBMivAFBVV95cUxPS2JvU3NhaU5zNlpfbEl0TVQwRVZ0ZE5lOTlqZDZuTU1LOEZfWXFPZWV1RnlLVWQwNkJFMXdIZGMyenpPOW9Tb0NzVy1NakRlQ1RnSGJ3WkY2S3ZGN1NlcHFIdTIxdXMwSzRzNVBDblhjVE1IRlJSWDMyQXlHSnpoVjh5NVBWRXNKWmp1YXlQcTBTMlVXc0hRTkUzbXhxU0tVNUFELUlCcFI3cnZkc0k0ZlJ5SXNKclNWYVI2Yg?oc=5" target="_blank">reuters</a> | <a href="https://news.google.com/rss/articles/CBMivwFBVV95cUxNNHRxbXZaU2ExOE1WMlZmOHZWX2dWR2NsWDlLOEQ5MkRsLWpJRjhISEFqTWJHazRpS2gzSzlReEw0T0xqdUU1emZzQmE4NnNYM2JjN0xJN0xjc3dBdldENkFCMTh2TEhPaVhvQkc2bXJGQmtrT1ZEUUVyVVhHWEN1T1N4V2pBeXp4N19LZERqbHk5RDlVQWdpR3g2bFh0YXlkUXlkNWVBSzdPRjlibXZmc19WR3UySUphUHZiQ3BIZ9IBxAFBVV95cUxQLUNxeml0M2VHSmJ3T0hsanUtNFUzNW9FbkZHWXBpWnR0aUxvVVVITHVxMWZvQU54eE9UcGV2Wm1NVEQ5alRTcm1rb09sdUtQd3I2ODA3RW5FNDdLYmoxdlEzYS1nSWtPeWM4cXlZS0p6RmJzUmdXd2hRemcyQ3RIdVc1S2xJclBkRXJEQTZlTUVfc09VVjNuRmw4UlF0aGtGMlpXTHBWODlRWnMzVk51NTVOeDhOYVFTUGpTS1VZdi1lR2VN?oc=5" target="_blank">fox_news</a></div>
+                <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Trump%20%C3%A9s%20Ir%C3%A1n%20k%C3%B6z%C3%B6tti%20t%C3%A1rgyal%C3%A1sok%20%C3%A9s%20konfliktus" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
+            </div>
+        </div>
+        
+        <div class="news-section">
+            <span class="category-tag">HAZAI &nbsp;|&nbsp; Score: 7.3</span>
+            <h2 class="article-title">Magyar Péter és a titkosszolgálati nyomozás ügye</h2>
+            <div class="summary-text"><p>Magyar Péter, a Tisza Párt elnöke sajtóhírekre reagálva puccskísérletnek nevezte a kormányzat titkosszolgálati eszközökkel történő beavatkozását a politikai folyamatokba. Állítása szerint az informatikusok elleni nyomozás elindítása politikai nyomásra történt. A legfőbb ügyész visszautasította a vádakat, hangsúlyozva a szakmai alapú döntéshozatalt.</p>
+<p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
+A baloldali narratíva a <strong>titkosszolgálati beavatkozást</strong> és a <strong>politikai nyomásgyakorlást</strong> emeli ki, mint a kormányzat módszereit. Magyar Péter kijelentéseit a <strong>legrosszabb kommunista időket</strong> és a <strong>Watergate-botrányt</strong> idéző, <strong>erősen érzelmi töltetű párhuzamokkal</strong> támasztja alá, ezzel is fokozva a felháborodást és a kormányellenes hangulatot. A <strong>manipulációs technika</strong> itt a <strong>dramatizálás</strong> és az <strong>érzelmi hergelés</strong>, valamint a <strong>kontextusból kiragadott, túlzó összehasonlítások</strong> használata.</p>
 <p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
 <em>Nincs releváns forrás ehhez az oldalhoz.</em></p></div>
-                    <div class="footer-row">
-                        <div class="sources">Forrás: <a href="https://www.portfolio.hu/gazdasag/20260324/ujabb-figyelmeztetes-erkezett-fenntarthatatlan-a-magyar-szocialis-rendszer-azonnal-hozza-kell-nyulni-826226" target="_blank">portfolio</a> | <a href="https://hvg.hu/gazdasag/20260324_sp-megszoritas-valasztas-bovli" target="_blank">hvg</a> | <a href="https://news.google.com/rss/articles/CBMipwFBVV95cUxQWGI5NGVBdk9EbWg1cm9jdmM4TEhzVC1tNWdVcXhGRWFOeUhORGRUOTJfYVcwc09WcWx0dHQ4SkZGRnZjRnlRLW9EY3diODZGa29ONUMzVTRlX1V5SzU5ZHRMT20tZmU1Vzg1b0wwXzZtXzc3SkZXVE5oQV8ybE9IcUhwZ1hBV2Nac1lDY2RXeUpaOVZFUlJhenp6REhMcnEzdVhzdGNFbw?oc=5" target="_blank">reuters</a></div>
-                        <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20S%26P%20figyelmeztet%C3%A9se%20a%20magyar%20k%C3%B6lts%C3%A9gvet%C3%A9si%20helyzetre" target="_blank" class="ai-button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            Mélyelemzés
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="news-card">
-                    <div class="card-header">
-                        <div class="title">Tisza Párt kampánybotrányok és vádak</div>
-                        <span class="score">7.3 / 10</span>
-                    </div>
-                    <div class="summary"><p>Hiba történt az elemzés során.</p>
+            
+            <div class="footer-meta">
+                <div class="source-links">Források: <a href="https://hvg.hu/itthon/20260324_magyar-peter-tisza-titkosszolgalati-puccskiserlet" target="_blank">hvg</a> | telex (<a href="https://telex.hu/belfold/2026/03/24/magyar-peter-ketharmados-gyozelem-legfobb-ugyesz-kuria-birosag-koztarsasagi-elnok" target="_blank">1</a>, <a href="https://telex.hu/belfold/2026/03/24/magyar-peter-a-direkt36-cikkerol-a-legrosszabb-kommunista-idoket-idezi-sulyosabb-az-amerikai-watergate-botranynal" target="_blank">2</a>) | 444 (<a href="https://444.hu/2026/03/24/magyar-ez-az-ugy-a-legrosszabb-kommunista-idoket-idezi-es-sulyosabb-a-watergate-botranynal?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_syndication" target="_blank">1</a>, <a href="https://444.hu/2026/03/24/az-ugyeszseg-visszautasitotta-magyar-peter-vadjait-azt-irtak-a-donteseik-kizarolag-szakmai-alapon-szuletnek?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_syndication" target="_blank">2</a>) | <a href="https://24.hu/belfold/2026/03/24/magyar-peter-onmerenylet/" target="_blank">24hu</a></div>
+                <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Magyar%20P%C3%A9ter%20%C3%A9s%20a%20titkosszolg%C3%A1lati%20nyomoz%C3%A1s%20%C3%BCgye" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
+            </div>
+        </div>
+        
+        <div class="news-section">
+            <span class="category-tag">GLOBÁLIS &nbsp;|&nbsp; Score: 7.3</span>
+            <h2 class="article-title">Ukrajna katonai akciói és az orosz reakciók</h2>
+            <div class="summary-text"><p>Egy drón lépte át egy NATO-tagállam határát. Ukrajna potenciális fenyegetést jelent Moszkvára. Oroszország csapásokat mért Ukrajna energiaellátására, áramkimaradásokat okozva. Oroszország új fegyvert vetett be.</p>
+<p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
+<em>Nincs releváns forrás ehhez az oldalhoz.</em></p>
+<p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
+A jobboldali média a <strong>konfliktus eszkalációjának veszélyét</strong> hangsúlyozza, különösen az ukrán akciók (NATO-határ átlépése, Moszkva fenyegetése) kapcsán, melyek <strong>Európa biztonságát</strong> veszélyeztetik. Kiemelik <strong>Oroszország katonai erejét és technológiai fejlődését</strong> (új fegyverek, sikeres energiaellátási támadások), miközben <strong>Ukrajna nehézségeit és sebezhetőségét</strong> hangsúlyozzák. A narratíva célja a <strong>félelemkeltés</strong> és az ukrán fél cselekedeteinek a konfliktus kiszélesedéséért való <strong>részleges felelősségre vonása</strong>, elhallgatva az orosz agresszió kiváltó okait. Az „Egyre nagyobb veszély fenyegeti az egész Európai Uniót” kijelentés egyértelműen a <strong>pánikkeltés</strong> eszköze.</p></div>
+            
+            <div class="footer-meta">
+                <div class="source-links">Források: mandiner (<a href="https://mandiner.hu/kulfold/2026/03/megtortent-ukran-dron-lepte-at-a-nato-hatart-azonnal-jelentettek-az-ugyet" target="_blank">1</a>, <a href="https://mandiner.hu/kulfold/2026/03/veszelybe-kerult-moszkva-zelenszkij-lecsaphat-az-orosz-fovarosra-fokozott-keszultseget-rendeltek-el-putyinek" target="_blank">2</a>) | vg (<a href="https://www.vg.hu/kozelet/2026/03/moldova-orosz-legicsapas-ukrajn-aramellatas-romania?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank">1</a>, <a href="https://www.vg.hu/kozelet/2026/03/izdeliye-30-uj-orosz-raketa-nagy-hatotavolsagu-fegyver?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank">2</a>)</div>
+                <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Ukrajna%20katonai%20akci%C3%B3i%20%C3%A9s%20az%20orosz%20reakci%C3%B3k" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
+            </div>
+        </div>
+        
+        <div class="news-section">
+            <span class="category-tag">GLOBÁLIS &nbsp;|&nbsp; Score: 7.3</span>
+            <h2 class="article-title">Stagflációs kockázatok Európában és az USA-ban</h2>
+            <div class="summary-text"><p>Az eurózóna magánszektorának aktivitása márciusban tízhavi mélypontra esett. Az iráni háború felhajtja az energiaárakat, növelve a stagfláció kockázatát. Az USA-ban a negyedik negyedévben a vártnál kisebb volt a termelékenység növekedése, miközben a bérnyomás erősödött. Az EKB egyik tagja szerint a banknak ébernek kell lennie az árak kordában tartásában a stagflációs fenyegetés miatt.</p>
 <p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
 <em>Nincs releváns forrás ehhez az oldalhoz.</em></p>
 <p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
 <em>Nincs releváns forrás ehhez az oldalhoz.</em></p></div>
-                    <div class="footer-row">
-                        <div class="sources">Forrás: mandiner (<a href="https://mandiner.hu/belfold/2026/03/tiszas-ugynokbotrany-ez-mar-a-hiveknek-is-sok-peldatlanul-szamonkertek-magyar-petereket" target="_blank">1</a>, <a href="https://mandiner.hu/belfold/2026/03/valasztas-csalas-megtevesztes-tisza-part-fidesz" target="_blank">2</a>, <a href="https://mandiner.hu/gazdasag/2026/03/ezt-a-grafikont-nem-szabad-kihagyni-kemenyen-sarokba-szoritottak-magyar-petereket" target="_blank">3</a>, <a href="https://mandiner.hu/belfold/2026/03/kimondta-az-elemzo-keszulnek-a-tiszasok-a-valasztasi-bukasra-ezert-ennyire-agresszivak" target="_blank">4</a>, <a href="https://mandiner.hu/belfold/2026/03/kik-magyar-peter-szavazoi-tizenharmadik-resz-a-bunozozo-bunozo" target="_blank">5</a>, <a href="https://mandiner.hu/belfold/2026/03/a-tiszas-provokator-szerint-a-magyaroknak-az-ukran-fronton-kellene-meghalniuk-video" target="_blank">6</a>) | magyar_nemzet (<a href="https://magyarnemzet.hu/english/2026/03/pm-orban-unacceptable-that-intelligence-operations-against-the-government-are-carried-out-in-the-interest-of-the-tisza-party-and-through-the-tisza-party?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank">1</a>, <a href="https://magyarnemzet.hu/belfold/2026/03/orban-viktor-orszagjaras-tisza-elemzes?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank">2</a>) | <a href="https://hvg.hu/itthon/20260324_tisza-part-forsthoffer-agnes-fidesz-valasztas-kampany-karaktergyilkossag-etikai-kodex" target="_blank">hvg</a></div>
-                        <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Tisza%20P%C3%A1rt%20kamp%C3%A1nybotr%C3%A1nyok%20%C3%A9s%20v%C3%A1dak" target="_blank" class="ai-button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            Mélyelemzés
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="news-card">
-                    <div class="card-header">
-                        <div class="title">Tiszás ügynökbotrány és Panyi Szabolcs szerepe</div>
-                        <span class="score">7.1 / 10</span>
-                    </div>
-                    <div class="summary"><p>Hiba történt az elemzés során.</p>
+            
+            <div class="footer-meta">
+                <div class="source-links">Források: portfolio (<a href="https://www.portfolio.hu/gazdasag/20260324/stagflacios-riado-europaban-nehez-helyzetben-az-ekb-826258" target="_blank">1</a>, <a href="https://www.portfolio.hu/gazdasag/20260324/stagflacios-adatok-jottek-az-usa-bol-826324" target="_blank">2</a>) | <a href="https://www.bloomberg.com/news/articles/2026-03-24/ecb-must-be-vigilant-in-face-of-stagflation-risks-vujcic-says" target="_blank">bloomberg</a></div>
+                <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Stagfl%C3%A1ci%C3%B3s%20kock%C3%A1zatok%20Eur%C3%B3p%C3%A1ban%20%C3%A9s%20az%20USA-ban" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
+            </div>
+        </div>
+        
+        <div class="news-section">
+            <span class="category-tag">GLOBÁLIS &nbsp;|&nbsp; Score: 7.3</span>
+            <h2 class="article-title">Oroszország korlátozza a műtrágyaexportot</h2>
+            <div class="summary-text"><p>Oroszország március 21. és április 21. között korlátozza a nitrogénműtrágyák exportját. Az orosz agrárminisztérium közlése szerint a lépés célja a belföldi ellátás biztosítása a tavaszi vetési időszakban.</p>
 <p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
 <em>Nincs releváns forrás ehhez az oldalhoz.</em></p>
 <p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
 <em>Nincs releváns forrás ehhez az oldalhoz.</em></p></div>
-                    <div class="footer-row">
-                        <div class="sources">Forrás: <a href="https://magyarnemzet.hu/belfold/2026/03/horvath-jozsef-biztonsagpolitikai-szokert-tiszas-ugynokbotrany?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank">magyar_nemzet</a> | mandiner (<a href="https://mandiner.hu/belfold/2026/03/tiszas-ugynokbotrany-szijjartot-lehallgattak-de-a-tiszasok-szerint-ez-szabalyos-dolog-video" target="_blank">1</a>, <a href="https://mandiner.hu/belfold/2026/03/tiszas-ugynokbotrany-szijjarto-peter-minden-apro-reszletrol-elmondta-az-igazsagot-video" target="_blank">2</a>, <a href="https://mandiner.hu/belfold/2026/03/gulyas-gergely-nem-csupan-politikai-hanem-buntetojogi-ertelemben-is-hazaarulast-kovetett-el-panyi-szabolcs" target="_blank">3</a>, <a href="https://mandiner.hu/belfold/2026/03/panyi-szabolcs-tisza-kembotrany-ifj-lomnici-zoltan" target="_blank">4</a>, <a href="https://mandiner.hu/belfold/2026/03/orban-viktor-kemeny-lepest-jelentett-be-magyarorszag-elegtetelt-vesz-panyi-szabolcs-es-kulfoldi-szovetsegeseinek-tetteiert-video" target="_blank">5</a>) | <a href="https://hvg.hu/itthon/20260324_panyi-szabolcs-titkosszolgalat-magyarorszag-szijjarto-lavrov-legallgatas" target="_blank">hvg</a> | <a href="https://telex.hu/belfold/2026/03/24/gulyas-gergely-hazaarulas-panyi-szabolcs-orban-anita" target="_blank">telex</a></div>
-                        <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Tisz%C3%A1s%20%C3%BCgyn%C3%B6kbotr%C3%A1ny%20%C3%A9s%20Panyi%20Szabolcs%20szerepe" target="_blank" class="ai-button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            Mélyelemzés
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="news-card">
-                    <div class="card-header">
-                        <div class="title">Magyarország és az AfD feltételezett orosz kapcsolatai</div>
-                        <span class="score">7.1 / 10</span>
-                    </div>
-                    <div class="summary"><p>Nemzetközi és hazai sajtóorgánumok jelentései szerint magyar diplomaták, köztük Szijjártó Péter, valamint a német AfD párt tagjai bizalmas uniós információkat szivárogtathatnak Moszkvának. Az AfD tagadja a vádakat. Az uniós diplomaták óvintézkedéseket vezettek be, például kisebb csoportokban találkoznak, és felmerült Magyarország kizárása a döntéshozatali folyamatokból. Szijjártó Péter szerint nem ő a hibás, ha lehallgatják.</p>
+            
+            <div class="footer-meta">
+                <div class="source-links">Források: <a href="https://www.portfolio.hu/gazdasag/20260324/leptek-az-oroszok-leallitjak-egy-letfontossagu-anyag-kivitelet-egyre-sulyosabb-elelmiszer-dragulas-johet-826272" target="_blank">portfolio</a></div>
+                <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Oroszorsz%C3%A1g%20korl%C3%A1tozza%20a%20m%C5%B1tr%C3%A1gyaexportot" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
+            </div>
+        </div>
+        
+        <div class="news-section">
+            <span class="category-tag">HAZAI &nbsp;|&nbsp; Score: 7.3</span>
+            <h2 class="article-title">Panyi Szabolcs ügynökbotrány és a magyar nemzetbiztonság</h2>
+            <div class="summary-text"><p>Panyi Szabolcs újságírót lehallgatták. A kormánypárti média azzal vádolja, hogy külföldi titkosszolgálatnak adta ki Szijjártó Péter telefonszámát. Panyi ezt tagadja, és állítása szerint az orosz titkosszolgálatok magyarországi befolyásáról ír könyvet. Gulyás Gergely és Dömötör Csaba hazaárulással vádolja Panyit, Orbán Viktor vizsgálatot rendelt el. Felmerült a Direkt36 finanszírozásának kérdése is.</p>
 <p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
-A liberális sajtó a <strong>vádak súlyosságát</strong> hangsúlyozza, kiemelve a nemzetbiztonsági kockázatot és Magyarország elszigetelődését. A narratíva <strong>érzelmi hergelést</strong> alkalmaz, például a "Helló, Szergej, itt Péter" fordulat használatával, ami a közvetlen árulás képét sugallja. <strong>Tekintélyre hivatkozva</strong> ("Brüsszeli és washingtoni források egybehangzóan megerősítik") próbálják hitelesíteni az állításokat. A magyar kormány reakcióját "propagandagépezet" bevetéseként írják le, ami a <strong>manipuláció vádjával</strong> illeti a védekezést. Az "Európa árulója" kifejezés <strong>demonizálja</strong> a magyar vezetést, és a jövőbeli uniós szankciók kilátásba helyezésével <strong>nyomásgyakorlást</strong> próbál megvalósítani.</p>
+A liberális média Panyi Szabolcsot az orosz befolyás elleni küzdelem áldozataként mutatja be. Hangsúlyozzák, hogy Panyi tagadja a vádakat, és a nemzetbiztonsági újságírók számára normális a titkosszolgálati forrásokkal való kapcsolattartás. A narratíva szerint a kormánypárti média <strong>kiforgatja a tényeket</strong> és <strong>bűnbakot keres</strong>, hogy elterelje a figyelmet a valódi problémáról, az orosz titkosszolgálatok magyarországi tevékenységéről, amelyet Panyi állítása szerint feltár. A <strong>figyelemelterelés</strong> és a <strong>karaktergyilkosság</strong> technikáit emelik ki.</p>
 <p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
-A jobboldali sajtó a vádakat <strong>alaptalan "álhírnek"</strong> és a "brüsszeli fősodor" <strong>pánikreakciójának</strong> állítja be. A fókusz a <strong>vádak hiteltelenítésén</strong> van, azzal érvelve, hogy a "szigorúan titkos" iratok valójában széles körben hozzáférhetők. Ez a <strong>bagatellizálás</strong> célja a gyanú eloszlatása. A narratíva <strong>áldozati szerepbe</strong> helyezi Magyarországot és az AfD-t, akiket a "brüsszeli fősodor" támad. Szijjártó Péter nyilatkozatát, miszerint nem ő a hibás a lehallgatásért, a <strong>felelősség áthárítására</strong> használják. A "mi idejében szóltunk" kijelentés a magyar kormányt <strong>látnokként</strong> pozicionálja, akinek figyelmeztetéseit figyelmen kívül hagyja Európa, ezzel a <strong>morális felsőbbrendűség</strong> érzetét keltve.</p></div>
-                    <div class="footer-row">
-                        <div class="sources">Forrás: mandiner (<a href="https://mandiner.hu/belfold/2026/03/magyarorszagrol-erkezett-a-figyelmeztetes-oriasi-hibat-kovet-el-europa-ha-nem-keszul-fel-mi-idejeben-szoltunk" target="_blank">1</a>, <a href="https://mandiner.hu/kulfold/2026/03/von-der-leyen-elkezdett-aggodni-szijjartoert-de-nem-ugy-ahogyan-azt-barki-gondolna" target="_blank">2</a>, <a href="https://mandiner.hu/kulfold/2026/03/afd-brusszel-szivarogtatas-oroszok-szijjarto-peter" target="_blank">3</a>) | hvg (<a href="https://hvg.hu/vilag/20260324_afd-szivarogtatas-oroszorszag-kina-eu" target="_blank">1</a>, <a href="https://hvg.hu/360/20260324_spiegel-eu-magyarorszag-kemvad-oroszorszag-valasztas-2026" target="_blank">2</a>, <a href="https://hvg.hu/360/20260324_unios-kulugyminiszterek-europai-unio-oroszorszag-szergej-lavrov-szijjarto-peter" target="_blank">3</a>, <a href="https://hvg.hu/360/20260324_panyi-orosz-befolyas-szijjarto-lavrov-valasztas-hvg" target="_blank">4</a>) | <a href="https://444.hu/2026/03/24/politico-a-magyar-diplomatak-es-az-afd-kepviseloi-miatt-mar-inkabb-kisebb-csoportokban-talalkoznak-unios-orszagok-diplomatai?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_syndication" target="_blank">444</a> | <a href="https://telex.hu/video/2026/03/24/patriotak-orban-viktor-eu-lehallgatas-szijjarto-2026-musor-elo" target="_blank">telex</a></div>
-                        <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Magyarorsz%C3%A1g%20%C3%A9s%20az%20AfD%20felt%C3%A9telezett%20orosz%20kapcsolatai" target="_blank" class="ai-button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            Mélyelemzés
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="news-card">
-                    <div class="card-header">
-                        <div class="title">Magyar választási kampány és nemzetközi reakciók</div>
-                        <span class="score">6.8 / 10</span>
-                    </div>
-                    <div class="summary"><p>Hiba történt az elemzés során.</p>
+A jobboldali média egyöntetűen <strong>hazaárulásként</strong> tálalja Panyi Szabolcs ügyét, büntetőjogi következményeket emlegetve. Gulyás Gergely és ifj. Lomnici Zoltán is ezt a narratívát erősíti. A <strong>stigmatizálás</strong> és az <strong>érzelmi hergelés</strong> dominál. Kiemelt fókuszba kerül a Direkt36 <strong>külföldi finanszírozása</strong>, ezzel sugallva, hogy Panyi külföldi érdekeket szolgál, ami a <strong>hiteltelenítés</strong> technikája. Orbán Viktor "kemény lépést" és "elégtételt" ígér, ami a <strong>nemzeti érdekek védelmének</strong> és a <strong>határozottságnak</strong> a képét erősíti. A "tiszás ügynökbotrány" kifejezés használata már eleve <strong>negatív konnotációt</strong> ad az ügynek.</p></div>
+            
+            <div class="footer-meta">
+                <div class="source-links">Források: <a href="https://hvg.hu/itthon/20260324_panyi-szabolcs-titkosszolgalat-magyarorszag-szijjarto-lavrov-legallgatas" target="_blank">hvg</a> | magyar_nemzet (<a href="https://magyarnemzet.hu/belfold/2026/03/horvath-jozsef-biztonsagpolitikai-szokert-tiszas-ugynokbotrany?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank">1</a>, <a href="https://magyarnemzet.hu/belfold/2026/03/domotor-csaba-ez-nem-ugynokoknek-valo-videk?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank">2</a>) | telex (<a href="https://telex.hu/belfold/2026/03/24/gulyas-gergely-hazaarulas-panyi-szabolcs-orban-anita" target="_blank">1</a>, <a href="https://telex.hu/english/2026/03/24/i-had-absolutely-nothing-to-do-with-the-wiretapping-of-szijjarto-investigative-journalist-tells-telex" target="_blank">2</a>) | mandiner (<a href="https://mandiner.hu/belfold/2026/03/orban-viktor-kemeny-lepest-jelentett-be-magyarorszag-elegtetelt-vesz-panyi-szabolcs-es-kulfoldi-szovetsegeseinek-tetteiert-video" target="_blank">1</a>, <a href="https://mandiner.hu/belfold/2026/03/gulyas-gergely-nem-csupan-politikai-hanem-buntetojogi-ertelemben-is-hazaarulast-kovetett-el-panyi-szabolcs" target="_blank">2</a>, <a href="https://mandiner.hu/belfold/2026/03/panyi-szabolcs-tisza-kembotrany-ifj-lomnici-zoltan" target="_blank">3</a>, <a href="https://mandiner.hu/belfold/2026/03/tiszas-ugynokbotrany-panyi-szabolcs-munkahelye-az-igazsagot-nem-surun-a-kulfoldi-dollarokat-szep-szammal-keresi" target="_blank">4</a>)</div>
+                <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Panyi%20Szabolcs%20%C3%BCgyn%C3%B6kbotr%C3%A1ny%20%C3%A9s%20a%20magyar%20nemzetbiztons%C3%A1g" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
+            </div>
+        </div>
+        
+        <div class="news-section">
+            <span class="category-tag">GLOBÁLIS &nbsp;|&nbsp; Score: 7.3</span>
+            <h2 class="article-title">Irán új biztonsági vezetőt nevezett ki</h2>
+            <div class="summary-text"><p>Irán új vezetőt nevezett ki a Legfőbb Nemzetbiztonsági Tanács élére. Az előző vezető, Ali Laridzsáni, egy hete izraeli légitámadásban halt meg. Az új kinevezett Mohammad Bagher Zolghadr, aki korábban a Forradalmi Gárda parancsnoka volt.</p>
+<p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
+A liberális média a hír tálalásakor a <strong>konfliktus eszkalációjára</strong> és egy <strong>keményvonalasabb iráni vezetés</strong> képére fókuszál. A Telex a "percről percre közvetítésünk az iráni háborúról" kifejezéssel azonnal egy szélesebb, eszkalálódó konfliktus képét festi le, ami érzelmi hergelést jelent. A Reuters a "hardline" jelzővel előre minősíti az új vezetőt, ezzel egyértelműen negatív kontextusba helyezve a kinevezést, és sugallva egy keményvonalasabb irányváltást. A Portfolio címében a "légicsapás végzett az előzővel" megfogalmazás direkt és drámai, ami szintén a feszültség növelését szolgálja.</p>
+<p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
+<em>Nincs releváns forrás ehhez az oldalhoz.</em></p></div>
+            
+            <div class="footer-meta">
+                <div class="source-links">Források: <a href="https://www.portfolio.hu/gazdasag/20260324/itt-a-bejelentes-kineveztek-iran-uj-biztonsagi-vezetojet-miutan-legicsapas-vegzett-az-elozovel-826294" target="_blank">portfolio</a> | <a href="https://telex.hu/kulfold/2026/03/24/iran-haboru-egyesult-allamok-izrael-huszonotodik-nap" target="_blank">telex</a> | <a href="https://news.google.com/rss/articles/CBMizgFBVV95cUxPT2VDWmNYMDF1a09CZ3JwRVU5NlY0SXpSUHV1NllRWno5XzQwTGlJcjFsR0Y0MzA3cDRMOTRoWmNqWHI0MktwSWlERjBIOU9ycHhYMDhlQVBfVlZKMEdSODY3VWprU092blg2YVZ6aXliTkhFUUJHcGVONGtJcWVERF9kSEp6ZFdQcXVoNDlTQTNpR2hhOHpEWU16QTVITmtGNkpJSExBSl9UczlWNm1BaWd0RlhfZVRlZ2ZwN0lqR1hQaW5iTE9DdHJrZnl5dw?oc=5" target="_blank">reuters</a></div>
+                <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Ir%C3%A1n%20%C3%BAj%20biztons%C3%A1gi%20vezet%C5%91t%20nevezett%20ki" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
+            </div>
+        </div>
+        
+        <div class="news-section">
+            <span class="category-tag">GLOBÁLIS &nbsp;|&nbsp; Score: 7.3</span>
+            <h2 class="article-title">Észak-Korea nukleáris erőinek erősítését tervezi</h2>
+            <div class="summary-text"><p>Kim Dzsongun észak-koreai vezető parlamenti beszédében bejelentette, hogy országa erősíti nukleáris erejét. Kijelentette, a nukleáris fegyverek elengedhetetlenek a külső beavatkozás elrettentéséhez és az ország fennmaradásához. Dél-Koreát a legellenségesebb államnak minősítette.</p>
+<p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
+A baloldali média a hírt a <strong>észak-koreai rezsim agresszív és kiszámíthatatlan természetének</strong> újabb bizonyítékaként tálalja. A hangsúly a <strong>regionális stabilitásra gyakorolt negatív hatásokon</strong> és a <strong>nukleáris fenyegetés súlyosságán</strong> van. A cikk a <strong>fenyegető retorikát</strong> és a <strong>fegyverkezési versenyt</strong> emeli ki, mint elítélendő jelenséget, anélkül, hogy a rezsim biztonsági aggályait vagy a történelmi kontextust részletezné. A <strong>félelemkeltés</strong> és a <strong>veszélyhangsúlyozás</strong> a fő technika, amely a rezsimet egyértelműen a "rosszfiú" szerepébe állítja.</p>
+<p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
+<em>Nincs releváns forrás ehhez az oldalhoz.</em></p></div>
+            
+            <div class="footer-meta">
+                <div class="source-links">Források: <a href="https://444.hu/2026/03/24/kim-dzsongun-eszak-korea-erositi-nuklearis-erejet-del-korea-a-legellensegesebb-allam?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_syndication" target="_blank">444</a></div>
+                <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20%C3%89szak-Korea%20nukle%C3%A1ris%20er%C5%91inek%20er%C5%91s%C3%ADt%C3%A9s%C3%A9t%20tervezi" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
+            </div>
+        </div>
+        
+        <div class="news-section">
+            <span class="category-tag">GLOBÁLIS &nbsp;|&nbsp; Score: 7.3</span>
+            <h2 class="article-title">Irán rakétatámadásai Izrael ellen</h2>
+            <div class="summary-text"><p>Irán rakétákat lőtt ki Izrael irányába. Az izraeli Magen David Adom mentőszolgálat jelentése szerint hat személy könnyebb sérüléseket szenvedett a támadások következtében.</p>
 <p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
 <em>Nincs releváns forrás ehhez az oldalhoz.</em></p>
 <p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
 <em>Nincs releváns forrás ehhez az oldalhoz.</em></p></div>
-                    <div class="footer-row">
-                        <div class="sources">Forrás: <a href="https://444.hu/2026/03/24/lehallgatasok-es-kizarasok?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_syndication" target="_blank">444</a> | telex (<a href="https://telex.hu/belfold/2026/03/24/valasztasi-hirlevel-kampany-orban-viktor-orszagjaras-fidesz-tisza-szijjarto-lavrov-trump-vance" target="_blank">1</a>, <a href="https://telex.hu/belfold/2026/03/23/gulyas-gergely-reakcio-orban-viktor-marhasag-kormanyinfo" target="_blank">2</a>) | hvg (<a href="https://hvg.hu/360/20260324_nemzetkozi-lapszemle-orban-szelsojobb-patriota-nagygyules-valasztas-2026" target="_blank">1</a>, <a href="https://hvg.hu/vilag/20260324_orban-viktor-kampanylevel-malta-berling-levelszavazatok" target="_blank">2</a>) | mandiner (<a href="https://mandiner.hu/kulfold/2026/03/dijat-kaptak-az-orbitalis-hazugsagert-lehullt-a-lepel-a-laprol-amelyik-bizonyitekok-nelkul-vadolja-szijjartot" target="_blank">1</a>, <a href="https://mandiner.hu/belfold/2026/03/kijottek-a-friss-adatok-magyarorszag-vezet-a-romanok-padlot-fogtak-az-osztrakok-es-a-nemetek-pedig-sirhatnak" target="_blank">2</a>, <a href="https://mandiner.hu/kulfold/2026/03/magyarorszag-afd-szivarogtatas-dezinformacio-alhir" target="_blank">3</a>) | <a href="https://magyarnemzet.hu/belfold/2026/03/kocsis-mate-baloldali-sajto-tiszasok-mentegetese?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank">magyar_nemzet</a></div>
-                        <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Magyar%20v%C3%A1laszt%C3%A1si%20kamp%C3%A1ny%20%C3%A9s%20nemzetk%C3%B6zi%20reakci%C3%B3k" target="_blank" class="ai-button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            Mélyelemzés
-                        </a>
-                    </div>
-                </div>
-                <div class='category-title'>Világhírek</div>
-                <div class="news-card">
-                    <div class="card-header">
-                        <div class="title">Globális energiakrízis és a Közel-Kelet szerepe</div>
-                        <span class="score">8.1 / 10</span>
-                    </div>
-                    <div class="summary"><p>A globális energiapiac sokkhatás alatt áll a Hormuzi-szoros lezárása és a közel-keleti energia-infrastruktúra, köztük katari LNG létesítmények elleni támadások miatt. Ez akadozó tankerforgalmat, emelkedő árakat és fokozódó geopolitikai feszültséget eredményez. Jelenleg napi 20 millió hordó olaj hiányzik a globális kínálatból.</p>
+            
+            <div class="footer-meta">
+                <div class="source-links">Források: <a href="https://www.aljazeera.com/gallery/2026/3/24/iran-launches-waves-of-missiles-towards-israel?traffic_source=rss" target="_blank">al_jazeera</a> | <a href="https://news.google.com/rss/articles/CBMizAFBVV95cUxOVWI4U2xsMFE0aDZzY1l3OFpXVVNnUmpTdzZzVXFwaHBTRDhnUmpCQlItaVlHdk1iODdPazZHWlZHMG9nXy15VDdNRUFtR0NIR2Q0UXBzRkE0WGxwOWhhYlpEUWFycWlpS1VjNF9rdl9qeHdhUk1hNk5MRnVVeGQtamJ0WHJVYkhpTWtqeXVkeGxBbjRXczYzYm10YUhLVGJuTEtUcXNiRElmWUpOVUxLaFBEZW5xTmIzMVVnOFNDV2JidC1rVXR0WFB3WlI?oc=5" target="_blank">reuters</a></div>
+                <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Ir%C3%A1n%20rak%C3%A9tat%C3%A1mad%C3%A1sai%20Izrael%20ellen" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
+            </div>
+        </div>
+        
+        <div class="news-section">
+            <span class="category-tag">GLOBÁLIS &nbsp;|&nbsp; Score: 7.3</span>
+            <h2 class="article-title">Izraeli csapások Iránra és Libanonra</h2>
+            <div class="summary-text"><p>Iráni rakéta csapódott be Tel-Aviv központjába. Benjamin Netanyahu izraeli miniszterelnök további csapásokat ígért Irán és Libanon ellen. A deeszkaláció reményei csökkennek, miután Donald Trump egy lehetséges megállapodásról beszélt. Netanyahu kijelentései megerősítik három izraeli tisztviselő korábbi állításait.</p>
 <p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
-<em>Nincs releváns forrás ehhez az oldalhoz.</em></p>
+A Guardian, mint liberális forrás, Netanyahu kijelentéseit a <strong>konfliktus eszkalációjának</strong> jeleként tálalja, hangsúlyozva a „további csapások” ígéretét és a „deeszkaláció reményeinek elhalványulását”. A cikk <strong>érzelmi hergelést</strong> alkalmaz azzal, hogy a miniszterelnök szavait közvetlenül a Tel-Aviv elleni rakétatámadás után helyezi el, ezzel sugallva egy azonnali, megtorló és potenciálisan túlzott reakciót. Donald Trump megjegyzéseinek említése, miszerint „esély van egy megállapodásra”, <strong>kontrasztot</strong> teremt Netanyahu álláspontjával, impliciten kritizálva az izraeli vezetőt, mint aki akadályozza a békés megoldást. Az „There's more to come” idézet kiemelése a <strong>fenyegető hangvételre</strong> fókuszál.</p>
 <p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
 <em>Nincs releváns forrás ehhez az oldalhoz.</em></p></div>
-                    <div class="footer-row">
-                        <div class="sources">Forrás: <a href="https://www.portfolio.hu/gazdasag/20260324/kirobbant-a-vilagvalsag-kit-sodor-el-az-uj-energiakrizis-825956" target="_blank">portfolio</a> | al_jazeera (<a href="https://www.aljazeera.com/news/2026/3/24/how-does-the-current-global-oil-crisis-compare-with-the-1973-oil-embargo?traffic_source=rss" target="_blank">1</a>, <a href="https://www.aljazeera.com/video/counting-the-cost/2026/3/24/are-middle-east-attacks-pushing-asia-towards-an-energy-crisis?traffic_source=rss" target="_blank">2</a>)</div>
-                        <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Glob%C3%A1lis%20energiakr%C3%ADzis%20%C3%A9s%20a%20K%C3%B6zel-Kelet%20szerepe" target="_blank" class="ai-button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            Mélyelemzés
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="news-card">
-                    <div class="card-header">
-                        <div class="title">Oroszország nagyszabású támadása Ukrajna ellen</div>
-                        <span class="score">7.8 / 10</span>
-                    </div>
-                    <div class="summary"><p>Oroszország nagyszabású offenzívát indított Ukrajna nagyvárosai ellen, légiriadókat okozva országszerte. A támadások során új típusú fegyvereket is bevetettek, jelezve Moszkva pusztító képességeinek fejlesztését. Az esemény a hétfői nap legolvasottabb hírei között szerepelt.</p>
+            
+            <div class="footer-meta">
+                <div class="source-links">Források: <a href="https://www.theguardian.com/world/2026/mar/24/netanyahu-vows-further-strikes-iran-lebanon-missile-hits-tel-aviv-middle-east-crisis" target="_blank">guardian</a></div>
+                <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Izraeli%20csap%C3%A1sok%20Ir%C3%A1nra%20%C3%A9s%20Libanonra" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
+            </div>
+        </div>
+        
+        <div class="news-section">
+            <span class="category-tag">HAZAI &nbsp;|&nbsp; Score: 7.2</span>
+            <h2 class="article-title">Magyar kormány terrorszervezetté nyilvánított egy csehországi robbantással gyanúsított szervezetet</h2>
+            <div class="summary-text"><p>A magyar kormány keddi hatállyal <strong>terrorszervezetté nyilvánította</strong> azt a szervezetet, amely a csehországi robbantásért vállalta a felelősséget. A döntés egy korábbi rendelet kiegészítésével történt.</p>
 <p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
-<em>Nincs releváns forrás ehhez az oldalhoz.</em></p>
-<p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
-A jobboldali média a <strong>nagyszabású orosz offenzíva</strong> <strong>brutalitását és pusztító erejét</strong> hangsúlyozza. A Mandiner a támadás méretét és az ukrán nagyvárosok elleni célzottságát emeli ki, felvetve az offenzíva előkészítésének kérdését. A VG a <strong>Moszkva által bevetett 'rettenetes új fegyverre'</strong> fókuszál, aláhúzva, hogy Oroszország nemcsak fenntartja, hanem fejleszti is <strong>pusztító képességeit</strong>. A narratíva célja a <strong>fenyegetés súlyosságának</strong> bemutatása, a félelemkeltés és az orosz katonai erő megkérdőjelezhetetlenségének sugallása.</p></div>
-                    <div class="footer-row">
-                        <div class="sources">Forrás: mandiner (<a href="https://mandiner.hu/kulfold/2026/03/szijjarto-peter-lehallgatas-oroszorszag-offenziva" target="_blank">1</a>, <a href="https://mandiner.hu/kulfold/2026/03/oroszorszag-hatalmas-tamadast-inditott-az-ukran-nagyvarosok-ellen-az-egesz-orszagban-szolt-a-legiriado" target="_blank">2</a>) | <a href="https://www.vg.hu/kozelet/2026/03/izdeliye-30-uj-orosz-raketa-nagy-hatotavolsagu-fegyver?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank">vg</a></div>
-                        <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Oroszorsz%C3%A1g%20nagyszab%C3%A1s%C3%BA%20t%C3%A1mad%C3%A1sa%20Ukrajna%20ellen" target="_blank" class="ai-button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            Mélyelemzés
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="news-card">
-                    <div class="card-header">
-                        <div class="title">Irán új biztonsági vezetőt nevezett ki légicsapás után</div>
-                        <span class="score">7.5 / 10</span>
-                    </div>
-                    <div class="summary"><p>Irán új vezetőt nevezett ki a Legfőbb Nemzetbiztonsági Tanács élére. Mohammad Bagher Zolghadr, a Forradalmi Gárda korábbi parancsnoka váltja Ali Laridzsánit, aki egy hete egy izraeli légitámadásban vesztette életét.</p>
-<p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
-A liberális média a hír tálalásakor kiemeli az új vezető, Mohammad Bagher Zolghadr <strong>Forradalmi Gárda</strong> múltját, ami a rezsim keményvonalas, militáns irányvonalát hangsúlyozza. A <strong>konfliktus eszkalációjára</strong> utaló "percről percre közvetítésünk az iráni háborúról" kifejezés a helyzet súlyosságát és a regionális feszültséget emeli ki, <strong>érzelmi hergelést</strong> alkalmazva a folyamatos veszélyérzet fenntartására.</p>
+A hvg, mint liberális forrás, a hírt <strong>tényközlő, semleges hangnemben</strong> tálalja. A rövid kivonat <strong>elhallgatja</strong> a kormány döntésének indokait vagy a szervezet hátterét, ezzel implicit módon teret engedve a kérdésnek, hogy miért éppen a magyar kormány tesz ilyen lépést egy csehországi esemény kapcsán. Ez a <strong>kontextus hiánya</strong> finoman aláássa a kormány cselekedetének egyértelműségét és szükségességét, elkerülve a hivatalos narratíva megerősítését.</p>
 <p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
 <em>Nincs releváns forrás ehhez az oldalhoz.</em></p></div>
-                    <div class="footer-row">
-                        <div class="sources">Forrás: <a href="https://www.portfolio.hu/gazdasag/20260324/itt-a-bejelentes-kineveztek-iran-uj-biztonsagi-vezetojet-miutan-legicsapas-vegzett-az-elozovel-826294" target="_blank">portfolio</a> | <a href="https://telex.hu/kulfold/2026/03/24/iran-haboru-egyesult-allamok-izrael-huszonotodik-nap" target="_blank">telex</a></div>
-                        <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Ir%C3%A1n%20%C3%BAj%20biztons%C3%A1gi%20vezet%C5%91t%20nevezett%20ki%20l%C3%A9gicsap%C3%A1s%20ut%C3%A1n" target="_blank" class="ai-button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            Mélyelemzés
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="news-card">
-                    <div class="card-header">
-                        <div class="title">Oroszország korlátozza a nitrogénműtrágyák exportját</div>
-                        <span class="score">7.3 / 10</span>
-                    </div>
-                    <div class="summary"><p>Oroszország március 21. és április 21. között korlátozza a nitrogénműtrágyák exportját. Az orosz agrárminisztérium közlése szerint a lépés célja a belföldi ellátás biztosítása a tavaszi vetési időszakban.</p>
+            
+            <div class="footer-meta">
+                <div class="source-links">Források: <a href="https://hvg.hu/itthon/20260324_terrorszervezette-nyilvanitottak-a-csehorszagi-robbantas-allitolagos-elkovetojet" target="_blank">hvg</a></div>
+                <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Magyar%20korm%C3%A1ny%20terrorszervezett%C3%A9%20nyilv%C3%A1n%C3%ADtott%20egy%20csehorsz%C3%A1gi%20robbant%C3%A1ssal%20gyan%C3%BAs%C3%ADtott%20szervezetet" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
+            </div>
+        </div>
+        
+        <div class="news-section">
+            <span class="category-tag">GLOBÁLIS &nbsp;|&nbsp; Score: 7.2</span>
+            <h2 class="article-title">Kolumbiai légierő repülőgép-balesete</h2>
+            <div class="summary-text"><p>A kolumbiai légierő katonákat szállító gépe lezuhant felszállás közben az ország déli részén. A gépen 114 katona és 11 fős személyzet utazott. Legalább 66-an meghaltak, több tucatnyian megsérültek, és négy embert még keresnek.</p>
 <p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
-<em>Nincs releváns forrás ehhez az oldalhoz.</em></p>
+A liberális források (telex, hvg, 444) a hír tálalásában a <strong>tragédia mértékére</strong> és az <strong>emberi veszteségekre</strong> fókuszálnak. A <strong>444</strong> címe a folyamatosan <strong>növekvő áldozatszámot</strong> emeli ki, ami a hír drámaiságát hangsúlyozza. A <strong>hvg</strong> videóval egészíti ki a hírt, ami a <strong>vizuális hatásra</strong> épít. Nincs észrevehető politikai narratíva vagy manipulációs technika, a hangsúly a tények közlésén és a tragédia súlyosságának bemutatásán van.</p>
 <p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
 <em>Nincs releváns forrás ehhez az oldalhoz.</em></p></div>
-                    <div class="footer-row">
-                        <div class="sources">Forrás: <a href="https://www.portfolio.hu/gazdasag/20260324/leptek-az-oroszok-leallitjak-egy-letfontossagu-anyag-kivitelet-egyre-sulyosabb-elelmiszer-dragulas-johet-826272" target="_blank">portfolio</a></div>
-                        <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Oroszorsz%C3%A1g%20korl%C3%A1tozza%20a%20nitrog%C3%A9nm%C5%B1tr%C3%A1gy%C3%A1k%20exportj%C3%A1t" target="_blank" class="ai-button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            Mélyelemzés
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="news-card">
-                    <div class="card-header">
-                        <div class="title">Zaporizzsjai Atomerőmű áramellátási problémái</div>
-                        <span class="score">7.3 / 10</span>
-                    </div>
-                    <div class="summary"><p>A Zaporizzsjai Atomerőmű elvesztette kapcsolatát az áramellátást biztosító fővezetékkel. Ez a létesítmény biztonságos működéséhez kritikus fontosságú. A helyzet potenciális veszélyt jelent a régióra és Európára nézve.</p>
+            
+            <div class="footer-meta">
+                <div class="source-links">Források: <a href="https://telex.hu/kulfold/2026/03/24/kolumbia-repulogep-szerencsetlenseg" target="_blank">telex</a> | <a href="https://hvg.hu/vilag/20260324_lezuhant-egy-katonai-repulogep-kolumbiaban-legalabb-66-ember-meghalt-ebx" target="_blank">hvg</a> | <a href="https://444.hu/2026/03/24/lezuhant-egy-katonai-repulogep-kolumbiaban-66-an-meghaltak?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_syndication" target="_blank">444</a></div>
+                <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Kolumbiai%20l%C3%A9gier%C5%91%20rep%C3%BCl%C5%91g%C3%A9p-balesete" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
+            </div>
+        </div>
+        
+        <div class="news-section">
+            <span class="category-tag">HAZAI &nbsp;|&nbsp; Score: 7.1</span>
+            <h2 class="article-title">Magyar választási kampány és nemzetközi kitekintés</h2>
+            <div class="summary-text"><p>A magyar választási kampányban a Kelet és a Nyugat közötti ideológiai feszültség, valamint Orbán Viktor helyzete kerül előtérbe. Számháború, politikai manőverek és gazdasági kérdések dominálnak. A kampány az EU fő politikai áramlatai és a nacionalisták közötti összecsapásként is értelmezhető.</p>
 <p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
-<em>Nincs releváns forrás ehhez az oldalhoz.</em></p>
+A liberális narratíva a kampányt az EU és a nacionalisták közötti ideológiai harcként, Orbán Viktor oroszbarátságának következményeire és a magyar ellenzék bizonytalan ígéreteire összpontosítva mutatja be. A 'megrendezett merénylet' és 'lejárató kampány' kifejezések használata a Fidesz-közeli forrásokkal szembeni bizalmatlanságot és a politikai ellenfelek lejáratására irányuló manipulációs technikákra való utalást sugallhatja. Az Orbán médiabirodalmát megrengető podcasterek és youtuberek említése a hagyományos médiafölény megtörésének hangsúlyozását célozza.</p>
 <p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
-A Mandiner cikkének címe <strong>drámai veszélyhelyzetet</strong> fest, egyenesen <strong>atomkatasztrófával</strong> fenyegetve Európát. A narratíva a <strong>félelemkeltésre</strong> épül, azt sugallva, hogy a helyzet annyira súlyos, hogy az ukrán fronton azonnal le kell tenni a fegyvert. Ez a megközelítés a nukleáris veszélyt használja fel a <strong>háború azonnali befejezésének</strong> szükségességének alátámasztására, elhallgatva a helyzet technikai részleteit és a biztonsági rendszerek szerepét, kizárólag a <strong>politikai üzenetre</strong> fókuszálva.</p></div>
-                    <div class="footer-row">
-                        <div class="sources">Forrás: <a href="https://mandiner.hu/kulfold/2026/03/atomkatasztrofa-fenyegeti-europat-a-helyzet-annyira-sulyos-hogy-az-ukran-fronton-letehetik-a-fegyvert" target="_blank">mandiner</a></div>
-                        <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Zaporizzsjai%20Atomer%C5%91m%C5%B1%20%C3%A1ramell%C3%A1t%C3%A1si%20probl%C3%A9m%C3%A1i" target="_blank" class="ai-button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            Mélyelemzés
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="news-card">
-                    <div class="card-header">
-                        <div class="title">Észak-Korea nukleáris erejének erősítését tervezi</div>
-                        <span class="score">7.3 / 10</span>
-                    </div>
-                    <div class="summary"><p>Észak-Korea vezetője, Kim Dzsongun parlamenti beszédében bejelentette az ország nukleáris erejének erősítését, a fegyvereket a külső beavatkozás elrettentésének kulcsfontosságú elemeként jellemezve. Dél-Koreát a legellenségesebb államnak nevezte. Kim Dzsongun lányát, Kim Dzsuet a Koreai Néphadsereg irányítására készítik fel.</p>
+A konzervatív narratíva Orbán Viktor sikeres politikai húzásaira és a magyar gazdasági eredményekre helyezi a hangsúlyt, kiemelve a nemzetközi összehasonlításokat ('Magyarország vezet, a románok padlót fogtak'). A 'friss adatok' és 'újra bejött Orbán Viktor húzása' kifejezések a kormányzati intézkedések sikerességét és a miniszterelnök rátermettségét hangsúlyozzák, a politikai ellenfelek gyengeségét vagy kudarcát sugallva.</p></div>
+            
+            <div class="footer-meta">
+                <div class="source-links">Források: <a href="https://telex.hu/belfold/2026/03/24/valasztasi-hirlevel-kampany-orban-viktor-orszagjaras-fidesz-tisza-szijjarto-lavrov-trump-vance" target="_blank">telex</a> | hvg (<a href="https://hvg.hu/360/20260324_nemzetkozi-lapszemle-orban-szelsojobb-patriota-nagygyules-valasztas-2026" target="_blank">1</a>, <a href="https://hvg.hu/vilag/20260324_orban-viktor-kampanylevel-malta-berling-levelszavazatok" target="_blank">2</a>) | <a href="https://mandiner.hu/belfold/2026/03/kijottek-a-friss-adatok-magyarorszag-vezet-a-romanok-padlot-fogtak-az-osztrakok-es-a-nemetek-pedig-sirhatnak" target="_blank">mandiner</a></div>
+                <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Magyar%20v%C3%A1laszt%C3%A1si%20kamp%C3%A1ny%20%C3%A9s%20nemzetk%C3%B6zi%20kitekint%C3%A9s" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
+            </div>
+        </div>
+        
+        <div class="news-section">
+            <span class="category-tag">HAZAI &nbsp;|&nbsp; Score: 7.1</span>
+            <h2 class="article-title">Orbán Viktor és a Tisza Párt közötti politikai küzdelem</h2>
+            <div class="summary-text"><p>Orbán Viktor országjárása során ellentüntetők és provokációk jelennek meg. A kormánypárti sajtó szerint a Tisza Párt agresszív kampányt folytat, amelynek célja a Fidesz szavazóinak megtévesztése és a választások eredményének befolyásolása. A liberális sajtó szerint a Fidesz is alkalmaz manipulációs technikákat, beleértve a karaktergyilkosságot és a buszoztatást, valamint mesterséges intelligenciával támogatott kampányokat.</p>
 <p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
-A 444 a hír <strong>tényközlő</strong> oldalát hangsúlyozza, közvetlenül idézve Kim Dzsongun kijelentéseit a nukleáris fegyverekről és Dél-Koreáról. A címben a közvetlen idézés a <strong>fenyegetés súlyosságát</strong> emeli ki, anélkül, hogy explicit érzelmi manipulációt alkalmazna. A fókusz a rezsim hivatalos álláspontján van.</p>
+A baloldali narratíva a Fidesz <strong>propagandáját</strong> és <strong>manipulációs technikáit</strong> emeli ki. Az ellentüntetők megjelenését a Fidesz-kampányok velejárójaként, sőt, a Fidesz által szervezett provokációként ábrázolja. A <strong>'háborús rettegtetés'</strong> és a <strong>'globalista hálózat'</strong> kifejezések használatával a Fidesz retorikáját kritizálja, és azt sugallja, hogy a Fidesz saját propagandája káros a gyerekekre. Az AI-alapú befolyásolási kampányok említése a Fidesz részéről a <strong>technológiai manipuláció</strong> vádját erősíti.</p>
 <p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
-A Magyar Nemzet a <strong>félelemkeltésre</strong> és az <strong>érzelmi hergelésre</strong> fókuszál a címben ('Kim Dzsong Un haragjától retteghetnek délen'). A narratíva a fenyegetés személyesítésével és a <strong>potenciális veszély</strong> eltúlzásával operál. A kivonatban Kim Dzsongun lányának, Kim Dzsuetnek a jövőbeli szerepének kiemelése a <strong>fókusz eltolása</strong>, ami a rezsim <strong>dinamikus öröklési vonalát</strong> és a fenyegetés hosszú távú jellegét hangsúlyozza, elterelve a figyelmet a nukleáris fegyverekről szóló konkrét kijelentésekről.</p></div>
-                    <div class="footer-row">
-                        <div class="sources">Forrás: <a href="https://444.hu/2026/03/24/kim-dzsongun-eszak-korea-erositi-nuklearis-erejet-del-korea-a-legellensegesebb-allam?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_syndication" target="_blank">444</a> | <a href="https://magyarnemzet.hu/kulfold/2026/03/kim-dzsong-un-haragjatol-retteghetnek-delen?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank">magyar_nemzet</a></div>
-                        <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20%C3%89szak-Korea%20nukle%C3%A1ris%20erej%C3%A9nek%20er%C5%91s%C3%ADt%C3%A9s%C3%A9t%20tervezi" target="_blank" class="ai-button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            Mélyelemzés
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="news-card">
-                    <div class="card-header">
-                        <div class="title">Olajárak emelkedése a közel-keleti konfliktus miatt</div>
-                        <span class="score">7.3 / 10</span>
-                    </div>
-                    <div class="summary"><p>Az olajárak 100 dollár fölé emelkedtek a közel-keleti konfliktus eszkalációjával kapcsolatos aggodalmak miatt. Irán képes befolyásolni a Hormuzi-szoroson keresztüli olajszállítást. Oroszország elhalasztotta fiskális alapjának módosítását az energiaárak emelkedése miatt. Olajipari vezetők hosszú távú károkra figyelmeztetnek, miközben az Egyesült Államok lekicsinyli a válságot. Ellátási lánc zavarok várhatók.</p>
+A jobboldali narratíva a <strong>Tisza Párt agressziójára</strong> és <strong>manipulációs kísérleteire</strong> fókuszál. Az ellentüntetők és a provokációk a Tisza Párt kampányának részeként jelennek meg, amelynek célja Orbán Viktor lejáratása és a választások befolyásolása. A <strong>'lúzer banda'</strong>, <strong>'ügynökbotrány'</strong>, <strong>'megtévesztés'</strong> és <strong>'választási bukásra való készülés'</strong> kifejezésekkel a Tisza Párt hitelességét és szándékait kérdőjelezik meg. A Mandiner különösen kiemeli a Tisza Párt híveinek állítólagos bűnözői hátterét és a választási csalás vádját, valamint a Fidesz-szimpatizánsok megfélemlítését.</p></div>
+            
+            <div class="footer-meta">
+                <div class="source-links">Források: mandiner (<a href="https://mandiner.hu/belfold/2026/03/ilyen-kihivoi-meg-nem-voltak-orban-viktornak-ez-alapjaiban-befolyasolhatja-a-valasztasokat" target="_blank">1</a>, <a href="https://mandiner.hu/belfold/2026/03/kimondta-az-elemzo-keszulnek-a-tiszasok-a-valasztasi-bukasra-ezert-ennyire-agresszivak" target="_blank">2</a>, <a href="https://mandiner.hu/belfold/2026/03/tiszas-ugynokbotrany-ez-mar-a-hiveknek-is-sok-peldatlanul-szamonkertek-magyar-petereket" target="_blank">3</a>, <a href="https://mandiner.hu/belfold/2026/03/valasztas-csalas-megtevesztes-tisza-part-fidesz" target="_blank">4</a>, <a href="https://mandiner.hu/gazdasag/2026/03/ezt-a-grafikont-nem-szabad-kihagyni-kemenyen-sarokba-szoritottak-magyar-petereket" target="_blank">5</a>, <a href="https://mandiner.hu/belfold/2026/03/csak-eros-idegzetueknek-elvennek-a-nagymama-szemelyi-igazolvanyat-mert-a-fideszre-szavazna" target="_blank">6</a>, <a href="https://mandiner.hu/belfold/2026/03/kik-magyar-peter-szavazoi-tizenharmadik-resz-a-bunozozo-bunozo" target="_blank">7</a>, <a href="https://mandiner.hu/belfold/2026/03/a-tiszas-provokator-szerint-a-magyaroknak-az-ukran-fronton-kellene-meghalniuk-video" target="_blank">8</a>) | telex (<a href="https://telex.hu/belfold/2026/03/24/orban-viktor-orszagjaras-kecskemet-fidesz" target="_blank">1</a>, <a href="https://telex.hu/techtud/2026/03/24/magyar-valasztasok-befolyasolasi-kampany-tiktok-magyar-peter-hiteltelenites" target="_blank">2</a>) | magyar_nemzet (<a href="https://magyarnemzet.hu/belfold/2026/03/orban-viktor-orszagjaras-tisza-elemzes?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank">1</a>, <a href="https://magyarnemzet.hu/belfold/2026/03/szentkiralyi-alexandra-globalista-halozat-bajnai-karacsony-marki-zay-magyar-peter?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank">2</a>, <a href="https://magyarnemzet.hu/english/2026/03/pm-orban-unacceptable-that-intelligence-operations-against-the-government-are-carried-out-in-the-interest-of-the-tisza-party-and-through-the-tisza-party?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank">3</a>, <a href="https://magyarnemzet.hu/belfold/2026/03/molnar-aron-noar-orban-viktor-merenylet?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank">4</a>) | 444 (<a href="https://444.hu/2026/03/24/foliazzak-be-a-haborus-rettegtetest?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_syndication" target="_blank">1</a>, <a href="https://444.hu/2026/03/24/a-vilag-visszanyal?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_syndication" target="_blank">2</a>) | <a href="https://hvg.hu/itthon/20260324_tisza-part-forsthoffer-agnes-fidesz-valasztas-kampany-karaktergyilkossag-etikai-kodex" target="_blank">hvg</a></div>
+                <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Orb%C3%A1n%20Viktor%20%C3%A9s%20a%20Tisza%20P%C3%A1rt%20k%C3%B6z%C3%B6tti%20politikai%20k%C3%BCzdelem" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
+            </div>
+        </div>
+        
+        <div class="news-section">
+            <span class="category-tag">HAZAI &nbsp;|&nbsp; Score: 7.1</span>
+            <h2 class="article-title">Magyar gazdaság: válság fenyeget, megszorítások várhatók a választások után</h2>
+            <div class="summary-text"><p>Az S&amp;P Global hitelminősítő szerint a magyar gazdaság fenntarthatatlan szociális kiadásai és a globális energiaár-sokk miatt a választások után költségvetési konszolidációra lesz szükség, pártállástól függetlenül. Enélkül Magyarország befektetésre nem ajánlott kategóriába kerülhet. A tőzsde vevői diktálják a tempót, de a forint gyengül az euróval és dollárral szemben.</p>
 <p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
-A liberális média, mint a CNN, az olajárak emelkedését <strong>Trump háború befejezésére vonatkozó megjegyzései ellenére</strong> hangsúlyozza, ezzel aláásva a volt elnök befolyását vagy hitelességét. A <strong>„geopolitikai valóság”</strong> és Irán Hormuzi-szoros feletti ellenőrzésének kiemelése a globális energiaellátás <strong>sebezhetőségét</strong> és az <strong>eszkaláció kockázatát</strong> hangsúlyozza. Az <strong>ellátási lánc zavarok</strong> és az olajipari vezetők <strong>hosszú távú károkra</strong> vonatkozó figyelmeztetései a közelgő gazdasági instabilitás képét festik le, miközben az USA <strong>lekicsinylő hozzáállását</strong> kritizálják, ami a válság súlyosságának alábecsülését sugallja. Ez a narratíva a <strong>félelemkeltés</strong> és a <strong>politikai felelősségre vonás</strong> eszközeit használja.</p>
+A baloldali narratíva az S&amp;P Global figyelmeztetését használja fel a kormány gazdaságpolitikájának kritikájára. Az 'élesen kritikai' és 'kritikai' jelzőkkel illetett források (444, hvg) a hitelminősítő szavait a választások utáni elkerülhetetlen 'megszorításokra' és a 'bóvli' kategóriába való süllyedés veszélyére helyezik. A 'szigorú költségvetési kiigazítás' szükségességét hangsúlyozzák, ami a kormány eddigi gyakorlatával szemben a felelős gazdaságpolitika hiányát sugallja. A 'választás után' kitétel arra utal, hogy a jelenlegi kormány politikája vezetett a helyzethez, és az új vezetésnek kell majd rendbe tennie a dolgokat.</p>
 <p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
-<em>Nincs releváns forrás ehhez az oldalhoz.</em></p></div>
-                    <div class="footer-row">
-                        <div class="sources">Forrás: bloomberg (<a href="https://www.bloomberg.com/news/newsletters/2026-03-24/trump-s-oil-market-messaging-runs-into-geopolitical-reality" target="_blank">1</a>, <a href="https://www.bloomberg.com/news/articles/2026-03-23/latest-oil-market-news-and-analysis-for-march-24" target="_blank">2</a>) | cnn (<a href="https://news.google.com/rss/articles/CBMie0FVX3lxTE1oUnJybVdYcmtWekJmUnl5eWdSM0Jna21yLVNtU3I0dVprbjNJUjhxUVAyMU1FdHFTNTd3czEyZTViaHV6U2lRLUx3ZGVWZVh1TWtxeXJiVGJFV0VHWE40b0FidTFXdHBuMHdteFpLRkdwTDJvYlZxNEZTRQ?oc=5" target="_blank">1</a>, <a href="https://news.google.com/rss/articles/CBMihAFBVV95cUxNNk04VFJ5cm0wRFNjVlVYOENDT2taNVBlMGFBQ0QydEFObUtqdkFVcjBMUTVUQlRyQXJzdjZkZFpHWnNMdVV5U2lzNzNiUkUwQ0ZCMnktd0h2TU5ac3VMcGI3XzN4ZUlYV01icmdPZFRkcmR1UWpmSnQ5NmVmWUM5Vnk3blQ?oc=5" target="_blank">2</a>) | reuters (<a href="https://news.google.com/rss/articles/CBMisAFBVV95cUxNM0tvQi04V0VZSm90dm4tSDkxcHZvOFpIcHlPQ0VRdlhYbEJVRE0ySWVkdkVCNURWZlZVbEVPMkZsRXMtZjhETTJKMjk4QUlVVnVDQWFpbURpZl9JRDBKV3JzNU1BVl8zbFNkRXdrUFJCVWJaZnluTy1GbmlydGJqdVJTSWhtZmFCaElySnhiVGhqN3h5V2xITGdZQ2dfRElkUE50ZlptcGhjMXJVc3pDYw?oc=5" target="_blank">1</a>, <a href="https://news.google.com/rss/articles/CBMivgFBVV95cUxOTzNwcmRSN09IRDVCVDFqbkRoeWhqTXNOdW9HT09MUTUxUURHSS02UXRpUS00SjBXZHl1dUtpUEoteWtrd2VNNnlkQ2F4M2FqakdPSHFabzMtVFk3V2p0VzhDYXhFM2xZTWgyY01vNHBqdnFuclNNYk1JUS0ya254UTNhMERLVXdhZnpfdWlHQVdKV050eERDaTdSUmZpTG1iZjJJTm9rSkxQNEtJQWxlckRWdVJSX3JtS3JIbHdn?oc=5" target="_blank">2</a>)</div>
-                        <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Olaj%C3%A1rak%20emelked%C3%A9se%20a%20k%C3%B6zel-keleti%20konfliktus%20miatt" target="_blank" class="ai-button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            Mélyelemzés
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="news-card">
-                    <div class="card-header">
-                        <div class="title">Oroszország áramszolgáltatásának elzárása egy országban</div>
-                        <span class="score">7.0 / 10</span>
-                    </div>
-                    <div class="summary"><p>Oroszország áramellátást szüntetett meg Ukrajnában, ami egy teljes országot érintett. Az ukrán kormány szerint az ellátás egyelőre biztosított, de a lakosságot takarékosságra szólították fel.</p>
+A konzervatív, gazdasági fókuszú források (vg, portfolio) a gazdasági ciklikusságra és a válságok elkerülhetetlenségére helyezik a hangsúlyt. A 'vg' cikkek a 'túl szépen muzsikáló' gazdaság és a válság 'hangolásának' párhuzamát emelik ki, valamint a tőzsdei mozgásokat és a forint gyengülését mutatják be. A 'portfolio' elemzése a szociális rendszer 'fenntarthatatlanságára' és az 'azonnali beavatkozás' szükségességére figyelmeztet, de a 'globális energiaár-sokk' említésével a külső tényezőket is kiemeli. A narratíva célja a helyzet súlyosságának bemutatása, de a felelősséget megosztja a ciklikussággal és a globális trendekkel, miközben a 'jó jelek' említésével próbál némi reményt is adni.</p></div>
+            
+            <div class="footer-meta">
+                <div class="source-links">Források: vg (<a href="https://www.vg.hu/penz-es-tokepiac/2026/03/valsag-gazdasag-geopolitika-penzugy-kormany-vedelem?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank">1</a>, <a href="https://www.vg.hu/penz-es-tokepiac/2026/03/forint-euro-390-dollar-tozsde-richter-otp-bux?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank">2</a>) | <a href="https://444.hu/2026/03/24/a-valasztas-utan-koltsegvetesi-kiigazitas-nelkul-leminosithetik-a-magyar-gazdasagot?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_syndication" target="_blank">444</a> | <a href="https://www.portfolio.hu/gazdasag/20260324/ujabb-figyelmeztetes-erkezett-fenntarthatatlan-a-magyar-szocialis-rendszer-azonnal-hozza-kell-nyulni-826226" target="_blank">portfolio</a> | <a href="https://hvg.hu/gazdasag/20260324_sp-megszoritas-valasztas-bovli" target="_blank">hvg</a></div>
+                <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Magyar%20gazdas%C3%A1g%3A%20v%C3%A1ls%C3%A1g%20fenyeget%2C%20megszor%C3%ADt%C3%A1sok%20v%C3%A1rhat%C3%B3k%20a%20v%C3%A1laszt%C3%A1sok%20ut%C3%A1n" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
+            </div>
+        </div>
+        
+        <div class="news-section">
+            <span class="category-tag">HAZAI &nbsp;|&nbsp; Score: 7.1</span>
+            <h2 class="article-title">Magyarország állítólagos orosz kémkedése és az EU reakciója</h2>
+            <div class="summary-text"><p>Az EU-s diplomaták óvatosabbá váltak a találkozók és információk megosztása során, mivel aggályok merültek fel a magyar kormány és az AfD feltételezett orosz kapcsolatai miatt. A magyar külügyminisztert azzal gyanúsítják, hogy uniós belső információkat szivárogtat ki Moszkvának. Az AfD-t titkosított uniós dokumentumok kiszivárogtatásával vádolják. A magyar kormány tagadja a vádakat, míg az AfD is tagadja azokat.</p>
 <p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
-<em>Nincs releváns forrás ehhez az oldalhoz.</em></p>
+A baloldali narratíva a magyar kormány és az AfD oroszbarát politikáját és a nemzetbiztonsági kockázatokat hangsúlyozza. A manipuláció itt abban rejlik, hogy a magyar kormányt és Szijjártót egyértelműen azonosítják az orosz érdekekkel, és az EU-s intézményeket a magyar kormány kihagyására, illetve az információk korlátozására sarkallják. Az érzelmi túlfűtöttség a 'dezertőr', 'Európa árulója' kifejezések használatával érhető tetten, ami a magyar választókra gyakorolt nyomásgyakorlás eszköze lehet.</p>
 <p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
-A <strong>konzervatív</strong> média a címmel azonnal <strong>agresszív orosz támadásként</strong> keretezi az eseményt ("Lecsaptak az oroszok"). A narratíva Zelenszkij személyére fókuszál, <strong>érzelmi hergeléssel</strong> és <strong>személyeskedéssel</strong> ("Zelenszkijnek még nem volt elég baja") sugallva, hogy az ukrán elnök helyzete reménytelen, vagy hogy a történtek az ő kudarcaihoz köthetők. Ez a megközelítés a <strong>szenzációhajhászás</strong> elemeit is tartalmazza, ahelyett, hogy az esemény gazdasági vagy humanitárius következményeire koncentrálna.</p></div>
-                    <div class="footer-row">
-                        <div class="sources">Forrás: <a href="https://www.vg.hu/kozelet/2026/03/moldova-orosz-legicsapas-ukrajn-aramellatas-romania?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank">vg</a></div>
-                        <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Oroszorsz%C3%A1g%20%C3%A1ramszolg%C3%A1ltat%C3%A1s%C3%A1nak%20elz%C3%A1r%C3%A1sa%20egy%20orsz%C3%A1gban" target="_blank" class="ai-button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            Mélyelemzés
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="news-card">
-                    <div class="card-header">
-                        <div class="title">Kolumbiai légierő repülőgép-balesete</div>
-                        <span class="score">7.0 / 10</span>
-                    </div>
-                    <div class="summary"><p>Kolumbiában egy katonai repülőgép zuhant le felszállás közben, az ország déli részén. A gépen 114 katona és 11 fős személyzet utazott. Legalább 66 ember meghalt, több tucatnyian megsérültek, és négy embert még keresnek.</p>
-<p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
-A liberális média a tragédia <strong>súlyosságát</strong> és az <strong>áldozatok számát</strong> hangsúlyozza. A <strong>hvg</strong> a „videó” említésével próbálja felkelteni az érdeklődést, míg a <strong>444</strong> a „tovább nőtt” kifejezéssel a drámai hatást és a folyamatos romlást emeli ki. A „legalább” és „biztosan” szavak használata a bizonytalanságot, illetve a tények súlyát erősíti, érzelmi reakciót kiváltva az olvasókból.</p>
-<p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
-<em>Nincs releváns forrás ehhez az oldalhoz.</em></p></div>
-                    <div class="footer-row">
-                        <div class="sources">Forrás: <a href="https://hvg.hu/vilag/20260324_lezuhant-egy-katonai-repulogep-kolumbiaban-legalabb-66-ember-meghalt-ebx" target="_blank">hvg</a> | <a href="https://telex.hu/kulfold/2026/03/24/kolumbia-repulogep-szerencsetlenseg" target="_blank">telex</a> | <a href="https://444.hu/2026/03/24/lezuhant-egy-katonai-repulogep-kolumbiaban-66-an-meghaltak?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_syndication" target="_blank">444</a></div>
-                        <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Kolumbiai%20l%C3%A9gier%C5%91%20rep%C3%BCl%C5%91g%C3%A9p-balesete" target="_blank" class="ai-button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            Mélyelemzés
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="news-card">
-                    <div class="card-header">
-                        <div class="title">Olajárak emelkedése Trump és Irán nyilatkozatháborúja miatt</div>
-                        <span class="score">6.8 / 10</span>
-                    </div>
-                    <div class="summary"><p>A kőolaj ára emelkedik, amit az Irán és Donald Trump közötti feszültség, nyilatkozatháború okoz. Ez a helyzet különösen megterhelő az energiaimportőr országok számára, főként a gyenge fizetési mérleggel rendelkezőeknek. Oroszország a helyzet egyik nyertese. Egy Iránnal kötött megállapodás sem csökkentené azonnal a benzinárakat.</p>
-<p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
-A Telex a Trump-Irán közötti <strong>nyilatkozatháborút</strong> nevezi meg az áremelkedés okaként, ezzel a politikai retorika és a geopolitikai feszültség szerepét hangsúlyozza. Kiemeli Oroszország nyereségét, ami a nyugati szankciók és az ukrajnai háború kontextusában negatívumként jelenik meg. A CNN a fogyasztói árakra fókuszál, jelezve, hogy egy Iránnal kötött megállapodás sem hozna azonnali enyhülést, ezzel a probléma mélységét és a gyors megoldások illúzióját rombolja. Mindkét forrás a szélesebb geopolitikai és gazdasági következményekre helyezi a hangsúlyt, elkerülve a közvetlen morális ítéletet, de a helyzet komplexitását és a nyugati érdekekkel ellentétes kimeneteleket emeli ki.</p>
-<p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
-A VG rendkívül <strong>dramatikus</strong> és <strong>érzelmi</strong> nyelvezetet használ, amikor a magas olajárak „fájdalmát” és a „nagy NATO-ország” (burkoltan az USA) „aranyához” való kényszerű nyúlását említi. Iránt egyértelműen <strong>agresszorként</strong> pozicionálja („rájuk szegezte a fegyvert”), ezzel <strong>félelemkeltést</strong> alkalmaz. A narratíva a <strong>nemzetbiztonsági</strong> és <strong>gazdasági sebezhetőségre</strong> fókuszál, hangsúlyozva az energiaimportőrök, különösen a gyenge fizetési mérleggel rendelkező országok kiszolgáltatottságát. A cikk a <strong>fenyegetés</strong> és a <strong>válság</strong> érzetét erősíti, a külső ellenség (Irán) és a belső gyengeségek (gyenge fizetési mérleg) összekapcsolásával.</p></div>
-                    <div class="footer-row">
-                        <div class="sources">Forrás: <a href="https://telex.hu/gazdasag/2026/03/24/koolaj-ar-donald-trump-iran-haboru" target="_blank">telex</a> | <a href="https://www.vg.hu/penz-es-tokepiac/2026/03/irani-haboru-devizavalsag-energiavalsag-aranytartalek?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank">vg</a> | <a href="https://news.google.com/rss/articles/CBMidEFVX3lxTE5vR0RzaXFQampJOW9GRjlQVURxUzBpZVhVOHpULUNURExYR3VtTmhBUXA4c0VacjlVVmJEb29xdkE1YVVSZnkxVjFCSzdlNFVuUExLUmpQQW4xY0hLWjZtbFlqejZBVTNLN2pBOHYwaHZ1M2FT?oc=5" target="_blank">cnn</a></div>
-                        <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Olaj%C3%A1rak%20emelked%C3%A9se%20Trump%20%C3%A9s%20Ir%C3%A1n%20nyilatkozath%C3%A1bor%C3%BAja%20miatt" target="_blank" class="ai-button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            Mélyelemzés
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="news-card">
-                    <div class="card-header">
-                        <div class="title">Von der Leyen felszólítása az iráni ellenségeskedések befejezésére</div>
-                        <span class="score">6.8 / 10</span>
-                    </div>
-                    <div class="summary"><p>Ursula von der Leyen, az Európai Bizottság elnöke Ausztráliában kijelentette, hogy ideje tárgyalni és véget vetni az iráni ellenségeskedéseknek. Hozzátette, hogy a földrajzi távolság már nem nyújt védelmet a háborús és geopolitikai kockázatokkal szemben.</p>
-<p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
-A 444, mint baloldali, kritikai hangvételű forrás, <strong>tényközlő módon</strong> tálalja Von der Leyen kijelentését. A cím egyenesen idézi az EB elnökét, ami önmagában nem tartalmaz nyílt kritikát. A narratíva finomabb manipulációja abban rejlik, hogy a kijelentés <strong>közhelyességét</strong> vagy <strong>késői voltát</strong> sugallhatja az olvasó számára, anélkül, hogy ezt expliciten kimondaná. A "ideje tárgyalni" és a "földrajzi távolság többé nem jelent védelmet" mondatok kiemelése a <strong>diplomácia szükségességét</strong> és a <strong>globális fenyegetettséget</strong> hangsúlyozza, ami illeszkedik a liberális narratívába, amely gyakran szorgalmazza a párbeszédet és a nemzetközi együttműködést a konfliktusok helyett.</p>
-<p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
-<em>Nincs releváns forrás ehhez az oldalhoz.</em></p></div>
-                    <div class="footer-row">
-                        <div class="sources">Forrás: <a href="https://444.hu/2026/03/24/von-der-leyen-szerint-ideje-targyalni-es-veget-vetni-az-irani-ellensegeskedeseknek?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_syndication" target="_blank">444</a></div>
-                        <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Von%20der%20Leyen%20felsz%C3%B3l%C3%ADt%C3%A1sa%20az%20ir%C3%A1ni%20ellens%C3%A9gesked%C3%A9sek%20befejez%C3%A9s%C3%A9re" target="_blank" class="ai-button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            Mélyelemzés
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="news-card">
-                    <div class="card-header">
-                        <div class="title">Dél-Korea energiatakarékossági kampányt indít az iráni háború miatt</div>
-                        <span class="score">6.7 / 10</span>
-                    </div>
-                    <div class="summary"><p>Dél-Korea kedden átfogó energiatakarékossági kampányt jelentett be. Az intézkedésre a globális energiaellátásban tapasztalható súlyos fennakadások miatt került sor, melyeket az iráni háború okozott.</p>
-<p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
-<em>Nincs releváns forrás ehhez az oldalhoz.</em></p>
-<p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
-<em>Nincs releváns forrás ehhez az oldalhoz.</em></p></div>
-                    <div class="footer-row">
-                        <div class="sources">Forrás: <a href="https://www.portfolio.hu/gazdasag/20260324/utolso-keszleteit-eli-fel-az-azsiai-nagyhatalom-bejelentettek-a-rendkivuli-intezkedeseket-826186" target="_blank">portfolio</a></div>
-                        <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20D%C3%A9l-Korea%20energiatakar%C3%A9koss%C3%A1gi%20kamp%C3%A1nyt%20ind%C3%ADt%20az%20ir%C3%A1ni%20h%C3%A1bor%C3%BA%20miatt" target="_blank" class="ai-button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            Mélyelemzés
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="news-card">
-                    <div class="card-header">
-                        <div class="title">USA figyelmeztetése az EU felé az LNG hozzáférésről</div>
-                        <span class="score">6.5 / 10</span>
-                    </div>
-                    <div class="summary"><p>Az Egyesült Államok figyelmeztette az Európai Uniót, hogy amennyiben nem fogad el egy kereskedelmi megállapodást, elveszítheti a kedvezményes hozzáférését a cseppfolyósított földgázhoz (LNG). A figyelmeztetés az EU energiabiztonságát érintő potenciális következményekre hívja fel a figyelmet.</p>
-<p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
-A Financial Times, mint liberális gazdasági lap, <strong>objektíven</strong> tálalja az amerikai figyelmeztetést, amely a <strong>gazdasági érdekek érvényesítését</strong> mutatja be. A lap nem ítéli el közvetlenül az amerikai lépést, de a "kockázat" szó használata a címben és a kivonatban is <strong>feszültséget</strong> sugall. A narratíva szerint az USA a saját <strong>energiabiztonsági és kereskedelmi prioritásait</strong> helyezi előtérbe, akár az EU-val való kapcsolatok rovására is, ami rávilágít az EU <strong>függőségére</strong> az amerikai LNG-től. A lap a tények puszta közlésével is <strong>nyomásgyakorlásként</strong> mutatja be az eseményt, anélkül, hogy érzelmi töltetet adna neki.</p>
-<p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
-<em>Nincs releváns forrás ehhez az oldalhoz.</em></p></div>
-                    <div class="footer-row">
-                        <div class="sources">Forrás: <a href="https://news.google.com/rss/articles/CBMihAFBVV95cUxPSHV2cnB0S3JoS214SjE0SjloWk01aUFUOGQ4TE5kSHA0XzZtWkhQdlVUZ1pkUU9JVDA3RDdncmpxOERudURxalJITEZ1aDBSSWhPQzVLRkdZcTh0WUpPaUZ6WXlhN2hMMVA5NE11ZFZkNlk4QU03cFN5MEtXV3MyMzY4ZEE?oc=5" target="_blank">financial_times</a></div>
-                        <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20USA%20figyelmeztet%C3%A9se%20az%20EU%20fel%C3%A9%20az%20LNG%20hozz%C3%A1f%C3%A9r%C3%A9sr%C5%91l" target="_blank" class="ai-button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            Mélyelemzés
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="news-card">
-                    <div class="card-header">
-                        <div class="title">USA kiszámíthatatlanságának hatása a francia érdekekre</div>
-                        <span class="score">6.5 / 10</span>
-                    </div>
-                    <div class="summary"><p>A francia vezérkari főnök kijelentette, hogy az Egyesült Államok kiszámíthatatlansága negatívan befolyásolja Franciaország érdekeit. A nyilatkozat a két ország közötti védelmi és külpolitikai együttműködés kontextusában értelmezhető.</p>
-<p>🔵 <strong>Baloldali / Liberális narratíva:</strong>
-<em>Nincs releváns forrás ehhez az oldalhoz.</em></p>
-<p>🟠 <strong>Jobboldali / Konzervatív narratíva:</strong>
-<em>Nincs releváns forrás ehhez az oldalhoz.</em></p></div>
-                    <div class="footer-row">
-                        <div class="sources">Forrás: <a href="https://news.google.com/rss/articles/CBMiqgFBVV95cUxNcUdUR3d3eUhSNzl0WHRndkVzOHNkdkFNQ29vUzVDazlIYjhXYlRFUTEweFpLSHRwaW42akJtTXlCRWtCamJRT3pic3NpR0t5OG1Kd3E3QXdLU1k3TkR6dzk4SUsxN080T0M2MWNhRWhoQTBZdGZkR251MmVSYy1tZGFHTHNYamdtNGc5UGlDUVNYWXR0RGppQTlnaDdHWXJoRmxtWlYzRG5VQQ?oc=5" target="_blank">reuters</a></div>
-                        <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20USA%20kisz%C3%A1m%C3%ADthatatlans%C3%A1g%C3%A1nak%20hat%C3%A1sa%20a%20francia%20%C3%A9rdekekre" target="_blank" class="ai-button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            Mélyelemzés
-                        </a>
-                    </div>
-                </div>
-                
+A jobboldali narratíva a magyar kormányt és Szijjártót védi az 'álhírnek' és 'szánalmasnak' minősített vádaktól, amelyeket a 'brüsszeli fősodor' terjeszt. A fő érv az, hogy a vádak bizonyítékok nélküliek, és a magyar kormányt próbálják lejáratni. A Von der Leyenre és az EU-s intézményekre irányuló kritika a 'pánik' és az 'aggodalom' kifejezésekkel a brüsszeli elit elhibázott politikáját és a magyar kormány iránti irracionális félelmeit hangsúlyozza. A cél a magyar kormány pozícióinak erősítése és a brüsszeli kritikák lejáratása.</p></div>
+            
+            <div class="footer-meta">
+                <div class="source-links">Források: mandiner (<a href="https://mandiner.hu/belfold/2026/03/magyarorszagrol-erkezett-a-figyelmeztetes-oriasi-hibat-kovet-el-europa-ha-nem-keszul-fel-mi-idejeben-szoltunk" target="_blank">1</a>, <a href="https://mandiner.hu/kulfold/2026/03/afd-brusszel-szivarogtatas-oroszok-szijjarto-peter" target="_blank">2</a>, <a href="https://mandiner.hu/kulfold/2026/03/von-der-leyen-elkezdett-aggodni-szijjartoert-de-nem-ugy-ahogyan-azt-barki-gondolna" target="_blank">3</a>) | <a href="https://444.hu/2026/03/24/politico-a-magyar-diplomatak-es-az-afd-kepviseloi-miatt-mar-inkabb-kisebb-csoportokban-talalkoznak-unios-orszagok-diplomatai?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_syndication" target="_blank">444</a> | hvg (<a href="https://hvg.hu/vilag/20260324_afd-szivarogtatas-oroszorszag-kina-eu" target="_blank">1</a>, <a href="https://hvg.hu/360/20260324_unios-kulugyminiszterek-europai-unio-oroszorszag-szergej-lavrov-szijjarto-peter" target="_blank">2</a>, <a href="https://hvg.hu/360/20260324_spiegel-eu-magyarorszag-kemvad-oroszorszag-valasztas-2026" target="_blank">3</a>, <a href="https://hvg.hu/360/20260324_panyi-orosz-befolyas-szijjarto-lavrov-valasztas-hvg" target="_blank">4</a>) | <a href="https://telex.hu/video/2026/03/24/patriotak-orban-viktor-eu-lehallgatas-szijjarto-2026-musor-elo" target="_blank">telex</a></div>
+                <a href="https://www.perplexity.ai/search?q=N%C3%A9zz%20ut%C3%A1na%20ennek%20a%20friss%20esem%C3%A9nynek%20%C3%A9s%20foglald%20%C3%B6ssze%20a%20r%C3%A9szleteket%3A%20Magyarorsz%C3%A1g%20%C3%A1ll%C3%ADt%C3%B3lagos%20orosz%20k%C3%A9mked%C3%A9se%20%C3%A9s%20az%20EU%20reakci%C3%B3ja" target="_blank" class="deep-dive-link">Mélyelemzés megnyitása</a>
+            </div>
+        </div>
+        
         </div>
     </body>
     </html>

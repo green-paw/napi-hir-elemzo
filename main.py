@@ -232,11 +232,11 @@ def main():
         name = cluster.name if hasattr(cluster, 'name') else cluster.get('name', 'Névtelen')
         score = getattr(cluster, 'total_score', 0) if not isinstance(cluster, dict) else cluster.get('total_score', 0)
         
-        prefix = "✅ [TOP 20]" if i <= 20 else "❌ [KIMARAD]"
+        prefix = "✅ [TOP 30]" if i <= 30 else "❌ [KIMARAD]"
         print(f"    {prefix} #{i} | {name} | Pontszám: {score}")
     # --------------------------------------------------
 
-    top_clusters = top_clusters[:20]
+    top_clusters = top_clusters[:30]
     total_top = len(top_clusters)
     
     # 5. Összefoglalás és küldés

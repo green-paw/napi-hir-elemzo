@@ -28,9 +28,9 @@ RSS_SOURCES = {
     "financial_times": ("https://news.google.com/rss/search?q=site:ft.com+when:24h&hl=en-US&gl=US&ceid=US:en", "Nemzetközi, liberális gazdasági"),
     "al_jazeera": ("https://www.aljazeera.com/xml/rss/all.xml", "Globális, közel-keleti nézőpont"),
     
-    # Hazai - Jobboldali / Kormánypárti perspektíva
-    "magyar_nemzet": ("https://magyarnemzet.hu/feed", "Hazai, konzervatív, kormánypárti"),
-    "mandiner": ("https://mandiner.hu/rss", "Hazai, konzervatív, kormánypárti"),
+    # Hazai - Jobboldali / jobboldali perspektíva
+    "magyar_nemzet": ("https://magyarnemzet.hu/feed", "Hazai, konzervatív, jobboldali"),
+    "mandiner": ("https://mandiner.hu/rss", "Hazai, konzervatív, jobboldali"),
 
     # Hazai - Baloldali / Liberális / Kritikai perspektíva
     "hvg": ("https://hvg.hu/rss", "Hazai, liberális, kritikai"),

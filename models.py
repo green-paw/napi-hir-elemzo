@@ -42,7 +42,7 @@ class MultiClusterResponse(BaseModel):
     events: List[ClusterResultSingle] = Field(description="Az azonosított különálló, releváns események")
 
 class StructuredEventSummary(BaseModel):
-    title: str = Field(description="Az esemény rövid, találó magyar neve")
+    title: str = Field(description="Az esemény rövid, találó magyar neve. SZIGORÚAN MAGYARUL, akkor is ha minden forrás angol, csak cégnevek vagy személynevek maradhatnak eredeti formában.")
     summary: str = Field(description="SZIGORÚAN CSAK A TÉNYEK: Mi történt, kik a szereplők, mik az intézkedések. Semmilyen forráselemzés vagy politikai narratíva nem szerepelhet itt. Fogalmazz lényegretörően, MAXIMUM 500 KARAKTERBEN!")
     left_wing_analysis: str = Field(description="A baloldali/liberális narratíva. Ha nincs ilyen, szigorúan üres string ('') legyen.")
     right_wing_analysis: str = Field(description="A jobboldali/konzervatív narratíva. Ha nincs ilyen, szigorúan üres string ('') legyen.")

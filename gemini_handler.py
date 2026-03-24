@@ -86,7 +86,8 @@ def validate_news_clusters(cluster_data: str, schema=MultiClusterResponse) -> di
         contents=cluster_data,
         sys_instr=sys_instruct,
         model=config.MODEL_LITE_ID,
-        schema=schema
+        schema=schema,
+        max_output_tokens=1500
     )
     
     try:

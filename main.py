@@ -23,10 +23,15 @@ from sklearn.cluster import AgglomerativeClustering
 from datetime import datetime
 import random
 
-def myPrint(message):
-    """Timestampet ad minden üzenet elé (HH:MM:SS format)."""
-    timestamp = datetime.now().strftime("%H:%M:%S")
-    print(f"[{timestamp}] {message}")
+import builtins
+from datetime import datetime
+
+_original_print = builtins.print
+def timestamped_print(*args, **kwargs):
+    timestamp = datetime.now().strftime("[%H:%M:%S]")
+    _original_print(f"{timestamp} ", *args, **kwargs)
+
+builtins.print = timestamped_print
 
 # --- Szemantikus szűrő matematikai alapjai ---
 def cosine_similarity(v1, v2):
@@ -51,7 +56,7 @@ def calculate_priority_score(scores):
     
 def semantic_filter(news_pool: List[Article], topics: List[str], top_k=300):
     if not topics or not news_pool: return news_pool
-    myPrint(f"🔍 Szemantikus rangsorolás: {len(news_pool)} hír...")
+    print(f"🔍 Szemantikus rangsorolás: {len(news_pool)} hír...")
     
     # 1. Témák és hírek vektorizálása
     topic_embs = get_gemini_embeddings(topics)
@@ -77,13 +82,13 @@ def semantic_filter(news_pool: List[Article], topics: List[str], top_k=300):
     # Kivesszük az első top_k darabot
     final_selection = filtered[:top_k]
     
-    myPrint(f"✅ Rangsorolás kész: {len(final_selection)} hír továbbküldve (átlagos relevancia: {sum(n.match_score for n in final_selection)/len(final_selection) if final_selection else 0:.2f})")
+    print(f"✅ Rangsorolás kész: {len(final_selection)} hír továbbküldve (átlagos relevancia: {sum(n.match_score for n in final_selection)/len(final_selection) if final_selection else 0:.2f})")
     
     return final_selection
 
 def cluster_news(news_pool: List[Article]) -> List[ClusterResultSingle]:
     if not news_pool: return []
-    myPrint(f"🧩 Klaszterezés ({len(news_pool)} hír)...")
+    print(f"🧩 Klaszterezés ({len(news_pool)} hír)...")
     
     # Szövegek előkészítése az embeddinghez
     texts = [f"CÍM: {n.title} KIVONAT: {n.summary[:200]}" for n in news_pool]
@@ -102,7 +107,7 @@ def cluster_news(news_pool: List[Article]) -> List[ClusterResultSingle]:
             for n in items
         ])
 
-        myPrint(f"  [{i}/{total_groups}] Lite elemzés | Klaszter ID: {label} | {len(items)} hír...")
+        print(f"  [{i}/{total_groups}] Lite elemzés | Klaszter ID: {label} | {len(items)} hír...")
         result = validate_news_clusters(formatted_list)
         events = []
 
@@ -141,11 +146,11 @@ def auto_cluster(embeddings: List[List[float]], news_pool: List[Article], initia
         too_large = [len(items) for items in groups.values() if len(items) > max_cluster_size]
         
         if not too_large:
-            myPrint(f"✨ Optimális klaszterezés elérve ({current_threshold:.2f} küszöbbel, {len(groups)} csoport).")
+            print(f"✨ Optimális klaszterezés elérve ({current_threshold:.2f} küszöbbel, {len(groups)} csoport).")
             return groups
         
         # Ha van túl nagy, szigorítunk (csökkentjük a küszöböt)
-        myPrint(f"⚠️ Túl nagy csoportok ({max(too_large)} hír). Szigorítás: {current_threshold:.2f} -> {current_threshold - 0.05:.2f}")
+        print(f"⚠️ Túl nagy csoportok ({max(too_large)} hír). Szigorítás: {current_threshold:.2f} -> {current_threshold - 0.05:.2f}")
         current_threshold -= 0.05
         attempts += 1
         
@@ -186,7 +191,7 @@ def main():
     # 1. Lekérés
     raw_news = fetch_news()
     if not raw_news:
-        myPrint("no raw news, exiting")
+        print("no raw news, exiting")
         return
     
     # 2. Stratégiai témák
@@ -196,19 +201,19 @@ def main():
     topics = get_strategic_topics(titles_sample)
     
     if not topics:
-        myPrint("⚠️ Nem sikerült stratégiai témákat generálni.")
+        print("⚠️ Nem sikerült stratégiai témákat generálni.")
         return
 
-    myPrint("TOP TOPIKOK:")
+    print("TOP TOPIKOK:")
     for i, t in enumerate(topics, 1):
-        myPrint(f"{i}: {t}")
+        print(f"{i}: {t}")
         
     topics_html = "<ul>" + "".join([f"<li>{t}</li>" for t in topics]) + "</ul>"
         
     # 3. Szemantikus szűrés
     filtered_news = semantic_filter(raw_news, topics, top_k=300)
     if not filtered_news:
-        myPrint("no semantic filtered news, exiting") 
+        print("no semantic filtered news, exiting") 
         return
 
     # 4. Klaszterezés és szűrés
@@ -217,17 +222,17 @@ def main():
     top_clusters = filter_and_rank_clusters(all_events)
 
     if not top_clusters:
-        myPrint("⚠️ Nem találtam magas pontszámú eseményt.")
+        print("⚠️ Nem találtam magas pontszámú eseményt.")
         return
 
     # --- ÚJ: Teljes lista logolása az elemzés előtt ---
-    myPrint(f"📊 Összesen {len(top_clusters)} releváns eseményt találtam:")
+    print(f"📊 Összesen {len(top_clusters)} releváns eseményt találtam:")
     for i, cluster in enumerate(top_clusters, 1):
         name = cluster.name if hasattr(cluster, 'name') else cluster.get('name', 'Névtelen')
         score = getattr(cluster, 'total_score', 0) if not isinstance(cluster, dict) else cluster.get('total_score', 0)
         
         prefix = "✅ [TOP 20]" if i <= 20 else "❌ [KIMARAD]"
-        myPrint(f"    {prefix} #{i} | {name} | Pontszám: {score}")
+        print(f"    {prefix} #{i} | {name} | Pontszám: {score}")
     # --------------------------------------------------
 
     top_clusters = top_clusters[:20]
@@ -235,7 +240,7 @@ def main():
     
     # 5. Összefoglalás és küldés
     final_data_package = []
-    myPrint(f"🧠 Elemzés indítása a top {total_top} eseményre...")
+    print(f"🧠 Elemzés indítása a top {total_top} eseményre...")
 
     for i, cluster in enumerate(top_clusters, 1):
         # Pydantic vagy Dict kezelés biztonságosan
@@ -250,7 +255,7 @@ def main():
             continue
 
         # Látni fogod, épp melyik cikket írja
-        myPrint(f"  [{i}/{total_top}] Összefoglalás: {c_name} (Súly: {c_score})")
+        print(f"  [{i}/{total_top}] Összefoglalás: {c_name} (Súly: {c_score})")
         
         # 1. Lekérjük a strukturált szótárat az LLM-től
         summary_data = generate_structured_summary(c_name, relevant_news_objects)
@@ -297,11 +302,11 @@ def main():
     try:
         from llm_core import usage_tracker        
         usage = usage_tracker.get_aggregated_stats()
-        myPrint(f"📊 Token használat: {usage}")
+        print(f"📊 Token használat: {usage}")
     except:
         pass
 
-    myPrint("✅ Kész.")
+    print("✅ Kész.")
     
 if __name__ == "__main__":
     main()

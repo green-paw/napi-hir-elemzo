@@ -130,6 +130,7 @@ def auto_cluster(embeddings: List[List[float]], news_pool: List[Article], initia
     attempts = 0
     max_attempts = 20
     
+    groups = {}
     while attempts < max_attempts:
         clustering = AgglomerativeClustering(
             n_clusters=None,
@@ -296,7 +297,7 @@ def main():
 
     # 6. Kimenetek (ntfy, HTML, stb.)
     if final_data_package:
-        output_handler.process_and_send(final_data_package, topics_html)
+        output_handler.process_and_send(final_data_package)
         
     # Statisztika
     try:

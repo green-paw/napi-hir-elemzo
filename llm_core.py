@@ -8,6 +8,8 @@ from google.genai import Client, types
 from typing import Any
 import shared_state
 
+usage_tracker = shared_state.TokenLogger()
+
 cache_name: str = "napi_hir_cache"
 
 def get_token_count(client: Client, model_id: str, text: str) -> int:
@@ -71,6 +73,18 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
 
     response = None
     max_retries: int = 5
+    attempt = 0
+
+    safety_settings = [
+        types.SafetySetting(category=cat, threshold="BLOCK_ONLY_HIGH")
+        for cat in [
+            "HARM_CATEGORY_HATE_SPEECH", 
+            "HARM_CATEGORY_HARASSMENT", 
+            "HARM_CATEGORY_SEXUALLY_EXPLICIT", 
+            "HARM_CATEGORY_DANGEROUS_CONTENT", 
+            "HARM_CATEGORY_CIVIC_INTEGRITY"
+        ]
+    ]
 
     for attempt in range(max_retries):
         try:
@@ -82,8 +96,10 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
                     cached_content=shared_state.active_cache.name if shared_state.active_cache else None,
                     response_mime_type="application/json" if schema else "text/plain",
                     response_schema=schema if schema else None,
-                    temperature=0.0 if schema else 0.2,
-                    max_output_tokens=max_output_tokens
+                    temperature=0.1 if schema else 0.3,
+                    max_output_tokens=max_output_tokens,
+                    frequency_penalty=1.0,
+                    safety_settings=safety_settings
                 )
             )
             break  # Ha sikeres, kilépünk a retry loopból
@@ -101,24 +117,31 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
                 print(f"❌ Végzetes hiba történt: {e}")
                 sys.exit(1)
 
-    if response is None:
+    if response is None and attempt == max_retries - 1:
         print("❌ Kritikus: Minden újrapróbálkozás sikertelen volt.")
         sys.exit(1)
 
-    # Token használat naplózása (biztonságosan)
     try:
-        if hasattr(response, 'usage_metadata'):
+        if response is not None and hasattr(response, 'usage_metadata'):
+            usage_tracker.add(model, response)
             print(f"📊 Output tokens: {response.usage_metadata.candidates_token_count}")
+        if response is not None and hasattr(response, 'candidates') and len(response.candidates) > 0:
+            if response.candidates[0].finish_reason == "MAX_TOKENS":
+                print(f"⚠️ FIGYELMEZTETÉS ({model}): A válasz túl hosszú, le lett vágva!")            
     except:
         pass
 
     # 3. OKOS VISSZATÉRÉS
-    if schema:
-        try:
-            # Ha van schema, a .parsed adja a tiszta Python típust (pl. listát)
-            return response.parsed
-        except Exception as e:
-            print(f"⚠️ Parsing hiba, fallback nyers szövegre: {e}")
-            return response.text.strip()
-    
-    return response.text.strip()
+    if response is not None:
+        if schema:
+            try:
+                # Ha van schema, a .parsed adja a tiszta Python típust (pl. listát)
+                return response.parsed
+            except Exception as e:
+                print(f"⚠️ Parsing hiba, fallback nyers szövegre: {e}")
+                return response.text.strip()
+        
+        return response.text.strip()
+    else:
+        print("⚠️ Visszatérés előtt: Nincs érvényes válasz a Gemini-tól.")
+        return ""

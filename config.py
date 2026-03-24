@@ -7,6 +7,7 @@ GOOGLE_API_KEY_FREE = os.getenv("GOOGLE_API_KEY_FREE") # Az ingyenes, nagy limit
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 HISTORY_FILE = "history.json"
+
 MODEL_ID = "gemini-2.5-flash"
 MODEL_LITE_ID = "gemini-2.5-flash-lite"
 

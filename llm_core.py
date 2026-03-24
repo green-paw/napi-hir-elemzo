@@ -131,7 +131,7 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
     try:
         if response is not None and hasattr(response, 'usage_metadata'):
             usage_tracker.add(model, response)
-            print(f"📊 Output tokens: {response.usage_metadata.candidates_token_count}")
+            print(f"📊 {model} | Output tokens: {response.usage_metadata.candidates_token_count}")
         if response is not None and hasattr(response, 'candidates') and len(response.candidates) > 0:
             if response.candidates[0].finish_reason == "MAX_TOKENS":
                 print(f"⚠️ FIGYELMEZTETÉS ({model}): A válasz túl hosszú, le lett vágva!")            

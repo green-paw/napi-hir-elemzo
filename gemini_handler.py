@@ -366,12 +366,25 @@ def generate_structured_summary(event_name: str, news_items: List[Article]) -> D
         max_output_tokens=2048
     )
     
+    # Ha a Free kliens elakadt (pl. politikai szűrő miatt levágta a JSON-t)
+    if not res or isinstance(res, str):
+        print("⚠️ A Free kliens elhasalt (valószínűleg politikai szűrő). Próba a Main (fizetős) kulccsal...")
+        
+        # 2. Próba a fizetős klienssel
+        res = llm_core.gemini_call(
+            client=client_main,
+            contents=prompt,
+            sys_instr=sys_instr,
+            model=config.MODEL_LITE_ID,   # Itt a fizetős Lite-ot használjuk költséghatékonyságból
+            schema=StructuredEventSummary,
+            max_output_tokens=2048
+        )
+
+    if not res or isinstance(res, str): 
+        raise ValueError("Mindkét kliens üres vagy hibás választ adott.")
+
     try:
-        if not res: 
-            raise ValueError("Üres válasz az LLM-től")
-        
         return res.model_dump()
-        
     except Exception as e:
         print(f"⚠️ Hiba a summary generálásánál: {e}")
         return {

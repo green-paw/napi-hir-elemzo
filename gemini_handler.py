@@ -144,10 +144,10 @@ def generate_event_summary(event_name: str, news_items: List[Article]) -> str:
     """
         
     res = llm_core.gemini_call(
-        client=client_free,
+        client=client_main,
         contents=prompt,
         sys_instr=sys_instr,
-        model=config.MODEL_ID,
+        model=config.MODEL_LITE_ID,
         max_output_tokens=2048
     )
     

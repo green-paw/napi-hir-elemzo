@@ -275,9 +275,13 @@ def main():
         output_handler.process_and_send(final_data_package, topics_html)
         
     # Statisztika
-    from gemini_handler import usage_tracker        
-    usage = usage_tracker.get_aggregated_stats()
-    myPrint(f"📊 Token használat: {usage}")
+    try:
+        from llm_core import usage_tracker        
+        usage = usage_tracker.get_aggregated_stats()
+        myPrint(f"📊 Token használat: {usage}")
+    except:
+        pass
+
     myPrint("✅ Kész.")
     
 if __name__ == "__main__":

@@ -44,7 +44,7 @@ class MultiClusterResponse(BaseModel):
 class StructuredEventSummary(BaseModel):
     title: str = Field(description="Az esemény rövid, találó magyar neve")
     summary: str = Field(description="SZIGORÚAN CSAK A TÉNYEK: Mi történt, kik a szereplők, mik az intézkedések. Semmilyen forráselemzés vagy politikai narratíva nem szerepelhet itt. Fogalmazz lényegretörően, MAXIMUM 500 KARAKTERBEN!")
-    left_wing_analysis: str = Field(description="A baloldali/liberális média (pl. 444, HVG, Guardian) narratívája, megközelítése és kritikái. Fogalmazz lényegretörően, MAXIMUM 500 KARAKTERBEN!")
-    right_wing_analysis: str = Field(description="A jobboldali/konzervatív média (pl. Mandiner, Fox News) narratívája, fókuszpontjai és érvei. Fogalmazz lényegretörően, MAXIMUM 500 KARAKTERBEN!")
+    left_wing_analysis: str = Field(description="A baloldali/liberális narratíva. Ha nincs ilyen, szigorúan üres string ('') legyen.")
+    right_wing_analysis: str = Field(description="A jobboldali/konzervatív narratíva. Ha nincs ilyen, szigorúan üres string ('') legyen.")
     category: str = Field(description="Szigorúan csak: HAZAI, GLOBÁLIS vagy EGYÉB")
-    score: int = Field(description="Az esemény fontossága (1-100)")
+    score: int = Field(description="Az esemény fontossága (1-100)")    

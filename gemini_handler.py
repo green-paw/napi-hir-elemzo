@@ -4,9 +4,10 @@ from google import genai
 from google.genai import types
 import time
 from pydantic import BaseModel, Field
-from typing import Any, List
+from typing import Any, Dict, List
 
 from models import Article, EventSummaryResult, MultiClusterIdResponse, MultiClusterResponse
+from models import StructuredEventSummary
 import llm_core
 import shared_state
 
@@ -284,3 +285,100 @@ def batch_cluster_news(formatted_news: str) -> MultiClusterIdResponse:
     except Exception as e:
         print(f"Hiba a Flash klaszterezésnél: {e}")
         return MultiClusterIdResponse(events=[])
+
+def generate_structured_summary(event_name: str, news_items: List[Article]) -> Dict[str, Any]:
+    biases: List[str] = []
+    context_parts: List[str] = []
+    
+    # Változók a token optimalizáláshoz
+    has_left: bool = False
+    has_right: bool = False
+    
+    for n in news_items:
+        source_data: tuple = config.RSS_SOURCES.get(n.source, (None, "Ismeretlen"))
+        bias: str = source_data[1] 
+        biases.append(bias)
+        
+        # Gyors ellenőrzés: Milyen típusú forrásaink vannak?
+        bias_lower: str = bias.lower()
+        if "bal" in bias_lower or "liberális" in bias_lower or "kritikai" in bias_lower:
+            has_left = True
+        if "jobb" in bias_lower or "konzervatív" in bias_lower or "kormánypárti" in bias_lower:
+            has_right = True
+            
+        context_parts.append(f"FORRÁS: {n.source} ({bias})\nCÍM: {n.title}\nKIVONAT: {n.summary[:500]}\n---")
+
+    # A dinamikus promptod az eseményhez
+    #dynamic_instruction: str = get_dynamic_prompt(event_name, biases)
+    
+    # A tokenkímélő utasítások most már a user promptba kerülnek, így a system prompt fix marad!
+    left_instruction: str = (
+        "Elemezd a baloldali/liberális narratívát a 'left_wing_analysis' mezőben, emeld ki a manipulációs technikákat." 
+        if has_left else 
+        "NINCS baloldali forrás a listában. A 'left_wing_analysis' mező értéke SZIGORÚAN csak egy üres string ('') legyen, ne találj ki semmit!"
+    )
+    
+    right_instruction: str = (
+        "Elemezd a jobboldali/konzervatív narratívát a 'right_wing_analysis' mezőben, emeld ki a fókuszt és az érveket." 
+        if has_right else 
+        "NINCS jobboldali forrás a listában. A 'right_wing_analysis' mező értéke SZIGORÚAN csak egy üres string ('') legyen, ne találj ki semmit!"
+    )
+
+    prompt: str = f"""
+    ELEMZÉSI SZABÁLYOK AZ ADOTT ESEMÉNYHEZ:
+    - {left_instruction}
+    - {right_instruction}
+    
+    ELEMEZENDŐ ADATOK:
+    {chr(10).join(context_parts)}
+    """
+
+    # Ez itt egy 100%-ig fix, statikus szöveg, tökéletes a Gemini Caching számára!
+    sys_instr: str = """
+        Te egy tapasztalt, cinikus, de szigorúan objektív politikai és gazdasági elemző vagy.
+        A feladatod a hírek dekonstrukciója és a tények leválasztása a narratívákról.
+
+        ELVÁRÁSOK:
+        - Nem kell bevezető ("Rendben, nézzük meg ezt az ...")
+        - Kezdd az elemzést azonnal az érdemi összefoglalóval, ne írd ki fejlécként az esemény nevét (azt a rendszer automatikusan hozzáadja).
+        - Ami a címben benne van azt már tudjuk, azt ne ismételd sehol.
+        - Az egyes bekezdések legyenek lényegretörőek, csak pár mondat.
+        - Kerüld a felesleges köröket, szófordulatokat ("Fontos megjegyezni...").
+        - Használj Markdown formázást (vastagítás a kulcsszavaknál).
+        
+        SZABÁLYOK A VÁLASZHOZ (JSON SÉMA):
+        1. 'summary': SZIGORÚAN CSAK A TÉNYEK (max 500 karakter). Nincs vélemény, nincs forráselemzés. Próbáld megtalálni amiben minden forrás egyetért, vagy ha különböznek a vélemények, akkor a közös metszetet. Ne ismételd meg a címből már ismert információkat!
+        2. 'left_wing_analysis' és 'right_wing_analysis':
+            - Kövesd a promptban kapott specifikus utasításokat!
+            - Fejtsd ki a különböző politikai oldalak (konzervatív vs. liberális) tálalási módját.
+            - KÜLÖNÖS FIGYELEM: Ha egy forrás a saját besorolásától eltérő (váratlanul kritikus vagy szokatlanul támogató) hangvételt üt meg, azt mindenképpen emeld ki!
+            - Nevezd meg a konkrét manipulációs technikákat, érzelmi hergelést vagy elhallgatásokat.
+            - Az egyes narratívák elemzése is csak pár mondat legyen
+            - Ha nincs érdemi különbség az oldalak között, ne gyártsd le mesterségesen, hanem írd le: 'A hír tálalása egységes'.
+    """
+        
+    res: Any = llm_core.gemini_call(
+        client=client_free,           # Ingyenes kliens
+        contents=prompt,
+        sys_instr=sys_instr,
+        model=config.MODEL_ID,        # Sima Flash modell
+        schema=StructuredEventSummary,# Pydantic séma
+        max_output_tokens=2048
+    )
+    
+    try:
+        if not res: 
+            raise ValueError("Üres válasz az LLM-től")
+        
+        return res.model_dump()
+        
+    except Exception as e:
+        print(f"⚠️ Hiba a summary generálásánál: {e}")
+        return {
+            "title": event_name, 
+            "summary": "Hiba történt az elemzés során.", 
+            "left_wing_analysis": "", 
+            "right_wing_analysis": "", 
+            "category": "EGYÉB", 
+            "score": 0
+        }

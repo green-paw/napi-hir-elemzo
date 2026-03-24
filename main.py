@@ -7,7 +7,7 @@ import output_handler
 
 # Csak a szükséges handler funkciók
 from gemini_handler import (
-    get_strategic_topics, validate_news_clusters, 
+    generate_structured_summary, get_strategic_topics, validate_news_clusters, 
     generate_event_summary, get_gemini_embeddings, 
     translate_if_needed, MultiClusterResponse
 )
@@ -145,7 +145,7 @@ def auto_cluster(embeddings: List[List[float]], news_pool: List[Article], initia
             return groups
         
         # Ha van túl nagy, szigorítunk (csökkentjük a küszöböt)
-        myPrint(f"⚠️ Túl nagy csoportok ({max(too_large)} hír). Szigorítás: {current_threshold:.2f} -> {current_threshold - 0.1:.2f}")
+        myPrint(f"⚠️ Túl nagy csoportok ({max(too_large)} hír). Szigorítás: {current_threshold:.2f} -> {current_threshold - 0.05:.2f}")
         current_threshold -= 0.05
         attempts += 1
         
@@ -252,18 +252,37 @@ def main():
         # Látni fogod, épp melyik cikket írja
         myPrint(f"  [{i}/{total_top}] Összefoglalás: {c_name} (Súly: {c_score})")
         
-        # A Flash modell hívása az elemzéshez
-        summary = generate_event_summary(c_name, relevant_news_objects)
+        # 1. Lekérjük a strukturált szótárat az LLM-től
+        summary_data = generate_structured_summary(c_name, relevant_news_objects)
         
+        # 2. Összeállítjuk a Markdown formátumot a Telegram és a HTML számára
+        formatted_summary = f"{summary_data.get('summary', 'Hiányzó összefoglaló.')}\n\n"
+        
+        # Baloldali narratíva kezelése
+        left_analysis = summary_data.get('left_wing_analysis', '').strip()
+        if left_analysis:
+            formatted_summary += f"🔵 **Baloldali / Liberális narratíva:**\n{left_analysis}\n\n"
+        else:
+            formatted_summary += f"🔵 **Baloldali / Liberális narratíva:**\n_Nincs releváns forrás ehhez az oldalhoz._\n\n"
+            
+        # Jobboldali narratíva kezelése
+        right_analysis = summary_data.get('right_wing_analysis', '').strip()
+        if right_analysis:
+            formatted_summary += f"🟠 **Jobboldali / Konzervatív narratíva:**\n{right_analysis}\n\n"
+        else:
+            formatted_summary += f"🟠 **Jobboldali / Konzervatív narratíva:**\n_Nincs releváns forrás ehhez az oldalhoz._\n\n"
+
+        # 3. Források kigyűjtése
         sources_data = [
             {"name": n.source, "url": n.link or ''} 
             for n in relevant_news_objects
         ]
         
+        # 4. Csomagolás a kimenethez (itt a 'summary' kulcs alá már a formázott szöveget tesszük)
         final_data_package.append({
             'category': c_cat,
             'title': c_name,
-            'summary': summary,
+            'summary': formatted_summary.strip(), 
             'sources': sources_data,
             'score': c_score
         })

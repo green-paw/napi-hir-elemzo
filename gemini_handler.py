@@ -48,9 +48,8 @@ def get_strategic_topics(titles_sample):
     )
 
     try:
-        topics = json.loads(res_text)
-        if isinstance(topics, list):
-            return topics
+        if isinstance(res_text, list):
+            return res_text
         return []
     except Exception as e:
         print(f"❌ Hiba a témák feldolgozásánál: {e}")
@@ -90,10 +89,9 @@ def validate_news_clusters(cluster_data: str, schema=MultiClusterResponse) -> di
     )
     
     try:
-        if not res: return {"events": []}
-        data = json.loads(res)
-        # Biztosítjuk, hogy mindig legyen egy 'events' kulcsunk
-        return data if "events" in data else {"events": []}
+        if not res: 
+            return {"events": []}
+        return res.model_dump()
     except Exception as e:
         print(f"⚠️ JSON hiba a validációnál: {e}")
         return {"events": []}
@@ -146,10 +144,10 @@ def generate_event_summary(event_name: str, news_items: List[Article]) -> str:
     """
         
     res = llm_core.gemini_call(
-        client=client_main,
+        client=client_free,
         contents=prompt,
         sys_instr=sys_instr,
-        model=config.MODEL_LITE_ID,
+        model=config.MODEL_ID,
         max_output_tokens=2048
     )
     

@@ -86,21 +86,28 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
         ]
     ]
 
+    config_args = {
+                "system_instruction": sys_instr,
+                "cached_content": shared_state.active_cache.name if shared_state.active_cache else None,
+                "response_mime_type": "application/json" if schema else "text/plain",
+                "temperature": 0.1 if schema else 0.3,
+                "max_output_tokens": max_output_tokens,
+                "safety_settings": safety_settings,
+            }
+            
+    if schema:
+        config_args["response_schema"] = schema
+        
+    # A büntetést CSAK a normál flash modellnél alkalmazzuk, a lite-nál nem!
+    if "lite" not in model.lower():
+        config_args["frequency_penalty"] = 1.0
+
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(
                 model=model,
                 contents=contents,
-                config=types.GenerateContentConfig(
-                    system_instruction=sys_instr,
-                    cached_content=shared_state.active_cache.name if shared_state.active_cache else None,
-                    response_mime_type="application/json" if schema else "text/plain",
-                    response_schema=schema if schema else None,
-                    temperature=0.1 if schema else 0.3,
-                    max_output_tokens=max_output_tokens,
-                    frequency_penalty=1.0,
-                    safety_settings=safety_settings
-                )
+                config=types.GenerateContentConfig(**config_args)
             )
             break  # Ha sikeres, kilépünk a retry loopból
         except Exception as e:

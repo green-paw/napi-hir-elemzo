@@ -108,5 +108,5 @@ def fetch_news() -> List[Article]:
     
     print(f"✅ Begyűjtés kész: {len(news_pool)} egyedi, releváns hír.")
 
-    save_checkpoint("news_pool.json", news_pool)
+    save_checkpoint("news_pool.json", news_pool, List[Article])
     return news_pool

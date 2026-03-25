@@ -13,6 +13,24 @@ class Article(BaseModel):
     published: datetime = Field(description="A hír megjelenésének időpontja")
     match_score: float = Field(default=0.0, description="A hír relevancia pontszáma a témákhoz (0-1 között)")
 
+class EventCluster(BaseModel):
+    title: str = Field(description="Az esemény rövid, beszédes magyar neve")
+    article_ids: List[int] = Field(description="Az eseményről szóló hírek ID-jai")
+
+class Topic(BaseModel):
+    title: str = Field(description="A téma rövid, beszédes magyar neve")
+    article_ids: List[int] = Field(default_factory=list, description="A témához tartozó hírek ID-jai")
+    events: List[EventCluster] = Field(default_factory=list, description="A témához tartozó események klaszterei")
+
+# Csak a Gemini API válaszokhoz szükséges ideiglenes sémák:
+class LLMTopicList(BaseModel):
+    topics: List[str]
+
+class LLMFilterResponse(BaseModel):
+    article_ids: List[int]
+
+
+
 class EventSummaryResult(BaseModel):
     title: str = Field(description="Az esemény rövid, találó magyar neve (pl. 'Kormányinfó: Új adók')")
     summary: str = Field(description="Az esemény átfogó, több forrást szintetizáló összefoglalója")

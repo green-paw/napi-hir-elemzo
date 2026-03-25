@@ -33,15 +33,25 @@ jobs:
           python -m pip install --upgrade pip
           pip install google-genai feedparser requests pyTelegramBotAPI pytz scikit-learn markdown
 
+      - name: Create checkpoints directory
+        run: mkdir -p checkpoints
+
+      - name: Restore Checkpoints Cache
+        uses: actions/cache@v4
+        with:
+          path: checkpoints/
+          key: ${{ runner.os }}-news-checkpoints-v1
+          restore-keys: |
+            ${{ runner.os }}-news-checkpoints-
+
       - name: Set safe output filename
         run: |
-          # Tiltott karakterek cseréje aláhúzásra
           SAFE_BRANCH=$(echo "${{ github.ref_name }}" | tr '/\\*?:"<>|' '_')
           
           if [ "${{ github.ref_name }}" == "main" ]; then
             echo "OUTPUT_FILENAME=index.html" >> $GITHUB_ENV
           else
-            echo "OUTPUT_FILENAME=${SAFE_BRANCH}_index.html" >> $GITHUB_ENV
+            echo "OUTPUT_FILENAME=${SAFE_BRANCH}.html" >> $GITHUB_ENV
           fi
 
       - name: Run AI News Agent
@@ -54,7 +64,6 @@ jobs:
       - name: Prepare public directory
         run: |
           mkdir -p public
-          # Az index.html-t átnevezzük a korábban beállított változó alapján
           if [ -f index.html ]; then
             cp index.html public/${{ env.OUTPUT_FILENAME }}
           else
@@ -65,5 +74,5 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./public # Csak a tiszta mappát publikáljuk
+          publish_dir: ./public 
           keep_files: true

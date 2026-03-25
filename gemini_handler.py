@@ -358,9 +358,15 @@ def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
             contents=prompt_1,
             sys_instr=universal_sys_instr, # <-- BEMENET 1
             model=config.MODEL_ID,
-            schema=LLMTopicList,
+            schema=None, # LLMTopicList,
             max_output_tokens=1024
         )
+
+        print(f"flash response: {res.text}")
+
+
+        return []
+        
         if res and isinstance(res, LLMTopicList):
             topics_state = [Topic(title=t) for t in res.topics]
             save_checkpoint("step1_state.json", topics_state, List[Topic])

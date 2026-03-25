@@ -8,6 +8,8 @@ from typing import Any, Dict, List
 from models import Article, MultiClusterIdResponse, MultiClusterResponse
 from models import StructuredEventSummary
 import llm_core
+from models import Article, Topic, LLMTopicList, LLMFilterResponse
+from checkpoint_manager import load_checkpoint, save_checkpoint
 
 
 # 1. Globális kliens létrehozása itt, a handlerben
@@ -310,3 +312,71 @@ def generate_structured_summary(event_name: str, news_items: List[Article]) -> D
             "category": "EGYÉB", 
             "score": 0
         }
+
+
+
+
+def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
+    # 1. Betöltjük a memóriába az eddigi állapotot (ha van)
+    topics_state: List[Topic] = load_checkpoint("step1_state.json", List[Topic]) or []
+
+    # Ha minden témának megvan már a hírlistája, felesleges inicializálni az LLM-et
+    if topics_state and all(t.article_ids for t in topics_state):
+        return topics_state
+
+    client_main = genai.Client(api_key=config.GOOGLE_API_KEY_MAIN)
+    needs_save = False
+
+    # --- A VARÁZSLAT ITT VAN: KÖZÖS SYSTEM INSTRUCTION ---
+    # Ez a string bekerül a cache-be az első hívásnál, a többinél már onnan töltődik
+    news_list_str = "\n".join([f"ID:{a.id} | {a.title}" for a in articles])
+    universal_sys_instr = f"Te egy hírelemző AI vagy. Itt a napi hírek listája:\n{news_list_str}"
+
+    # ==========================================
+    # LÉPÉS 1: Témák kinyerése (ha még üres a cache)
+    # ==========================================
+    if not topics_state:
+        print("🔄 1. Lépés: Globális témák kinyerése...")
+        prompt_1 = "A fenti lista alapján írj össze 10-15 nagy témát (pl. 'Magyar gazdaság'). Csak neveket adj vissza."
+        
+        res = llm_core.gemini_call(
+            client=client_main,
+            contents=prompt_1,
+            sys_instr=universal_sys_instr, # <-- BEMENET 1
+            model=config.MODEL_LITE_ID,
+            schema=LLMTopicList,
+            max_output_tokens=500
+        )
+        if res and isinstance(res, LLMTopicList):
+            topics_state = [Topic(title=t) for t in res.topics]
+            save_checkpoint("step1_state.json", topics_state, List[Topic])
+
+    # ==========================================
+    # LÉPÉS 1.5: Hírek ID-jainak besorolása
+    # ==========================================
+    print("🔄 1.5 Lépés: Hírek keresése az egyes témákhoz (Implicit Cache)...")
+    
+    for topic in topics_state:
+        if topic.article_ids: 
+            continue # Ha ehhez a témához már megvannak az ID-k, ugrunk a következőre
+            
+        print(f"⏳ Keresés ehhez: '{topic.title}'...")
+        prompt_1_5 = f"Keresd ki a fenti listából azokat a hír ID-kat, amik ehhez a témához tartoznak: '{topic.title}'."
+        
+        res = llm_core.gemini_call(
+            client=client_main,
+            contents=prompt_1_5,
+            sys_instr=universal_sys_instr, # <-- UGYANAZ A BEMENET! Itt spórol a Cache.
+            model=config.MODEL_LITE_ID,
+            schema=LLMFilterResponse,
+            max_output_tokens=2048
+        )
+        
+        if res and isinstance(res, LLMFilterResponse):
+            topic.article_ids = res.article_ids
+            needs_save = True
+
+    if needs_save:
+        save_checkpoint("step1_state.json", topics_state, List[Topic])
+
+    return topics_state

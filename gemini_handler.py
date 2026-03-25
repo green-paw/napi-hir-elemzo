@@ -342,8 +342,16 @@ def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
     # ==========================================
     if not topics_state:
         print("🔄 1. Lépés: Globális témák kinyerése...")
-        prompt_1 = "A fenti lista alapján írj össze 10-15 nagy témát (pl. 'Magyar gazdaság'). Csak neveket adj vissza."
+        prompt_1 = """A fenti lista alapján határozd meg azt a maximum 8-10 kiemelt, stratégiailag legfontosabb témát, ami a mai napot dominálja.
         
+        Szigorú fókusz: 
+        - Geopolitika és fegyveres konfliktusok
+        - Makrogazdaság, nemzetközi piacok, infláció, energia
+        - Magyar belpolitika, külpolitika és stratégiai kormányzati döntések
+        
+        Minden mást (bulvár, sport, napi tech-pletykák, balesetek, időjárás) SZIGORÚAN HAGYJ FIGYELMEN KÍVÜL!
+        Csak a kiválasztott, magas prioritású témák neveit add vissza egy listában (pl. 'Magyar belpolitika', 'Nemzetközi gazdaság')."""
+
         res = llm_core.gemini_call(
             client=client_main,
             contents=prompt_1,
@@ -374,7 +382,7 @@ def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
             sys_instr=universal_sys_instr, # <-- UGYANAZ A BEMENET! Itt spórol a Cache.
             model=config.MODEL_LITE_ID,
             schema=LLMFilterResponse,
-            max_output_tokens=4096
+            max_output_tokens=8192
         )
         
         if res and isinstance(res, LLMFilterResponse):

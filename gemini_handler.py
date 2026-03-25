@@ -164,7 +164,6 @@ def get_dynamic_prompt(event_name, source_biases):
         Elemezd a híreket tényalapú megközelítéssel, fókuszálj a geopolitikai és gazdasági hatásokra.
         """
 
-
 def batch_cluster_news(formatted_news: str) -> MultiClusterIdResponse:
     """Ez a függvény végzi a nagy, egyben történő klaszterezést az INGYENES kulccsal."""
     sys_instruct = f"""
@@ -187,12 +186,11 @@ def batch_cluster_news(formatted_news: str) -> MultiClusterIdResponse:
     """
     
     try:
-        # Itt a client_FREE-t használjuk!
         response = llm_core.gemini_call(
-            client=client_free,
+            client=client_main,
             contents=prompt,
             sys_instr=sys_instruct,
-            model=config.MODEL_ID,
+            model=config.MODEL_LITE_ID,
             max_output_tokens=2048,
             schema=MultiClusterIdResponse
         )
@@ -273,14 +271,15 @@ def generate_structured_summary(event_name: str, news_items: List[Article]) -> D
     """
         
     res: Any = llm_core.gemini_call(
-        client=client_free,           # Ingyenes kliens
+        client=client_main,
         contents=prompt,
         sys_instr=sys_instr,
-        model=config.MODEL_ID,        # Sima Flash modell
-        schema=StructuredEventSummary,# Pydantic séma
+        model=config.MODEL_LITE_ID,
+        schema=StructuredEventSummary,
         max_output_tokens=2048
     )
     
+    """
     # Ha a Free kliens elakadt (pl. politikai szűrő miatt levágta a JSON-t)
     if not res or isinstance(res, str):
         print("⚠️ A Free kliens elhasalt (valószínűleg politikai szűrő). Próba a Main (fizetős) kulccsal...")
@@ -294,6 +293,7 @@ def generate_structured_summary(event_name: str, news_items: List[Article]) -> D
             schema=StructuredEventSummary,
             max_output_tokens=2048
         )
+    """
 
     if not res or isinstance(res, str): 
         raise ValueError("Mindkét kliens üres vagy hibás választ adott.")

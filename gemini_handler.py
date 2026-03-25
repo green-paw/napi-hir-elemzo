@@ -3,13 +3,11 @@ import json
 from google import genai
 from google.genai import types
 import time
-from pydantic import BaseModel, Field
 from typing import Any, Dict, List
 
-from models import Article, EventSummaryResult, MultiClusterIdResponse, MultiClusterResponse
+from models import Article, MultiClusterIdResponse, MultiClusterResponse
 from models import StructuredEventSummary
 import llm_core
-import shared_state
 
 
 # 1. Globális kliens létrehozása itt, a handlerben
@@ -97,63 +95,6 @@ def validate_news_clusters(cluster_data: str, schema=MultiClusterResponse) -> di
     except Exception as e:
         print(f"⚠️ JSON hiba a validációnál: {e}")
         return {"events": []}
-
-def generate_event_summary(event_name: str, news_items: List[Article]) -> str:
-    biases = []
-    context_parts = []
-    
-    for n in news_items:
-        # A config.RSS_SOURCES már tuple: (url, bias)
-        source_data = config.RSS_SOURCES.get(n.source, (None, "Ismeretlen"))
-        bias = source_data[1] 
-        biases.append(bias)
-        context_parts.append(f"FORRÁS: {n.source} ({bias})\nCÍM: {n.title}\nKIVONAT: {n.summary[:500]}\n---")
-
-    # Dinamikus prompt meghatározása
-    dynamic_instruction = get_dynamic_prompt(event_name, biases)
-    
-    prompt = f"""
-    {dynamic_instruction}
-    
-    ELEMEZENDŐ ADATOK:
-    {chr(10).join(context_parts)}
-    """
-
-    sys_instr = f"""
-        Te egy tapasztalt, cinikus, de szigorúan objektív politikai és gazdasági elemző vagy.
-        A feladatod a hírek dekonstrukciója. Ne csak azt nézd, mit írnak, hanem azt is, hogyan.
-        Keresd a 'keretezési' technikákat és a politikai marketinget.
-        Légy tömör és lényegretörő. Az egész elemzés ne legyen több 10-12 mondatnál.
-
-        ELVÁRT STRUKTÚRA ÉS FORMÁTUM:
-        Pár mondatban foglald össze az eseményt. Csak a közös metszetet és a megkérdőjelezhetetlen tényeket írd le.
-        
-        NARRATÍVÁK ÉS ELEMZÉS: 
-        - Fejtsd ki a különböző politikai oldalak (konzervatív vs. liberális) tálalási módját.
-        - KÜLÖNÖS FIGYELEM: Ha egy forrás a saját besorolásától eltérő (váratlanul kritikus vagy szokatlanul támogató) hangvételt üt meg, azt mindenképpen emeld ki!
-        - Nevezd meg a konkrét manipulációs technikákat, érzelmi hergelést vagy elhallgatásokat.
-        - Az egyes narratívák elemzése is csak 1-2 mondat legyen
-        - Ha nincs érdemi különbség az oldalak között, ne gyártsd le mesterségesen, hanem írd le: 'A hír tálalása egységes'.
-
-        ELVÁRÁSOK:
-        - Nem kell bevezető ("Rendben, nézzük meg ezt az ...")
-        - Kezdd az elemzést azonnal az érdemi összefoglalóval, ne írd ki fejlécként az esemény nevét (azt a rendszer automatikusan hozzáadja).
-        - Ami a címben benne van azt már tudjuk, azt ne ismételd sehol.
-        - Az egyes bekezdések legyenek lényegretörőek, csak pár mondat
-        - Kerüld a felesleges köröket, szófordulatokat ("Fontos megjegyezni...").
-        - Használj Markdown formázást (vastagítás a kulcsszavaknál).
-        )
-    """
-        
-    res = llm_core.gemini_call(
-        client=client_main,
-        contents=prompt,
-        sys_instr=sys_instr,
-        model=config.MODEL_LITE_ID,
-        max_output_tokens=2048
-    )
-    
-    return res if res else "Nem sikerült generálni az elemzést."
     
 def get_gemini_embeddings(texts):
     """Vektorok lekérése újrapróbálkozási logikával."""
@@ -187,33 +128,6 @@ def get_gemini_embeddings(texts):
                     raise e
                     
     return all_embeddings
-
-def translate_if_needed(text):
-    """
-    Lefordítja a szöveget magyarra, ha az idegen nyelvű. 
-    Ha a modell üres választ ad (mert már magyar), az eredeti szöveget adja vissza.
-    """
-    sys_instruct = """Te egy fordító vagy. 
-    FELADAT:
-    1. Ha a bemeneti szöveg NEM magyar, fordítsd le magyarra.
-    2. Ha a bemeneti szöveg MÁR magyar, a válaszod legyen teljesen ÜRES!
-    
-    SZABÁLY: Csak a fordítást küldd vissza, ne fűzz hozzá semmilyen magyarázatot vagy megjegyzést!"""
-    
-    res = llm_core.gemini_call(
-        client=client_main,
-        contents=text,
-        sys_instr=sys_instruct,
-        model=config.MODEL_LITE_ID,
-        max_output_tokens=2048
-    )
-    
-    # Ha kaptunk választ és nem csak üres karaktereket tartalmaz
-    if res and res.strip():
-        return res.strip()
-    
-    # Ha a válasz None vagy üres string, akkor az eredeti szöveget küldjük vissza
-    return text
 
 def get_dynamic_prompt(event_name, source_biases):
     # Meghatározzuk, milyen típusú forrásaink vannak

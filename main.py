@@ -1,15 +1,11 @@
-# saját importok
 from typing import List
-
-import config
 from models import Article, ClusterResultSingle
 import output_handler
 
 # Csak a szükséges handler funkciók
 from gemini_handler import (
     generate_structured_summary, get_strategic_topics, validate_news_clusters, 
-    generate_event_summary, get_gemini_embeddings, 
-    translate_if_needed, MultiClusterResponse
+    get_gemini_embeddings
 )
 
 from rss_handler import fetch_news
@@ -17,7 +13,6 @@ from rss_handler import fetch_news
 # általános importok
 import math
 import time
-from concurrent.futures import ThreadPoolExecutor # A gyors fordításhoz
 from sklearn.cluster import AgglomerativeClustering
 
 from datetime import datetime

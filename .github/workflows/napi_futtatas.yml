@@ -36,11 +36,17 @@ jobs:
       - name: Create checkpoints directory
         run: mkdir -p checkpoints
 
-      - name: Restore Checkpoints Cache
+      - name: Create checkpoints directory
+        run: mkdir -p checkpoints
+
+      - name: Restore/Save Checkpoints Cache
         uses: actions/cache@v4
         with:
           path: checkpoints/
-          key: ${{ runner.os }}-news-checkpoints-v1
+          # A github.run_id minden futásnál egyedi, így mindig ment egy friss verziót a végén
+          key: ${{ runner.os }}-news-checkpoints-${{ github.run_id }}
+          # Ha nem találja a pontos kulcsot (márpedig nem fogja, mert a run_id új), 
+          # akkor visszatölti a legutóbbit, ami ezzel a prefixszel kezdődik:
           restore-keys: |
             ${{ runner.os }}-news-checkpoints-
 

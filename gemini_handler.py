@@ -375,11 +375,18 @@ def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
             continue # Ha ehhez a témához már megvannak az ID-k, ugrunk a következőre
             
         print(f"⏳ Keresés ehhez: '{topic.title}'...")
-        prompt_1_5 = f"""Keresd ki a fenti listából azokat a hír ID-kat, amik egyértelműen ehhez a témához tartoznak: '{topic.title}'. 
-        SZIGORÚ SZABÁLY: A válaszod KIZÁRÓLAG egyetlen sornyi, vesszővel elválasztott számsor lehet!
-        Semmi JSON formázás, semmi magyarázat, semmi sortörés! 
-        Példa a kimenetre: 12,45,102,504"""
 
+        prompt_1_5 = f"""Keresd ki a fenti hírfolyamból azokat a hír ID-kat, amiknek a FŐ TÉMÁJA egyértelműen ez: '{topic.title}'. 
+
+        KRITIKUS SZABÁLYOK (Szigorúan tartsd be!):
+        1. LÉGY KÍMÉLETLENÜL SZIGORÚ! Csak azt a hírt válaszd ki, ami 100%-ban erről a témáról szól. Ha csak érintőlegesen kapcsolódik, HAGYD KI!
+        2. VIGYÁZAT, NE HALLUCINÁLJ: Szigorúan tilos kitalált azonosítókat vagy folyamatos növekvő számsorokat (pl. 121, 122, 123, 124...) generálni! Csak a listában valósan szereplő ID-kat használd.
+        3. Egy átlagos témához ritkán tartozik 50-100 hírnél több. Ne próbáld az összes hírt besorolni!
+        4. KIZÁRÓLAG egyetlen sornyi, vesszővel elválasztott számsort írj vissza. Ha csak 5 hír illik ide, akkor csak 5 számot adj vissza.
+        """
+
+
+        
         res_text = llm_core.gemini_call(
             client=client_main,
             contents=prompt_1_5,

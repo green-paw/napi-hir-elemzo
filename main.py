@@ -5,7 +5,7 @@ import output_handler
 # Csak a szükséges handler funkciók
 from gemini_handler import (
     generate_structured_summary, get_strategic_topics, validate_news_clusters, 
-    get_gemini_embeddings
+    get_gemini_embeddings, process_topics_and_filter
 )
 
 from rss_handler import fetch_news

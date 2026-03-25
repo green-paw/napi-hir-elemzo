@@ -191,8 +191,21 @@ def main():
     if not raw_news:
         print("no raw news, exiting")
         return
-    
 
+    topics = process_topics_and_filter(raw_news)
+
+    print(topics)
+
+
+
+
+    # Statisztika
+    try:
+        usage_tracker.print_summary()
+    except:
+        pass
+
+    
     return
 
 

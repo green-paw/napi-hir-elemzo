@@ -88,7 +88,6 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
 
     config_args = {
                 "system_instruction": sys_instr,
-                "cached_content": shared_state.active_cache.name if shared_state.active_cache else None,
                 "response_mime_type": "application/json" if schema else "text/plain",
                 "temperature": 0.1 if schema else 0.3,
                 "max_output_tokens": max_output_tokens,
@@ -131,7 +130,7 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
     try:
         if response is not None and hasattr(response, 'usage_metadata'):
             usage_tracker.add(model, response)
-            print(f"📊 {model} | Output tokens: {response.usage_metadata.candidates_token_count} | Cached: {getattr(response.usage_metadata, 'cached_content_token_count', 0) or 0}")
+            print(f"📊 {model} | Output tokens: {response.usage_metadata.candidates_token_count} | Cached input: {getattr(response.usage_metadata, 'cached_content_token_count', 0) or 0}")
         if response is not None and hasattr(response, 'candidates') and len(response.candidates) > 0:
             if response.candidates[0].finish_reason == "MAX_TOKENS":
                 print(f"⚠️ FIGYELMEZTETÉS ({model}): A válasz túl hosszú, le lett vágva!")            

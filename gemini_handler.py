@@ -3,233 +3,20 @@ import json
 from google import genai
 from google.genai import types
 import time
-from pydantic import BaseModel, Field
-from typing import List
+from typing import Any, Dict, List
 
-from models import Article, EventSummaryResult, MultiClusterIdResponse, MultiClusterResponse
-
+from models import Article, MultiClusterIdResponse, MultiClusterResponse
+from models import StructuredEventSummary
+import llm_core
 
 
 # 1. Globális kliens létrehozása itt, a handlerben
 client_main = genai.Client(api_key=config.GOOGLE_API_KEY)
 client_free = genai.Client(api_key=config.GOOGLE_API_KEY_FREE)
 
-
-
-
-class TokenLogger:
-    def __init__(self):
-        self.log = []
-
-    def add(self, model_name, response):
-        if hasattr(response, 'usage_metadata'):
-            usage = response.usage_metadata
-            self.log.append({
-                "model": model_name,
-                # Ha nincs kitöltve, legyen 0
-                "input": getattr(usage, 'prompt_token_count', 0),
-                "output": getattr(usage, 'candidates_token_count', 0)
-            })
-        else:
-            # Ha egyáltalán nincs metadata (pl. hálózati hiba vagy azonnali tiltás)
-            self.log.append({
-                "model": model_name,
-                "input": 0,
-                "output": 0
-            })
-
-    def get_aggregated_stats(self):
-        try:
-            stats = {}
-            for entry in self.log:
-                m = entry["model"]
-                if m not in stats:
-                    stats[m] = {"in": 0, "out": 0}
-                stats[m]["in"] += entry.get("input", 0)
-                stats[m]["out"] += entry.get("output", 0)
-            return stats
-        except Exception as e:
-            print(f"⚠️ Hiba a statisztika összesítésénél: {e}")
-            # Hiba esetén visszaadjuk a nyers logot, hogy ne vesszen el adat
-            return self.log
-        
-    def get_summary(self):
-        return self.log
-
-# Hozz létre egy példányt a modul szintjén
-usage_tracker = TokenLogger()
-
-
-def _gemini_engine(prompt: str, sys_instruct: str ="Te egy AI asszisztens vagy.", model_type: str="lite", is_json: bool=False, schema=None) -> str:
-    model_type = str(model_type).lower() or "lite"
-
-    match model_type:
-        case "free":
-            current_client = client_free
-            current_model = config.MODEL_ID  # gemini-2.5-flash
-            max_out = 8192  # A Flash maximuma, hogy biztosan ne vágja le a JSON-t
-        case "flash":
-            current_client = client_main
-            current_model = config.MODEL_ID  # gemini-2.5-flash
-            max_out = 2048  # A Lite-nak elég az összefoglalókhoz
-        case _:
-            current_client = client_main
-            current_model = config.MODEL_LITE_ID  # gemini-2.5-flash-lite
-            max_out = 2048  # A Lite-nak elég az összefoglalókhoz
-
-    safety_settings = [
-        types.SafetySetting(category=cat, threshold="BLOCK_ONLY_HIGH")
-        for cat in [
-            "HARM_CATEGORY_HATE_SPEECH", 
-            "HARM_CATEGORY_HARASSMENT", 
-            "HARM_CATEGORY_SEXUALLY_EXPLICIT", 
-            "HARM_CATEGORY_DANGEROUS_CONTENT", 
-            "HARM_CATEGORY_CIVIC_INTEGRITY"
-        ]
-    ]
-    
-    generation_config = {
-        "system_instruction": sys_instruct,
-        "temperature": 0.0 if is_json else 0.2,
-        #"max_output_tokens": max_out,
-        "response_mime_type": "application/json" if is_json else "text/plain",        
-        "response_schema": schema if is_json and schema else None,
-        "safety_settings": safety_settings
-    }
-
-    for attempt in range(5):
-        try:
-            # Itt a kiválasztott current_client-et használjuk!
-            response = current_client.models.generate_content(
-                model=current_model,
-                contents=prompt,
-                config=types.GenerateContentConfig(**generation_config)
-            )
-            if response.candidates[0].finish_reason != "STOP":
-                print(f"DEBUG: Finish reason: {response.candidates[0].finish_reason}")
-
-            usage_tracker.add(model_type, response)     
-                
-            return response.text
-        except ValueError as ve:
-            # Ha a response.text nem elérhető (pl. teljesen blokkolt tartalom)
-            print(f"⚠️ Kimeneti hiba (blokkolt tartalom?): {ve}")
-            raise SystemExit(1) 
-        except Exception as e:
-            error_msg = str(e).lower()
-            
-            # Csak ezeknél a hibáknál érdemes újrapróbálkozni (Network/Rate limit)
-            retry_errors = ["503", "429", "quota", "overloaded", "unavailable"]
-            
-            if any(err in error_msg for err in retry_errors):
-                wait_time = (attempt + 1) * 5
-                print(f"⚠️ Szerver túlterhelt, várakozás {wait_time}s... ({attempt+1}/5)")
-                time.sleep(wait_time)
-            else:
-                print(f"Hiba a Gemini motorban ({model_type}): {e}")
-                raise SystemExit(1) 
-
-    print(f"Hiba a Gemini motorban ({model_type}): 5 retry után sem sikerült választ kapni.")
-    raise SystemExit(1) 
-
-def _gemini_engine_old(prompt, sys_instruct, model_type="lite", is_json=False, schema=None):
-    model_name = "gemini-2.5-flash-lite"
-    if model_type == "flash":
-        model_name = "gemini-2.5-flash"
-
-    if model_name == "gemini-2.5-flash" and is_json == True and schema == None:
-        print("WARNING: nincs megadva séma egy flash json hívásnál")
-
-    # Újrapróbálkozási logika (maximum 5 kísérlet)
-    for attempt in range(5):
-        try:
-            response = client_main.models.generate_content(
-                model=model_name,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=sys_instruct,
-                    temperature=0.0 if is_json else 0.2,
-                    response_mime_type="application/json" if is_json else "text/plain",
-                    response_schema=schema if is_json and schema else None,
-                    max_output_tokens=2048,
-                    safety_settings = [
-                        types.SafetySetting(category=cat, threshold="BLOCK_ONLY_HIGH")
-                        for cat in [
-                            "HARM_CATEGORY_HATE_SPEECH", 
-                            "HARM_CATEGORY_HARASSMENT", 
-                            "HARM_CATEGORY_SEXUALLY_EXPLICIT", 
-                            "HARM_CATEGORY_DANGEROUS_CONTENT", 
-                            "HARM_CATEGORY_CIVIC_INTEGRITY"
-                        ]
-                    ]
-                )
-            )
-
-            has_valid_content = (
-                response.candidates and 
-                response.candidates[0].content and 
-                response.candidates[0].content.parts and
-                response.candidates[0].content.parts[0].text
-            )
-
-            # A _gemini_engine függvényben a generálás után:
-            if response.candidates[0].finish_reason != "STOP":
-                print(f"DEBUG: Finish reason: {response.candidates[0].finish_reason}")
-                
-                # Ha tiltás van, írjuk ki a részleteket
-                if response.candidates[0].finish_reason == "SAFETY" or response.candidates[0].finish_reason == "PROHIBITED_CONTENT":
-                    print("--- Biztonsági szűrések részletei ---")
-                    for rating in response.candidates[0].safety_ratings:
-                        # Csak azokat írjuk ki, amik nem 'NEGLIGIBLE' (elhanyagolható) szintűek
-                        if rating.probability != "NEGLIGIBLE":
-                            print(f"Kategória: {rating.category} | Valószínűség: {rating.probability} | Prompt: {prompt}")
-    
-            usage_tracker.add(model_name, response)            
-
-            # Ellenőrizzük, hogy félbeszakadt-e a válasz
-            if response.candidates[0].finish_reason == "MAX_TOKENS":
-                print(f"⚠️ FIGYELMEZTETÉS ({model_name}): A válasz túl hosszú, le lett vágva!")
-            
-            # Csak akkor próbálunk JSON-t varázsolni, ha azt kértük
-            if is_json:
-                try:
-                    # Megpróbáljuk leszedni a Markdown kódrészleteket, ha a modell odatette volna
-                    cleaned_text = response.text.strip()
-                    if cleaned_text.startswith("```json"):
-                        cleaned_text = cleaned_text.replace("```json", "", 1).rsplit("```", 1)[0].strip()
-                    elif cleaned_text.startswith("```"):
-                        cleaned_text = cleaned_text.replace("```", "", 1).rsplit("```", 1)[0].strip()
-                    
-                    return cleaned_text # Visszaadjuk a szöveget a hívónak, ő fogja json.loads-olni
-                except Exception as e:
-                    print(f"❌ Hiba a JSON szöveg előkészítésénél: {e}")
-                    return None
-            
-            return response.text
-            
-        except Exception as e:
-            error_msg = str(e).lower()
-            
-            # Csak ezeknél a hibáknál érdemes újrapróbálkozni (Network/Rate limit)
-            retry_errors = ["503", "429", "quota", "overloaded", "unavailable"]
-            
-            if any(err in error_msg for err in retry_errors):
-                wait_time = (attempt + 1) * 5
-                print(f"⚠️ Szerver túlterhelt, várakozás {wait_time}s... ({attempt+1}/5)")
-                time.sleep(wait_time)
-            else:
-                # KRITIKUS HIBA: Azonnali leállás (pl. NameError, SyntaxError, Auth error)
-                print(f"❌ KRITIKUS HIBA ({model_name}): {e}")
-                # Kényszerített leállás, hogy ne pörögjön a ciklus
-                raise SystemExit(1) 
-
-    # nem sikerült 5 próbálkozás alatt sem
-    print(f"❌ KRITIKUS HIBA ({model_name}): nem sikerült 5 próbálkozás alatt sem")
-    raise SystemExit(1)
-    return None
-
 def get_strategic_topics(titles_sample):
-    prompt = f"""
+    sys_instr = f"""
+    Te egy stratégiai politikai, gazdasági elemző vagy.
     Elemezd a következő hírcímeket, és határozz meg maximum 7 darab kiemelt stratégiai fókuszpontot, amelyek a mai napot dominálják.
 
     Szigorú prioritási sorrend:
@@ -241,28 +28,27 @@ def get_strategic_topics(titles_sample):
     - Csak akkor említs technológiát, klímát vagy kultúrát, ha az közvetlen, súlyos gazdasági vagy politikai következménnyel jár (pl. AI-szabályozás miatti tőzsdei bukás).
     - Ha nincs 7 valóban stratégiai téma, adj kevesebbet, de ne töltsd fel bulvárral vagy irreleváns "trendekkel".
     
-    Formátum: Csak a témák címeit add vissza, fontossági sorrendben.
-
-    HÍREK:
-    {titles_sample}
-    
     VÁLASZ FORMÁTUMA:
-    Egy JSON listát adj vissza, ami csak a témák nevét tartalmazza, semmi mást!
+    Csak a témák címeit add vissza, fontossági sorrendben, JSON listában.
     Példa: ["Téma 1", "Téma 2", "Téma 3"]
     """
+
+    prompt: str = f"""
+    HÍREK:
+    {titles_sample}
+    """
     
-    res_text = str(_gemini_engine(
-        prompt=prompt, 
-        sys_instruct="Te egy stratégiai politikai, gazdasági elemző vagy.",
-        is_json=True,
-        schema=list[str] 
-    ))
+    res_text = llm_core.gemini_call(
+        client=client_main,
+        model=config.MODEL_LITE_ID,
+        contents=prompt, 
+        sys_instr=sys_instr,
+        schema=list[str]
+    )
 
     try:
-        import json
-        topics = json.loads(res_text)
-        if isinstance(topics, list):
-            return topics
+        if isinstance(res_text, list):
+            return res_text
         return []
     except Exception as e:
         print(f"❌ Hiba a témák feldolgozásánál: {e}")
@@ -293,66 +79,22 @@ def validate_news_clusters(cluster_data: str, schema=MultiClusterResponse) -> di
     VÁLASZ: Kizárólag a megadott JSON sémát használd!"""
 
     # Fontos: itt már a MultiClusterResponse sémát használjuk!
-    res = _gemini_engine(cluster_data, sys_instruct, model_type="lite", is_json=True, schema=schema)
+    res = llm_core.gemini_call(
+        client=client_main,
+        contents=cluster_data,
+        sys_instr=sys_instruct,
+        model=config.MODEL_LITE_ID,
+        schema=schema,
+        max_output_tokens=1500
+    )
     
     try:
-        if not res: return {"events": []}
-        data = json.loads(res)
-        # Biztosítjuk, hogy mindig legyen egy 'events' kulcsunk
-        return data if "events" in data else {"events": []}
+        if not res: 
+            return {"events": []}
+        return res.model_dump()
     except Exception as e:
         print(f"⚠️ JSON hiba a validációnál: {e}")
         return {"events": []}
-
-def generate_event_summary(event_name: str, news_items: List[Article]) -> str:
-    biases = []
-    context_parts = []
-    
-    for n in news_items:
-        # A config.RSS_SOURCES már tuple: (url, bias)
-        source_data = config.RSS_SOURCES.get(n.source, (None, "Ismeretlen"))
-        bias = source_data[1] 
-        biases.append(bias)
-        context_parts.append(f"FORRÁS: {n.source} ({bias})\nCÍM: {n.title}\nKIVONAT: {n.summary[:500]}\n---")
-
-    # Dinamikus prompt meghatározása
-    dynamic_instruction = get_dynamic_prompt(event_name, biases)
-    
-    prompt = f"""
-    {dynamic_instruction}
-    
-    ELEMEZENDŐ ADATOK:
-    {chr(10).join(context_parts)}
-    
-    ELVÁRT STRUKTÚRA ÉS FORMÁTUM:
-    Pár mondatban foglald össze az eseményt. Csak a közös metszetet és a megkérdőjelezhetetlen tényeket írd le.
-    
-    NARRATÍVÁK ÉS ELEMZÉS: 
-       - Fejtsd ki a különböző politikai oldalak (konzervatív vs. liberális) tálalási módját.
-       - KÜLÖNÖS FIGYELEM: Ha egy forrás a saját besorolásától eltérő (váratlanul kritikus vagy szokatlanul támogató) hangvételt üt meg, azt mindenképpen emeld ki!
-       - Nevezd meg a konkrét manipulációs technikákat, érzelmi hergelést vagy elhallgatásokat.
-       - Az egyes narratívák elemzése is csak 1-2 mondat legyen
-       - Ha nincs érdemi különbség az oldalak között, ne gyártsd le mesterségesen, hanem írd le: 'A hír tálalása egységes'.
-
-    ELVÁRÁSOK:
-    - Nem kell bevezető ("Rendben, nézzük meg ezt az ...")
-    - Kezdd az elemzést azonnal az érdemi összefoglalóval, ne írd ki fejlécként az esemény nevét (azt a rendszer automatikusan hozzáadja).
-    - Ami a címben benne van azt már tudjuk, azt ne ismételd sehol.
-    - Az egyes bekezdések legyenek lényegretörőek, csak pár mondat
-    - Kerüld a felesleges köröket, szófordulatokat ("Fontos megjegyezni...").
-    - Használj Markdown formázást (vastagítás a kulcsszavaknál).
-    """
-
-    system_msg = (
-        "Te egy tapasztalt, cinikus, de szigorúan objektív politikai és gazdasági elemző vagy. "
-        "A feladatod a hírek dekonstrukciója. Ne csak azt nézd, mit írnak, hanem azt is, hogyan. "
-        "Keresd a 'keretezési' technikákat és a politikai marketinget. "
-        "Légy tömör és lényegretörő. Az egész elemzés ne legyen több 10-12 mondatnál. "
-    )
-
-    res = _gemini_engine(prompt, system_msg)
-    
-    return res if res else "Nem sikerült generálni az elemzést."
     
 def get_gemini_embeddings(texts):
     """Vektorok lekérése újrapróbálkozási logikával."""
@@ -386,27 +128,6 @@ def get_gemini_embeddings(texts):
                     raise e
                     
     return all_embeddings
-
-def translate_if_needed(text):
-    """
-    Lefordítja a szöveget magyarra, ha az idegen nyelvű. 
-    Ha a modell üres választ ad (mert már magyar), az eredeti szöveget adja vissza.
-    """
-    sys_instruct = """Te egy fordító vagy. 
-    FELADAT:
-    1. Ha a bemeneti szöveg NEM magyar, fordítsd le magyarra.
-    2. Ha a bemeneti szöveg MÁR magyar, a válaszod legyen teljesen ÜRES!
-    
-    SZABÁLY: Csak a fordítást küldd vissza, ne fűzz hozzá semmilyen magyarázatot vagy megjegyzést!"""
-    
-    res = _gemini_engine(text, sys_instruct)
-    
-    # Ha kaptunk választ és nem csak üres karaktereket tartalmaz
-    if res and res.strip():
-        return res.strip()
-    
-    # Ha a válasz None vagy üres string, akkor az eredeti szöveget küldjük vissza
-    return text
 
 def get_dynamic_prompt(event_name, source_biases):
     # Meghatározzuk, milyen típusú forrásaink vannak
@@ -443,7 +164,6 @@ def get_dynamic_prompt(event_name, source_biases):
         Elemezd a híreket tényalapú megközelítéssel, fókuszálj a geopolitikai és gazdasági hatásokra.
         """
 
-
 def batch_cluster_news(formatted_news: str) -> MultiClusterIdResponse:
     """Ez a függvény végzi a nagy, egyben történő klaszterezést az INGYENES kulccsal."""
     sys_instruct = f"""
@@ -466,15 +186,127 @@ def batch_cluster_news(formatted_news: str) -> MultiClusterIdResponse:
     """
     
     try:
-        # Itt a client_FREE-t használjuk!
-        response = _gemini_engine(
-            prompt,
-            sys_instruct=sys_instruct,
-            model_type="lite",
-            is_json=True,
+        response = llm_core.gemini_call(
+            client=client_main,
+            contents=prompt,
+            sys_instr=sys_instruct,
+            model=config.MODEL_LITE_ID,
+            max_output_tokens=2048,
             schema=MultiClusterIdResponse
         )
         return json.loads(response)
     except Exception as e:
         print(f"Hiba a Flash klaszterezésnél: {e}")
         return MultiClusterIdResponse(events=[])
+
+def generate_structured_summary(event_name: str, news_items: List[Article]) -> Dict[str, Any]:
+    biases: List[str] = []
+    context_parts: List[str] = []
+    
+    # Változók a token optimalizáláshoz
+    has_left: bool = False
+    has_right: bool = False
+    
+    for n in news_items:
+        source_data: tuple = config.RSS_SOURCES.get(n.source, (None, "Ismeretlen"))
+        bias: str = source_data[1] 
+        biases.append(bias)
+        
+        # Gyors ellenőrzés: Milyen típusú forrásaink vannak?
+        bias_lower: str = bias.lower()
+        if "bal" in bias_lower or "liberális" in bias_lower or "kritikai" in bias_lower:
+            has_left = True
+        if "jobb" in bias_lower or "konzervatív" in bias_lower or "kormánypárti" in bias_lower:
+            has_right = True
+            
+        context_parts.append(f"FORRÁS: {n.source} ({bias})\nCÍM: {n.title}\nKIVONAT: {n.summary[:500]}\n---")
+
+    # A dinamikus promptod az eseményhez
+    #dynamic_instruction: str = get_dynamic_prompt(event_name, biases)
+    
+    # A tokenkímélő utasítások most már a user promptba kerülnek, így a system prompt fix marad!
+    left_instruction: str = (
+        "Elemezd a baloldali/liberális narratívát a 'left_wing_analysis' mezőben, emeld ki a manipulációs technikákat." 
+        if has_left else 
+        "NINCS baloldali forrás a listában. A 'left_wing_analysis' mező értéke SZIGORÚAN csak egy üres string ('') legyen, ne találj ki semmit!"
+    )
+    
+    right_instruction: str = (
+        "Elemezd a jobboldali/konzervatív narratívát a 'right_wing_analysis' mezőben, emeld ki a fókuszt és az érveket." 
+        if has_right else 
+        "NINCS jobboldali forrás a listában. A 'right_wing_analysis' mező értéke SZIGORÚAN csak egy üres string ('') legyen, ne találj ki semmit!"
+    )
+
+    prompt: str = f"""
+    ELEMZÉSI SZABÁLYOK AZ ADOTT ESEMÉNYHEZ:
+    - {left_instruction}
+    - {right_instruction}
+    
+    ELEMEZENDŐ ADATOK:
+    {chr(10).join(context_parts)}
+    """
+
+    # Ez itt egy 100%-ig fix, statikus szöveg, tökéletes a Gemini Caching számára!
+    sys_instr: str = """
+        Te egy tapasztalt, cinikus, de szigorúan objektív politikai és gazdasági elemző vagy.
+        A feladatod a hírek dekonstrukciója és a tények leválasztása a narratívákról.
+
+        ELVÁRÁSOK:
+        - Nem kell bevezető ("Rendben, nézzük meg ezt az ...")
+        - Kezdd az elemzést azonnal az érdemi összefoglalóval, ne írd ki fejlécként az esemény nevét (azt a rendszer automatikusan hozzáadja).
+        - Ami a címben benne van azt már tudjuk, azt ne ismételd sehol.
+        - Az egyes bekezdések legyenek lényegretörőek, csak pár mondat.
+        - Kerüld a felesleges köröket, szófordulatokat ("Fontos megjegyezni...").
+        - Használj Markdown formázást (vastagítás a kulcsszavaknál).
+        
+        SZABÁLYOK A VÁLASZHOZ (JSON SÉMA):
+        1. 'summary': SZIGORÚAN CSAK A TÉNYEK (max 500 karakter). Nincs vélemény, nincs forráselemzés. Próbáld megtalálni amiben minden forrás egyetért, vagy ha különböznek a vélemények, akkor a közös metszetet. Ne ismételd meg a címből már ismert információkat!
+        2. 'left_wing_analysis' és 'right_wing_analysis':
+            - Kövesd a promptban kapott specifikus utasításokat!
+            - Fejtsd ki a különböző politikai oldalak (konzervatív vs. liberális) tálalási módját.
+            - KÜLÖNÖS FIGYELEM: Ha egy forrás a saját besorolásától eltérő (váratlanul kritikus vagy szokatlanul támogató) hangvételt üt meg, azt mindenképpen emeld ki!
+            - Nevezd meg a konkrét manipulációs technikákat, érzelmi hergelést vagy elhallgatásokat.
+            - Az egyes narratívák elemzése is csak pár mondat legyen
+            - Ha nincs érdemi különbség az oldalak között, ne gyártsd le mesterségesen, hanem írd le: 'A hír tálalása egységes'.
+    """
+        
+    res: Any = llm_core.gemini_call(
+        client=client_main,
+        contents=prompt,
+        sys_instr=sys_instr,
+        model=config.MODEL_LITE_ID,
+        schema=StructuredEventSummary,
+        max_output_tokens=2048
+    )
+    
+    """
+    # Ha a Free kliens elakadt (pl. politikai szűrő miatt levágta a JSON-t)
+    if not res or isinstance(res, str):
+        print("⚠️ A Free kliens elhasalt (valószínűleg politikai szűrő). Próba a Main (fizetős) kulccsal...")
+        
+        # 2. Próba a fizetős klienssel
+        res = llm_core.gemini_call(
+            client=client_main,
+            contents=prompt,
+            sys_instr=sys_instr,
+            model=config.MODEL_LITE_ID,   # Itt a fizetős Lite-ot használjuk költséghatékonyságból
+            schema=StructuredEventSummary,
+            max_output_tokens=2048
+        )
+    """
+
+    if not res or isinstance(res, str): 
+        raise ValueError("Mindkét kliens üres vagy hibás választ adott.")
+
+    try:
+        return res.model_dump()
+    except Exception as e:
+        print(f"⚠️ Hiba a summary generálásánál: {e}")
+        return {
+            "title": event_name, 
+            "summary": "Hiba történt az elemzés során.", 
+            "left_wing_analysis": "", 
+            "right_wing_analysis": "", 
+            "category": "EGYÉB", 
+            "score": 0
+        }

@@ -374,21 +374,32 @@ def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
             continue # Ha ehhez a témához már megvannak az ID-k, ugrunk a következőre
             
         print(f"⏳ Keresés ehhez: '{topic.title}'...")
-        prompt_1_5 = f"Keresd ki a fenti listából azokat a hír ID-kat, amik ehhez a témához tartoznak: '{topic.title}'."
-        
-        res = llm_core.gemini_call(
+        prompt_1_5 = f"""Keresd ki a fenti listából azokat a hír ID-kat, amik egyértelműen ehhez a témához tartoznak: '{topic.title}'. 
+        SZIGORÚ SZABÁLY: A válaszod KIZÁRÓLAG egyetlen sornyi, vesszővel elválasztott számsor lehet!
+        Semmi JSON formázás, semmi magyarázat, semmi sortörés! 
+        Példa a kimenetre: 12,45,102,504"""
+
+        res_text = llm_core.gemini_call(
             client=client_main,
             contents=prompt_1_5,
             sys_instr=universal_sys_instr, # <-- UGYANAZ A BEMENET! Itt spórol a Cache.
             model=config.MODEL_LITE_ID,
-            schema=LLMFilterResponse,
+            schema=None,
             max_output_tokens=8192
         )
         
-        if res and isinstance(res, LLMFilterResponse):
-            topic.article_ids = res.article_ids
-            needs_save = True
-
+        if res_text and isinstance(res_text, str):
+            # A Regex kitép minden egyes számot a szövegből, így az is mindegy, ha a modell véletlenül 
+            # azt írná elé, hogy "Íme az ID-k: 12, 34..."
+            found_ids = [int(num) for num in re.findall(r'\d+', res_text)]
+            
+            if found_ids:
+                # Eltávolítjuk az esetleges duplikációkat a listából a set() segítségével
+                topic.article_ids = list(set(found_ids))
+                print(f"   -> Sikeresen kinyerve: {len(topic.article_ids)} ID.")
+                needs_save = True
+            else:
+                print(f"   -> Nem talált ID-kat, vagy üres választ adott.")
     if needs_save:
         save_checkpoint("step1_state.json", topics_state, List[Topic])
 

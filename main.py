@@ -21,6 +21,8 @@ import random
 import builtins
 from datetime import datetime
 
+import llm_core
+
 _original_print = builtins.print
 def timestamped_print(*args, **kwargs):
     timestamp = datetime.now().strftime("[%H:%M:%S]")
@@ -201,9 +203,9 @@ def main():
 
     # Statisztika
     try:
-        usage_tracker.print_summary()
-    except:
-        pass
+        llm_core.usage_tracker.print_summary()
+    except Exception as e:
+        print(f"⚠️ usage_tracker: {e}")
 
     
     return

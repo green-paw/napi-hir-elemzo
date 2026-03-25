@@ -324,14 +324,19 @@ def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
     if topics_state and all(t.article_ids for t in topics_state):
         return topics_state
 
-    client_main = genai.Client(api_key=config.GOOGLE_API_KEY_MAIN)
+    #client_main = genai.Client(api_key=config.GOOGLE_API_KEY_MAIN)
     needs_save = False
 
     # --- A VARÁZSLAT ITT VAN: KÖZÖS SYSTEM INSTRUCTION ---
     # Ez a string bekerül a cache-be az első hívásnál, a többinél már onnan töltődik
     news_list_str = "\n".join([f"ID:{a.id} | {a.title}" for a in articles])
-    universal_sys_instr = f"Te egy hírelemző AI vagy. Itt a napi hírek listája:\n{news_list_str}"
-
+    
+    universal_sys_instr = f"""Te egy vezető stratégiai, politikai és gazdasági elemző AI vagy. 
+    A feladatod a zaj kiszűrése és a legfontosabb geopolitikai, makrogazdasági és magyarországi gazdasági vagy politikai események azonosítása a napi hírfolyamból.
+    
+    Íme az aktuális nyers hírfolyam:
+    {news_list_str}"""
+    
     # ==========================================
     # LÉPÉS 1: Témák kinyerése (ha még üres a cache)
     # ==========================================
@@ -345,7 +350,7 @@ def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
             sys_instr=universal_sys_instr, # <-- BEMENET 1
             model=config.MODEL_LITE_ID,
             schema=LLMTopicList,
-            max_output_tokens=500
+            max_output_tokens=1024
         )
         if res and isinstance(res, LLMTopicList):
             topics_state = [Topic(title=t) for t in res.topics]
@@ -369,7 +374,7 @@ def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
             sys_instr=universal_sys_instr, # <-- UGYANAZ A BEMENET! Itt spórol a Cache.
             model=config.MODEL_LITE_ID,
             schema=LLMFilterResponse,
-            max_output_tokens=2048
+            max_output_tokens=4096
         )
         
         if res and isinstance(res, LLMFilterResponse):

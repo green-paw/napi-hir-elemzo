@@ -357,7 +357,7 @@ def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
             client=client_main,
             contents=prompt_1,
             sys_instr=universal_sys_instr, # <-- BEMENET 1
-            model=config.MODEL_LITE_ID,
+            model=config.MODEL_ID,
             schema=LLMTopicList,
             max_output_tokens=1024
         )
@@ -365,10 +365,16 @@ def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
             topics_state = [Topic(title=t) for t in res.topics]
             save_checkpoint("step1_state.json", topics_state, List[Topic])
 
+        print("2mp szünet, hátha addig meglesz a cache")
+        time.sleep(2)
+    
     # ==========================================
     # LÉPÉS 1.5: Hírek ID-jainak besorolása
     # ==========================================
     print("🔄 1.5 Lépés: Hírek keresése az egyes témákhoz (Implicit Cache)...")
+
+    #biztonsági korlát
+    topics_state = topics_state[:3]
     
     for topic in topics_state:
         if topic.article_ids: 
@@ -391,9 +397,9 @@ def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
             client=client_main,
             contents=prompt_1_5,
             sys_instr=universal_sys_instr, # <-- UGYANAZ A BEMENET! Itt spórol a Cache.
-            model=config.MODEL_LITE_ID,
+            model=config.MODEL_ID,
             schema=None,
-            max_output_tokens=8192
+            max_output_tokens=1024
         )
         
         if res_text and isinstance(res_text, str):

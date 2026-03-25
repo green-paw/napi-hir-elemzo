@@ -15,9 +15,26 @@ CHECKPOINT_DIR = "checkpoints"
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
 def load_checkpoint(filename: str, expected_type: Any) -> Optional[Any]:
-    """Betölti a megadott JSON-t és a kért Pydantic/Python típusra alakítja."""
-    if args.force:
-        print(f"⚠️ [--force] Aktív: {filename} betöltése átugorva.")
+
+    # 1. Beolvassuk a környezeti változókat
+    current_branch = os.getenv("CURRENT_BRANCH", "main")
+    settings_str = os.getenv("CACHE_SETTINGS", "{}")
+
+    print(f"CACHE SETTINGS: {settings_str}")
+    
+    use_cache_env = True # Alapértelmezett érték, ha valami hiányzik
+    
+    # 2. JSON feldolgozása
+    try:
+        settings = json.loads(settings_str)
+        val = settings.get(current_branch, True)
+        use_cache_env = str(val).lower() == "true"
+    except json.JSONDecodeError:
+        print("⚠️ Hiba a CACHE_SETTINGS JSON formátumában. Alapértelmezett Cache = True.")
+
+    # 3. Döntés a betöltésről
+    if not use_cache_env or args.force:
+        print(f"⚠️ [CACHE KIKAPCSOLVA: {current_branch} ágon] {filename} betöltése átugorva.")
         return None
         
     filepath = os.path.join(CHECKPOINT_DIR, filename)

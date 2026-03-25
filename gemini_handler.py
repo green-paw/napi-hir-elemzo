@@ -362,8 +362,15 @@ def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
             max_output_tokens=1024
         )
 
-        print(f"flash response: {res.text}")
-
+        try:
+            print(f"flash response: {res.text}")
+        except:
+            pass
+        try:
+            print(f"flash response: {res}")
+        except:
+            pass
+            
 
         return []
         

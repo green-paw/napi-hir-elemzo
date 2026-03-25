@@ -28,6 +28,8 @@ def timestamped_print(*args, **kwargs):
 
 builtins.print = timestamped_print
 
+from llm_core import usage_tracker        
+
 # --- Szemantikus szűrő matematikai alapjai ---
 def cosine_similarity(v1, v2):
     dot_product = sum(x * y for x, y in zip(v1, v2))
@@ -190,6 +192,10 @@ def main():
         print("no raw news, exiting")
         return
     
+
+    return
+
+
     # 2. Stratégiai témák
     # Megjegyzés: random helyett az utolsó N hír is jó lehet, de a random segít a diverzitásban
     sample_size = min(len(raw_news), 300)
@@ -296,9 +302,7 @@ def main():
         
     # Statisztika
     try:
-        from llm_core import usage_tracker        
-        usage = usage_tracker.get_aggregated_stats()
-        print(f"📊 Token használat: {usage}")
+        usage_tracker.print_summary()
     except:
         pass
 

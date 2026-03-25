@@ -36,9 +36,6 @@ jobs:
       - name: Create checkpoints directory
         run: mkdir -p checkpoints
 
-      - name: Create checkpoints directory
-        run: mkdir -p checkpoints
-
       - name: Restore/Save Checkpoints Cache
         uses: actions/cache@v4
         with:

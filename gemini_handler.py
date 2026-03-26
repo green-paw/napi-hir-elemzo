@@ -7,7 +7,7 @@ from google.genai import types
 import time
 from typing import Any, Dict, List
 
-from models import Article, MultiClusterIdResponse, MultiClusterResponse
+from models import Article, EventCluster, MultiClusterIdResponse, MultiClusterResponse
 from models import StructuredEventSummary
 import llm_core
 from models import Article, Topic, LLMTopicList, LLMFilterResponse
@@ -447,10 +447,58 @@ def gather_articles_for_topics(current_topics: List[Topic], articles: List[Artic
     save_checkpoint("step1_state.json", current_topics, List[Topic])
     return current_topics
 
+def generate_sub_topics(topics: List[Topic], articles: List[Article]) -> List[Topic]:
+    topics_state: List[Topic] = load_checkpoint("step2_state.json", List[Topic]) or []
+    if topics_state and all(t.events for t in topics_state):
+        print("✅ Sub-témák betöltve a cache-ből.")
+        return topics_state
+    
+    # Ha nincs cache, akkor generáljuk újra
+    for topic in topics:
+        if topic.article_ids is None:
+            continue
+        
+        related_articles = [a for a in articles if a.id in topic.article_ids]
+        news_json_str = "\n".join([f"ID: {a.id} | FORRÁS: {a.source} | CÍM: {a.title} | TARTALOM: {a.summary[:300]}" for a in related_articles])
 
+        sys_instr = """Te egy precíz hír-klaszterező algoritmus vagy. 
+        A feladatod, hogy egy megadott főtémához tartozó hírlistát konkrét, egyedi ESEMÉNYEK (al-topikok) köré csoportosíts.
 
+        SZABÁLYOK:
+        1. Konkrét események: Az al-topik címe legyen nagyon specifikus és leíró (pl. "Kína tajvani hadgyakorlata" és NE az, hogy "Ázsiai feszültség").
+        2. Nincs "szemetes" kategória: Ne hozz létre "Egyéb", "Vegyes" vagy "Különféle" nevű eseményeket. Ha egy hír nem kapcsolódik szorosan egy nagyobb eseményhez, hagyd ki.
+        3. Precíz ID hozzárendelés: Egy ID csak ahhoz az eseményhez kerülhet be, amiről tényszerűen szól. Nincs hallucináció, csak a bemeneti listában szereplő ID-kat használhatod.
+        4. Kimenet: Csak a kért JSON struktúrát add vissza, bevezető és magyarázat nélkül.
+        """
 
+        prompt = f"""
+        FŐTÉMA: 
+        "{topic.title}"
 
+        HÍREK (amelyek ebbe a főtémába tartoznak):
+        {news_json_str}
+
+        ---
+        FELADAT:
+        A fenti híreket csoportosítsd konkrét al-topikokba (eseményekbe). 
+        Adj egy specifikus címet az eseménynek SZIGORÚAN MAGYAR NYELVEN, és sorold fel a hozzá tartozó hír ID-kat.
+        """
+        res = llm_core.gemini_call(
+            client=client_main,
+            contents=prompt,
+            sys_instr=sys_instr,
+            model=config.MODEL_LITE_ID,
+            schema=List[EventCluster],
+            max_output_tokens=2048
+        )
+
+        if res and isinstance(res, list):   
+            topic.events = res
+        else:
+            print(f"⚠️ Nem várt válasz az al-témák generálásánál a '{topic.title}' témához. Várható volt egy lista, de ez jött: {res}")
+            topic.events = []
+    save_checkpoint("step2_state.json", topics, List[Topic])
+    return topics        
 
 def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
     topics_state: List[Topic] = load_checkpoint("step1_state.json", List[Topic]) or []

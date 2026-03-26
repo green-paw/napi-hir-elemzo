@@ -4,7 +4,7 @@ import output_handler
 
 # Csak a szükséges handler funkciók
 from gemini_handler import (
-    define_topics, gather_articles_for_topics, generate_structured_summary, get_strategic_topics, validate_news_clusters, 
+    define_topics, gather_articles_for_topics, generate_structured_summary, generate_sub_topics, get_strategic_topics, validate_news_clusters, 
     get_gemini_embeddings, process_topics_and_filter
 )
 
@@ -196,11 +196,13 @@ def main():
 
     topics = define_topics(raw_news)
     topics = gather_articles_for_topics(topics, raw_news)
+    topics = generate_sub_topics(topics, raw_news)
 
-    print(topics)
-
-
-
+    #print topics and their events
+    for t in topics:
+        print(f"Téma: {t.title} | Hírek száma: {len(t.article_ids)} | Események száma: {len(t.events)}")
+        for e in t.events:
+            print(f"  - Esemény: {e.title} | Hírek száma: {len(e.article_ids)}")
 
     # Statisztika
     try:

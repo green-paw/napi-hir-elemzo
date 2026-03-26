@@ -473,7 +473,18 @@ def generate_sub_topics(topics: List[Topic], articles: List[Article]) -> List[To
         2. maximum 5-7 esemény: Ne erőltess bele minden apró hírt, csak a legfontosabb, legkonkrétabb eseményeket emeld ki. Ha egy eseményhez nincs legalább 2-3 hír, gondold át kétszer, hogy létrehozod-e.
         3. Nincs "szemetes" kategória: Ne hozz létre "Egyéb", "Vegyes" vagy "Különféle" nevű eseményeket. Ha egy hír nem kapcsolódik szorosan egy nagyobb eseményhez, hagyd ki.
         4. Precíz ID hozzárendelés: Egy ID csak ahhoz az eseményhez kerülhet be, amiről tényszerűen szól. Nincs hallucináció, csak a bemeneti listában szereplő ID-kat használhatod.
-        5. Kimenet: Csak a kért JSON struktúrát add vissza, bevezető és magyarázat nélkül.
+        5. Kimenet: JSON struktúra, ahol minden eseménynek van egy specifikus címe és egy hozzá tartozó ID lista.
+            Példa:
+            [
+                {
+                    "title": "Kína tajvani hadgyakorlata",
+                    "article_ids": [123, 456, 789]
+                },
+                {
+                    "title": "NATO csúcstalálkozó és új stratégiai irányvonalak",
+                    "article_ids": [234, 567]
+                }
+            ]   
         """
 
         prompt = f"""
@@ -493,7 +504,7 @@ def generate_sub_topics(topics: List[Topic], articles: List[Article]) -> List[To
             contents=prompt,
             sys_instr=sys_instr,
             model=config.MODEL_ID,
-            schema=EventClusterResponse,
+            schema="json",
             max_output_tokens=2048
         )
 

@@ -70,9 +70,9 @@ class TokenLogger:
 
     def print_summary(self):
         stats = self.get_aggregated_stats()
-        print("\n" + "="*50)
+        print("-" * 50)
         print("📊 API HASZNÁLATI ÉS CACHE STATISZTIKA")
-        print("="*50)
+        print("-" * 50)
         
         for model, data in stats.items():
             print(f"🤖 Modell: {model}")

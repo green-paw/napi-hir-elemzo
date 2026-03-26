@@ -94,7 +94,7 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
                 "safety_settings": safety_settings,
             }
             
-    if schema:
+    if schema and schema != "json":
         config_args["response_schema"] = schema
         
     # A büntetést CSAK a normál flash modellnél alkalmazzuk, a lite-nál nem!

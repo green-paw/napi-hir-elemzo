@@ -7,7 +7,7 @@ from google.genai import types
 import time
 from typing import Any, Dict, List
 
-from models import Article, EventCluster, MultiClusterIdResponse, MultiClusterResponse
+from models import Article, EventCluster, EventClusterResponse, MultiClusterIdResponse, MultiClusterResponse
 from models import StructuredEventSummary
 import llm_core
 from models import Article, Topic, LLMTopicList, LLMFilterResponse
@@ -488,7 +488,7 @@ def generate_sub_topics(topics: List[Topic], articles: List[Article]) -> List[To
             contents=prompt,
             sys_instr=sys_instr,
             model=config.MODEL_LITE_ID,
-            schema=List[EventCluster],
+            schema=EventClusterResponse,
             max_output_tokens=2048
         )
 

@@ -17,6 +17,9 @@ class EventCluster(BaseModel):
     title: str = Field(description="Az esemény rövid, beszédes magyar neve")
     article_ids: List[int] = Field(description="Az eseményről szóló hírek ID-jai")
 
+class EventClusterResponse(BaseModel):
+    events: List[EventCluster] = Field(description="A generált események listája")
+    
 class Topic(BaseModel):
     title: str = Field(description="A téma rövid, beszédes magyar neve")
     article_ids: List[int] = Field(default_factory=list, description="A témához tartozó hírek ID-jai")

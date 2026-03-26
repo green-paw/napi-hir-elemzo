@@ -120,7 +120,7 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
                 time.sleep(wait)
             else:
                 # Minden más végzetes hiba (pl. jogosultság, rossz paraméter)
-                print(f"❌ Végzetes hiba történt: {e}")
+                print(f"❌ LLM coreVégzetes hiba történt: {e}")
                 sys.exit(1)
 
     if response is None and attempt == max_retries - 1:

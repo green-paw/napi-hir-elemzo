@@ -503,7 +503,7 @@ def generate_sub_topics(topics: List[Topic], articles: List[Article]) -> List[To
             client=client_main,
             contents=prompt,
             sys_instr=sys_instr,
-            model=config.MODEL_ID,
+            model=config.MODEL_LITE_ID,
             #schema="json",
             max_output_tokens=2048
         )

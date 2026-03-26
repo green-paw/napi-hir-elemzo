@@ -129,6 +129,7 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
 
     try:
         if response is not None:
+            usage_tracker.add(model, response)
             input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
             cached_tokens = getattr(response.usage_metadata, 'cached_content_token_count', 0) or 0
             output_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0)

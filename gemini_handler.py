@@ -460,16 +460,20 @@ def generate_sub_topics(topics: List[Topic], articles: List[Article]) -> List[To
             continue
         
         related_articles = [a for a in articles if a.id in topic.article_ids]
-        news_json_str = "\n".join([f"ID: {a.id} | FORRÁS: {a.source} | CÍM: {a.title} | TARTALOM: {a.summary[:300]}" for a in related_articles])
+
+        #ez majd később kell
+        #news_json_str = "\n".join([f"ID: {a.id} | FORRÁS: {a.source} | PUBLISHED: {a.published.isoformat()} | CÍM: {a.title} | TARTALOM: {a.summary[:300]}" for a in related_articles])
+        news_json_str = "\n".join([f"ID: {a.id} | CÍM: {a.title} | TARTALOM: {a.summary[:300]}" for a in related_articles])
 
         sys_instr = """Te egy precíz hír-klaszterező algoritmus vagy. 
         A feladatod, hogy egy megadott főtémához tartozó hírlistát konkrét, egyedi ESEMÉNYEK (al-topikok) köré csoportosíts.
 
         SZABÁLYOK:
         1. Konkrét események: Az al-topik címe legyen nagyon specifikus és leíró (pl. "Kína tajvani hadgyakorlata" és NE az, hogy "Ázsiai feszültség").
-        2. Nincs "szemetes" kategória: Ne hozz létre "Egyéb", "Vegyes" vagy "Különféle" nevű eseményeket. Ha egy hír nem kapcsolódik szorosan egy nagyobb eseményhez, hagyd ki.
-        3. Precíz ID hozzárendelés: Egy ID csak ahhoz az eseményhez kerülhet be, amiről tényszerűen szól. Nincs hallucináció, csak a bemeneti listában szereplő ID-kat használhatod.
-        4. Kimenet: Csak a kért JSON struktúrát add vissza, bevezető és magyarázat nélkül.
+        2. maximum 5-7 esemény: Ne erőltess bele minden apró hírt, csak a legfontosabb, legkonkrétabb eseményeket emeld ki. Ha egy eseményhez nincs legalább 2-3 hír, gondold át kétszer, hogy létrehozod-e.
+        3. Nincs "szemetes" kategória: Ne hozz létre "Egyéb", "Vegyes" vagy "Különféle" nevű eseményeket. Ha egy hír nem kapcsolódik szorosan egy nagyobb eseményhez, hagyd ki.
+        4. Precíz ID hozzárendelés: Egy ID csak ahhoz az eseményhez kerülhet be, amiről tényszerűen szól. Nincs hallucináció, csak a bemeneti listában szereplő ID-kat használhatod.
+        5. Kimenet: Csak a kért JSON struktúrát add vissza, bevezető és magyarázat nélkül.
         """
 
         prompt = f"""
@@ -490,18 +494,33 @@ def generate_sub_topics(topics: List[Topic], articles: List[Article]) -> List[To
             sys_instr=sys_instr,
             model=config.MODEL_LITE_ID,
             schema=EventClusterResponse,
-            max_output_tokens=4096
+            max_output_tokens=8192
         )
 
         try:
-            generalt_esemenyek: List[EventCluster] = res.parsed.events
+            generalt_esemenyek: List[EventCluster] = res.events
         except:
-            print(f"⚠️ Hiba az események generálásánál a '{topic.title}' témához. Válasz: {res}")
-            generalt_esemenyek = []
+            try:
+                generalt_esemenyek: List[EventCluster] = res.parsed.events
+            except:
+                print(f"⚠️ Hiba az események generálásánál a '{topic.title}' témához. Válasz: {res}")
+                generalt_esemenyek = []
         topic.events = generalt_esemenyek
 
     save_checkpoint("step2_state.json", topics, List[Topic])
     return topics        
+
+
+
+
+
+
+
+
+
+
+
+
 
 def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
     topics_state: List[Topic] = load_checkpoint("step1_state.json", List[Topic]) or []

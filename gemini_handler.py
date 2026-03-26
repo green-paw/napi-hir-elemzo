@@ -459,93 +459,81 @@ def generate_sub_topics(topics: List[Topic], articles: List[Article]) -> List[To
             continue
         
         related_articles = [a for a in articles if a.id in topic.article_ids]
-
-        #ez majd később kell
-        #news_json_str = "\n".join([f"ID: {a.id} | FORRÁS: {a.source} | PUBLISHED: {a.published.isoformat()} | CÍM: {a.title} | TARTALOM: {a.summary[:300]}" for a in related_articles])
-        news_json_str = "\n".join([f"ID: {a.id} | CÍM: {a.title} | TARTALOM: {a.summary[:100]}" for a in related_articles])
+        news_json_str = "\n".join([f"ID: {a.id} | CÍM: {a.title} | TARTALOM: {a.summary[:100]}..." for a in related_articles])
 
         sys_instr = """Te egy precíz hír-klaszterező algoritmus vagy. 
-        A feladatod, hogy egy megadott főtémához tartozó hírlistát konkrét, egyedi ESEMÉNYEK (al-topikok) köré csoportosíts.
+        A feladatod, hogy egy megadott főtémához tartozó hírlistát konkrét, egyedi ESEMÉNYEKre bonts.
 
         SZABÁLYOK:
-        1. Konkrét események: Az al-topik címe legyen nagyon specifikus és leíró (pl. "Kína tajvani hadgyakorlata" és NE az, hogy "Ázsiai feszültség").
-        2. maximum 5-7 esemény: Ne erőltess bele minden apró hírt, csak a legfontosabb, legkonkrétabb eseményeket emeld ki. Ha egy eseményhez nincs legalább 2-3 hír, gondold át kétszer, hogy létrehozod-e.
+        1. Konkrét események: Az események címe legyen nagyon specifikus és leíró (pl. "Kína tajvani hadgyakorlata" és NE az, hogy "Ázsiai feszültség").
+        2. Maximum 5-7 esemény: Ne erőltess bele minden apró hírt, csak a legfontosabb, legkonkrétabb eseményeket emeld ki. Ha egy eseményhez nincs legalább 2-3 hír, gondold át kétszer, hogy létrehozod-e.
         3. Nincs "szemetes" kategória: Ne hozz létre "Egyéb", "Vegyes" vagy "Különféle" nevű eseményeket. Ha egy hír nem kapcsolódik szorosan egy nagyobb eseményhez, hagyd ki.
-        4. Precíz ID hozzárendelés: Egy ID csak ahhoz az eseményhez kerülhet be, amiről tényszerűen szól. Nincs hallucináció, csak a bemeneti listában szereplő ID-kat használhatod.
-        5. Kimenet: JSON struktúra, ahol minden eseménynek van egy specifikus címe és egy hozzá tartozó ID lista.
-            Példa:
-            [
-                {
-                    "title": "Kína tajvani hadgyakorlata",
-                    "article_ids": [123, 456, 789]
-                },
-                {
-                    "title": "NATO csúcstalálkozó és új stratégiai irányvonalak",
-                    "article_ids": [234, 567]
-                }
-            ]   
+        4. Kimenet: csak a kitalált események címe idézőjelek között, vesszővel elválasztva, semmi más. Ne használj JSON-t vagy egyéb formátumot, csak egy tiszta, egyszerű listát a címekkel.
+            Példa: "Kína tajvani hadgyakorlata", "NATO csúcstalálkozó és új stratégiai irányvonalak", "Irán atomprogramjának újabb fejleményei"
+        5. Ha nincs találat, a kimenet legyen teljesen üres, ne adj vissza semmit! (ne adj vissza "[]", "N/A", "nincs találat" vagy hasonló szöveget, csak egy üres string legyen)
         """
 
         prompt = f"""
-        FŐTÉMA: 
-        "{topic.title}"
+        FŐTÉMA: {topic.title}
 
         HÍREK (amelyek ebbe a főtémába tartoznak):
         {news_json_str}
-
-        ---
-        FELADAT:
-        A fenti híreket csoportosítsd konkrét al-topikokba (eseményekbe). 
-        Adj egy specifikus címet az eseménynek SZIGORÚAN MAGYAR NYELVEN, és sorold fel a hozzá tartozó hír ID-kat.
         """
+
         res = llm_core.gemini_call(
             client=client_main,
             contents=prompt,
             sys_instr=sys_instr,
-            model=config.MODEL_ID,
-            #schema="json",
-            max_output_tokens=2048
+            model=config.MODEL_LITE_ID,
+            max_output_tokens=1024
         )
 
-        # Biztosítjuk, hogy legyen egy stringünk a regexhez, bármi is jött vissza az llm_core-ból
-        res_as_str = str(res) if not isinstance(res, str) else res
+        # regex a címek kinyerésére a válaszból (idézőjelek között, vesszővel elválasztva)
+        event_titles = re.findall(r'"([^"]+)"', res) if isinstance(res, str) else []
+        topic.events = [EventCluster(title=title, article_ids=[]) for title in event_titles]
 
-        generalt_esemenyek: List[EventCluster] = []
+        print(f"'{topic.title}' témához generált események: {[e.title for e in topic.events]}")
 
-        # 1. SZINT: Ha az llm_core már sikeresen parsolt (EventClusterResponse objektum)
-        if hasattr(res, 'events'):
-            generalt_esemenyek = getattr(res, 'events', [])
-        # 2. SZINT: Ha a res maga a lista (közvetlen parsed eredmény)
-        elif isinstance(res, list) and len(res) > 0 and hasattr(res[0], 'article_ids'):
-            generalt_esemenyek = res
-        # 3. SZINT: Ha stringet kaptunk (vagy fallback ág, vagy csonka válasz)
-        else:
-            try:
-                # Megpróbáljuk a tiszta JSON-t, hátha csak a wrapper hiányzik
-                clean_text = re.sub(r'```json\s*|\s*```', '', res_as_str).strip()
-                data = json.loads(clean_text)
-                events_raw = data.get("events", data) if isinstance(data, dict) else data
-                generalt_esemenyek = [EventCluster(**e) for e in events_raw]
-            except Exception:
-                # 4. SZINT: REGEX (A mentőöv a csonka 2048/80 tokenes válaszokhoz)
-                # Kigyűjtjük az összes ép {title: ..., article_ids: [...]} blokkot
-                pattern = r'\{\s*"title"\s*:\s*"([^"]+)"\s*,\s*"article_ids"\s*:\s*\[([^\]]*)\]\s*\}'
-                matches = re.findall(pattern, res_as_str)
-                
-                for match in matches:
-                    try:
-                        title = match[0]
-                        # Az ID-kat kiszedjük a vesszővel elválasztott részből
-                        ids = [int(id_val.strip()) for id_val in match[1].split(',') if id_val.strip().isdigit()]
-                        generalt_esemenyek.append(EventCluster(title=title, article_ids=ids))
-                    except:
-                        continue
+        #loopban végigmegyünk az eseményeken és hozzárendeljük a cikkeket ugyanazzal a logikával, mint ahogy a témáknál tettük
+        for event in topic.events:
+            print(f"  🔍 Hírek hozzárendelése '{event.title}' eseményhez...")
 
-        if not generalt_esemenyek:
-            print(f"⚠️ Nem sikerült eseményeket kinyerni. Bemenet típusa: {type(res)}")
+            sys_instr = f"""Te egy precíz, gépi adatosztályozó algoritmus vagy. A feladatod egy konkrét eseményhez hozzárendelni a megadott hírlistából a releváns elemeket.
+            SZABÁLYOK:
+            1. Szigorú egyezés: Csak azokat a híreket válaszd ki, amelyek KÖZVETLENÜL és EGYÉRTELMŰEN az adott eseményhez tartoznak. Ha kétséges, hagyd ki!
+            2. Nincs hallucináció: Kizárólag olyan ID-t adhatsz vissza, ami fizikailag szerepel a bemeneti listában.
+            3. Formátum: Semmilyen szöveges magyarázatot, bevezetőt ne írj. A válaszod kizárólag egy integer lista ami az ID-kat tartalmazza, vesszőkkel elválasztva, semmi más.
+                Példa: 135, 46, 77
+            4. Ha nincs találat, a kimenet legyen teljesen üres, ne adj vissza semmit! (ne adj vissza "[]", "N/A", "nincs találat" vagy hasonló szöveget, csak egy üres string legyen)
+            """
+            prompt = f"""
+            ESEMÉNY: {topic.title} - {event.title}
+            VIZSGÁLANDÓ HÍREK:
+            {news_json_str}
+            ---
+            FELADAT:
+            Olvasd át a fenti híreket. Válaszd ki KIZÁRÓLAG azoknak a híreknek az ID-ját, amelyek szorosan illeszkednek a "{event.title}" eseményhez.
+            Add vissza a kiválasztott ID-kat (egész számok) JSON formátumban!
+            """
 
-        topic.events = generalt_esemenyek
+            res = llm_core.gemini_call(
+                client=client_main,
+                contents=prompt,
+                sys_instr=sys_instr,
+                model=config.MODEL_LITE_ID,
+                max_output_tokens=1024
+            )
 
+            # kinyerjük a számokat a válaszból, és hozzárendeljük az eseményhez
+            if res and isinstance(res, str):
+                try:
+                    parsed = json.loads(res)
+                    if isinstance(parsed, list):
+                        event.article_ids.extend(parsed)
+                except:
+                    ids = re.findall(r'\b\d+\b', res)
+                    if ids:
+                        event.article_ids.extend([int(id) for id in ids])
     save_checkpoint("step2_state.json", topics, List[Topic])
     return topics        
 

@@ -103,10 +103,13 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
 
     for attempt in range(max_retries):
         try:
+            config_object = types.GenerateContentConfig(**config_args)
+            print(f"{model} call | config_object: {config_object}")
+
             response = client.models.generate_content(
                 model=model,
                 contents=contents,
-                config=types.GenerateContentConfig(**config_args)
+                config=config_object
             )
             break  # Ha sikeres, kilépünk a retry loopból
         except Exception as e:

@@ -463,7 +463,7 @@ def generate_sub_topics(topics: List[Topic], articles: List[Article]) -> List[To
 
         #ez majd később kell
         #news_json_str = "\n".join([f"ID: {a.id} | FORRÁS: {a.source} | PUBLISHED: {a.published.isoformat()} | CÍM: {a.title} | TARTALOM: {a.summary[:300]}" for a in related_articles])
-        news_json_str = "\n".join([f"ID: {a.id} | CÍM: {a.title} | TARTALOM: {a.summary[:300]}" for a in related_articles])
+        news_json_str = "\n".join([f"ID: {a.id} | CÍM: {a.title} | TARTALOM: {a.summary[:100]}" for a in related_articles])
 
         sys_instr = """Te egy precíz hír-klaszterező algoritmus vagy. 
         A feladatod, hogy egy megadott főtémához tartozó hírlistát konkrét, egyedi ESEMÉNYEK (al-topikok) köré csoportosíts.

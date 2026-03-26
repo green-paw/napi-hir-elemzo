@@ -76,7 +76,7 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
     attempt = 0
 
     safety_settings = [
-        types.SafetySetting(category=cat, threshold="BLOCK_ONLY_HIGH")
+        types.SafetySetting(category=cat, threshold="OFF")
         for cat in [
             "HARM_CATEGORY_HATE_SPEECH", 
             "HARM_CATEGORY_HARASSMENT", 
@@ -128,12 +128,12 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
         sys.exit(1)
 
     try:
-        if response is not None and hasattr(response, 'usage_metadata'):
-            usage_tracker.add(model, response)
-            print(f"📊 {model} | Output tokens: {response.usage_metadata.candidates_token_count} | Cached input: {getattr(response.usage_metadata, 'cached_content_token_count', 0) or 0}")
-        if response is not None and hasattr(response, 'candidates') and len(response.candidates) > 0:
-            if response.candidates[0].finish_reason == "MAX_TOKENS":
-                print(f"⚠️ FIGYELMEZTETÉS ({model}): A válasz túl hosszú, le lett vágva!")            
+        if response is not None:
+            input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
+            cached_tokens = getattr(response.usage_metadata, 'cached_content_token_count', 0) or 0
+            output_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0)
+            finish_reason = response.candidates[0].finish_reason if hasattr(response, 'candidates') and response.candidates else 'N/A'
+            print(f"📊 {model} | Input/cached tokens: {input_tokens} / {cached_tokens} | Output tokens: {output_tokens} | Finish reason: {finish_reason}")
     except:
         pass
 

@@ -382,10 +382,12 @@ def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
             
         print(f"⏳ Keresés ehhez: '{topic.title}'...")
 
-        #loop through the news list, picking only 100 at a time
-        for i in range(0, len(articles), 100):
+        chunk_size = 50 # Ez a chunk méret, amit a modellnek küldünk, hogy elkerüljük a token limitet
+
+        #loop through the news list, picking only chunk_size at a time
+        for i in range(0, len(articles), chunk_size):
             start_idx = i
-            end_idx = min(i + 100, len(articles))
+            end_idx = min(i + chunk_size, len(articles))
 
             prompt_1_5 = prompt_base + f"""Keresd ki a fenti hírfolyamból azokat a hír ID-kat, amiknek a FŐ TÉMÁJA egyértelműen ez: '{topic.title}'. 
 
@@ -404,10 +406,11 @@ def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
                 sys_instr=universal_sys_instr, # <-- UGYANAZ A BEMENET! Itt spórol a Cache.
                 model=config.MODEL_LITE_ID,
                 schema=None,
-                max_output_tokens=1024
+                max_output_tokens=512
             )
             
             if res_text and isinstance(res_text, str):
+                print(f"{start_idx}-{end_idx} között keresve, talált szöveg: '{res_text}'")
                 # A Regex kitép minden egyes számot a szövegből, így az is mindegy, ha a modell véletlenül 
                 # azt írná elé, hogy "Íme az ID-k: 12, 34..."
                 found_ids: List[int] = [int(num) for num in re.findall(r'\d+', res_text)]

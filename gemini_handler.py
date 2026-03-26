@@ -447,7 +447,7 @@ def gather_articles_for_topics(current_topics: List[Topic], articles: List[Artic
     return current_topics
 
 def generate_sub_topics(topics: List[Topic], articles: List[Article]) -> List[Topic]:
-    topics_state: List[Topic] = [] #load_checkpoint("step2_state.json", List[Topic]) or []
+    topics_state: List[Topic] = load_checkpoint("step2_state.json", List[Topic]) or []
     if topics_state and all(t.events for t in topics_state):
         print("✅ Sub-témák betöltve a cache-ből.")
         return topics_state

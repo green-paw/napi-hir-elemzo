@@ -492,9 +492,9 @@ def generate_sub_topics(topics: List[Topic], articles: List[Article]) -> List[To
             client=client_main,
             contents=prompt,
             sys_instr=sys_instr,
-            model=config.MODEL_LITE_ID,
+            model=config.MODEL_ID,
             schema=EventClusterResponse,
-            max_output_tokens=8192
+            max_output_tokens=2048
         )
 
         try:

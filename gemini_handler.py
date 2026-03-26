@@ -1,4 +1,5 @@
 import re
+from tracemalloc import start
 import config
 import json
 from google import genai
@@ -391,13 +392,15 @@ def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
 
             prompt_1_5 = prompt_base + f"""Keresd ki a fenti hírfolyamból azokat a hír ID-kat, amiknek a FŐ TÉMÁJA egyértelműen ez: '{topic.title}'. 
 
-            KRITIKUS SZABÁLYOK (Szigorúan tartsd be!):
+            SZABÁLYOK (Szigorúan tartsd be!):
             1. LÉGY KÍMÉLETLENÜL SZIGORÚ! Csak azt a hírt válaszd ki, ami 100%-ban erről a témáról szól. Ha csak érintőlegesen kapcsolódik, HAGYD KI!
             2. KIZÁRÓLAG egyetlen sornyi, vesszővel elválasztott számsort írj vissza. Ha csak 5 hír illik ide, akkor csak 5 számot adj vissza.
             3. A hírek listájában a számok az ID-k, amik egyértelműen azonosítják a híreket. Ne írd ki a címeket, forrásokat vagy bármi mást, csak a számokat, és semmi mást! Ne adj hozzá magyarázatot, ne írj bevezetőt, csak a tiszta lista kell!
             
-            
-            SZIGORÚ UTASÍTÁS: A hírek listájából csak egy konkrét tartományt vizsgálj, azokat a híreket amelyek ID-ja {start_idx} és {end_idx} közé esik. Csak ezekből a hírekből válaszd ki azokat, amik szorosan kapcsolódnak a témához. Ne nézz meg más híreket, csak ezeket! Ez egy kritikus rész, hogy elkerüljük a token limitet és a túl hosszú válaszokat!
+            SZIGORÚ UTASÍTÁSOK:
+            1. CSAK ÉS KIZÁRÓLAG a(z) {start_idx} és {end_idx} közötti ID-val rendelkező híreket elemezd! 
+            2. A listában ezen a tartományon kívül eső összes többi hírt (ID < {start_idx} vagy ID > {end_idx}) TEKINTS SEMMISNEK.
+            3. Minden tizedik találatnál ellenőrizd újra, hogy az ID-k valóban a megadott tartományban vannak-e, és ha nem, akkor ne add vissza azokat! Ez a lépés kritikus a pontosság szempontjából, hogy elkerüld a téves besorolást!
             """
             
             res_text = llm_core.gemini_call(

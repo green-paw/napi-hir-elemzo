@@ -448,13 +448,14 @@ def gather_articles_for_topics(current_topics: List[Topic], articles: List[Artic
     return current_topics
 
 def generate_sub_topics(topics: List[Topic], articles: List[Article]) -> List[Topic]:
-    topics_state: List[Topic] = load_checkpoint("step2_state.json", List[Topic]) or []
+    topics_state: List[Topic] = [] #load_checkpoint("step2_state.json", List[Topic]) or []
     if topics_state and all(t.events for t in topics_state):
         print("✅ Sub-témák betöltve a cache-ből.")
         return topics_state
     
     # Ha nincs cache, akkor generáljuk újra
     for topic in topics:
+        print(f"🔍 Generálás '{topic.title}' témához...")
         if topic.article_ids is None:
             continue
         
@@ -489,14 +490,16 @@ def generate_sub_topics(topics: List[Topic], articles: List[Article]) -> List[To
             sys_instr=sys_instr,
             model=config.MODEL_LITE_ID,
             schema=EventClusterResponse,
-            max_output_tokens=2048
+            max_output_tokens=4096
         )
 
-        if res and isinstance(res, list):   
-            topic.events = res
-        else:
-            print(f"⚠️ Nem várt válasz az al-témák generálásánál a '{topic.title}' témához. Várható volt egy lista, de ez jött: {res}")
-            topic.events = []
+        try:
+            generalt_esemenyek: List[EventCluster] = res.parsed.events
+        except:
+            print(f"⚠️ Hiba az események generálásánál a '{topic.title}' témához. Válasz: {res}")
+            generalt_esemenyek = []
+        topic.events = generalt_esemenyek
+
     save_checkpoint("step2_state.json", topics, List[Topic])
     return topics        
 

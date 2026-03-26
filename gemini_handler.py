@@ -318,62 +318,52 @@ def generate_structured_summary(event_name: str, news_items: List[Article]) -> D
 
 
 def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
-    # 1. Betöltjük a memóriába az eddigi állapotot (ha van)
     topics_state: List[Topic] = load_checkpoint("step1_state.json", List[Topic]) or []
-
-    # Ha minden témának megvan már a hírlistája, felesleges inicializálni az LLM-et
     if topics_state and all(t.article_ids for t in topics_state):
         return topics_state
 
-    #client_main = genai.Client(api_key=config.GOOGLE_API_KEY_MAIN)
     needs_save = False
 
-    # --- A VARÁZSLAT ITT VAN: KÖZÖS SYSTEM INSTRUCTION ---
-    # Ez a string bekerül a cache-be az első hívásnál, a többinél már onnan töltődik
     news_list_str = "\n".join([f"ID:{a.id} | {a.title}" for a in articles])
     
     universal_sys_instr = f"""Te egy vezető stratégiai, politikai és gazdasági elemző AI vagy. 
     A feladatod a zaj kiszűrése és a legfontosabb geopolitikai, makrogazdasági és magyarországi gazdasági vagy politikai események azonosítása a napi hírfolyamból.
+    Szigorú fókusz: 
+    - Geopolitika és fegyveres konfliktusok
+    - Makrogazdaság, nemzetközi piacok, infláció, energia
+    - Magyar belpolitika, külpolitika és stratégiai kormányzati döntések
     
+    Minden mást (bulvár, sport, napi tech-pletykák, balesetek, időjárás) SZIGORÚAN HAGYJ FIGYELMEN KÍVÜL!
+    """
+
+    prompt_base = f"""    
     Íme az aktuális nyers hírfolyam:
-    {news_list_str}"""
+    {news_list_str}
+
+    """
     
     # ==========================================
     # LÉPÉS 1: Témák kinyerése (ha még üres a cache)
     # ==========================================
     if not topics_state:
         print("🔄 1. Lépés: Globális témák kinyerése...")
-        prompt_1 = """A fenti lista alapján határozd meg azt a maximum 8-10 kiemelt, stratégiailag legfontosabb témát, ami a mai napot dominálja.
+        prompt_1 = prompt_base + """A fenti lista alapján határozd meg azt a maximum 8-10 kiemelt, stratégiailag legfontosabb témát, ami a mai napot dominálja.
         
-        Szigorú fókusz: 
-        - Geopolitika és fegyveres konfliktusok
-        - Makrogazdaság, nemzetközi piacok, infláció, energia
-        - Magyar belpolitika, külpolitika és stratégiai kormányzati döntések
-        
-        Minden mást (bulvár, sport, napi tech-pletykák, balesetek, időjárás) SZIGORÚAN HAGYJ FIGYELMEN KÍVÜL!
-        Csak a kiválasztott, magas prioritású témák neveit add vissza egy listában (pl. 'Magyar belpolitika', 'Nemzetközi gazdaság')."""
+        Csak a kiválasztott, magas prioritású témák neveit add vissza egy listában (pl. 'Magyar belpolitika', 'Nemzetközi gazdaság').
+        Használj JSON formátumot a válaszhoz, csak a témák neveit tartalmazó listával, semmi mással! Ne adj hozzá magyarázatot, ne írj bevezetőt, csak a tiszta lista kell!
+        """
 
         res = llm_core.gemini_call(
             client=client_main,
             contents=prompt_1,
             sys_instr=universal_sys_instr, # <-- BEMENET 1
-            model=config.MODEL_ID,
-            schema=None, # LLMTopicList,
+            model=config.MODEL_LITE_ID,
+            schema=LLMTopicList,
             max_output_tokens=1024
         )
 
-        try:
-            print(f"flash response: {res.text}")
-        except:
-            pass
-        try:
-            print(f"flash response: {res}")
-        except:
-            pass
-            
+        print(res)        
 
-        return []
-        
         if res and isinstance(res, LLMTopicList):
             topics_state = [Topic(title=t) for t in res.topics]
             save_checkpoint("step1_state.json", topics_state, List[Topic])
@@ -386,47 +376,49 @@ def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
     # ==========================================
     print("🔄 1.5 Lépés: Hírek keresése az egyes témákhoz (Implicit Cache)...")
 
-    #biztonsági korlát
-    topics_state = topics_state[:3]
-    
     for topic in topics_state:
         if topic.article_ids: 
             continue # Ha ehhez a témához már megvannak az ID-k, ugrunk a következőre
             
         print(f"⏳ Keresés ehhez: '{topic.title}'...")
 
-        prompt_1_5 = f"""Keresd ki a fenti hírfolyamból azokat a hír ID-kat, amiknek a FŐ TÉMÁJA egyértelműen ez: '{topic.title}'. 
+        #loop through the news list, picking only 100 at a time
+        for i in range(0, len(articles), 100):
+            start_idx = i
+            end_idx = min(i + 100, len(articles))
 
-        KRITIKUS SZABÁLYOK (Szigorúan tartsd be!):
-        1. LÉGY KÍMÉLETLENÜL SZIGORÚ! Csak azt a hírt válaszd ki, ami 100%-ban erről a témáról szól. Ha csak érintőlegesen kapcsolódik, HAGYD KI!
-        2. VIGYÁZAT, NE HALLUCINÁLJ: Szigorúan tilos kitalált azonosítókat vagy folyamatos növekvő számsorokat (pl. 121, 122, 123, 124...) generálni! Csak a listában valósan szereplő ID-kat használd.
-        3. Egy átlagos témához ritkán tartozik 50-100 hírnél több. Ne próbáld az összes hírt besorolni!
-        4. KIZÁRÓLAG egyetlen sornyi, vesszővel elválasztott számsort írj vissza. Ha csak 5 hír illik ide, akkor csak 5 számot adj vissza.
-        """
+            prompt_1_5 = prompt_base + f"""Keresd ki a fenti hírfolyamból azokat a hír ID-kat, amiknek a FŐ TÉMÁJA egyértelműen ez: '{topic.title}'. 
 
-
-        
-        res_text = llm_core.gemini_call(
-            client=client_main,
-            contents=prompt_1_5,
-            sys_instr=universal_sys_instr, # <-- UGYANAZ A BEMENET! Itt spórol a Cache.
-            model=config.MODEL_ID,
-            schema=None,
-            max_output_tokens=1024
-        )
-        
-        if res_text and isinstance(res_text, str):
-            # A Regex kitép minden egyes számot a szövegből, így az is mindegy, ha a modell véletlenül 
-            # azt írná elé, hogy "Íme az ID-k: 12, 34..."
-            found_ids = [int(num) for num in re.findall(r'\d+', res_text)]
+            KRITIKUS SZABÁLYOK (Szigorúan tartsd be!):
+            1. LÉGY KÍMÉLETLENÜL SZIGORÚ! Csak azt a hírt válaszd ki, ami 100%-ban erről a témáról szól. Ha csak érintőlegesen kapcsolódik, HAGYD KI!
+            2. KIZÁRÓLAG egyetlen sornyi, vesszővel elválasztott számsort írj vissza. Ha csak 5 hír illik ide, akkor csak 5 számot adj vissza.
+            3. A hírek listájában a számok az ID-k, amik egyértelműen azonosítják a híreket. Ne írd ki a címeket, forrásokat vagy bármi mást, csak a számokat, és semmi mást! Ne adj hozzá magyarázatot, ne írj bevezetőt, csak a tiszta lista kell!
             
-            if found_ids:
-                # Eltávolítjuk az esetleges duplikációkat a listából a set() segítségével
-                topic.article_ids = list(set(found_ids))
-                print(f"   -> Sikeresen kinyerve: {len(topic.article_ids)} ID.")
-                needs_save = True
-            else:
-                print(f"   -> Nem talált ID-kat, vagy üres választ adott.")
+            
+            SZIGORÚ UTASÍTÁS: A hírek listájából csak egy konkrét tartományt vizsgálj, azokat a híreket amelyek ID-ja {start_idx} és {end_idx} közé esik. Csak ezekből a hírekből válaszd ki azokat, amik szorosan kapcsolódnak a témához. Ne nézz meg más híreket, csak ezeket! Ez egy kritikus rész, hogy elkerüljük a token limitet és a túl hosszú válaszokat!
+            """
+            
+            res_text = llm_core.gemini_call(
+                client=client_main,
+                contents=prompt_1_5,
+                sys_instr=universal_sys_instr, # <-- UGYANAZ A BEMENET! Itt spórol a Cache.
+                model=config.MODEL_LITE_ID,
+                schema=None,
+                max_output_tokens=1024
+            )
+            
+            if res_text and isinstance(res_text, str):
+                # A Regex kitép minden egyes számot a szövegből, így az is mindegy, ha a modell véletlenül 
+                # azt írná elé, hogy "Íme az ID-k: 12, 34..."
+                found_ids: List[int] = [int(num) for num in re.findall(r'\d+', res_text)]
+                
+                if found_ids:
+                    # Eltávolítjuk az esetleges duplikációkat a listából a set() segítségével, és hozzáadjuk a már meglévő id-khoz
+                    topic.article_ids = list(set(topic.article_ids) | set(found_ids))
+                    print(f"   -> Hozzáadva {len(found_ids)}, összesen: {len(topic.article_ids)} ID.")
+                    needs_save = True
+                else:
+                    print(f"   -> Nem talált ID-kat, vagy üres választ adott.")
     if needs_save:
         save_checkpoint("step1_state.json", topics_state, List[Topic])
 

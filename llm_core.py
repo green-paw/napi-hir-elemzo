@@ -97,10 +97,6 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
     if schema and schema != "json":
         config_args["response_schema"] = schema
         
-    # A büntetést CSAK a normál flash modellnél alkalmazzuk, a lite-nál nem!
-    #if "lite" not in model.lower():
-    #    config_args["frequency_penalty"] = 1.0
-
     for attempt in range(max_retries):
         try:
             config_object = types.GenerateContentConfig(**config_args)
@@ -130,6 +126,7 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
         print("❌ Kritikus: Minden újrapróbálkozás sikertelen volt.")
         sys.exit(1)
 
+    # logolás
     try:
         if response is not None:
             usage_tracker.add(model, response)
@@ -143,7 +140,7 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
 
     # 3. OKOS VISSZATÉRÉS
     if response is not None:
-        if schema:
+        if schema and schema != "json":
             try:
                 # Ha van schema, a .parsed adja a tiszta Python típust (pl. listát)
                 return response.parsed

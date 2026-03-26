@@ -355,9 +355,8 @@ def define_topics(articles: List[Article]) -> List[Topic]:
 
     SZABÁLYOK A KATEGÓRIÁK LÉTREHOZÁSÁHOZ (A "Vödrök"):
     1. Ne használj túl tág, egy szavas fogalmakat (pl. "Makrogazdaság", "Politika" -> EZEK TILOSAK).
-    2. A kategória neve írja le a folyamatot vagy a területet. 
-    Jó példák: "Európai biztonságpolitika és NATO-döntések", "Globális inflációs és jegybanki folyamatok", "Magyar költségvetési és adóügyi lépések".
-    3. Csak olyan kategóriát hozz létre, amihez van tényleges, súlyos, stratégiai hír a listában. Ha egy nap nincs háborús hír, ne csinálj geopolitikai kategóriát!
+    2. A kategória neve írja le a folyamatot vagy a területet. Jó példák: "Európai biztonságpolitika és NATO-döntések", "Globális inflációs és jegybanki folyamatok", "Magyar költségvetési és adóügyi lépések".
+    3. Csak olyan kategóriát hozz létre, amihez van tényleges, súlyos, stratégiai hír a listában.
 
     KIMENET:
     Csak a kiválasztott stratégiai irányvonalak neveit add vissza egy JSON listában, semmi mást!
@@ -503,19 +502,48 @@ def generate_sub_topics(topics: List[Topic], articles: List[Article]) -> List[To
             client=client_main,
             contents=prompt,
             sys_instr=sys_instr,
-            model=config.MODEL_LITE_ID,
+            model=config.MODEL_ID,
             #schema="json",
             max_output_tokens=2048
         )
 
-        try:
-            generalt_esemenyek: List[EventCluster] = res.events
-        except:
+        # Biztosítjuk, hogy legyen egy stringünk a regexhez, bármi is jött vissza az llm_core-ból
+        res_as_str = str(res) if not isinstance(res, str) else res
+
+        generalt_esemenyek: List[EventCluster] = []
+
+        # 1. SZINT: Ha az llm_core már sikeresen parsolt (EventClusterResponse objektum)
+        if hasattr(res, 'events'):
+            generalt_esemenyek = getattr(res, 'events', [])
+        # 2. SZINT: Ha a res maga a lista (közvetlen parsed eredmény)
+        elif isinstance(res, list) and len(res) > 0 and hasattr(res[0], 'article_ids'):
+            generalt_esemenyek = res
+        # 3. SZINT: Ha stringet kaptunk (vagy fallback ág, vagy csonka válasz)
+        else:
             try:
-                generalt_esemenyek: List[EventCluster] = res.parsed.events
-            except:
-                print(f"⚠️ Hiba az események generálásánál a '{topic.title}' témához. Válasz: {res}")
-                generalt_esemenyek = []
+                # Megpróbáljuk a tiszta JSON-t, hátha csak a wrapper hiányzik
+                clean_text = re.sub(r'```json\s*|\s*```', '', res_as_str).strip()
+                data = json.loads(clean_text)
+                events_raw = data.get("events", data) if isinstance(data, dict) else data
+                generalt_esemenyek = [EventCluster(**e) for e in events_raw]
+            except Exception:
+                # 4. SZINT: REGEX (A mentőöv a csonka 2048/80 tokenes válaszokhoz)
+                # Kigyűjtjük az összes ép {title: ..., article_ids: [...]} blokkot
+                pattern = r'\{\s*"title"\s*:\s*"([^"]+)"\s*,\s*"article_ids"\s*:\s*\[([^\]]*)\]\s*\}'
+                matches = re.findall(pattern, res_as_str)
+                
+                for match in matches:
+                    try:
+                        title = match[0]
+                        # Az ID-kat kiszedjük a vesszővel elválasztott részből
+                        ids = [int(id_val.strip()) for id_val in match[1].split(',') if id_val.strip().isdigit()]
+                        generalt_esemenyek.append(EventCluster(title=title, article_ids=ids))
+                    except:
+                        continue
+
+        if not generalt_esemenyek:
+            print(f"⚠️ Nem sikerült eseményeket kinyerni. Bemenet típusa: {type(res)}")
+
         topic.events = generalt_esemenyek
 
     save_checkpoint("step2_state.json", topics, List[Topic])

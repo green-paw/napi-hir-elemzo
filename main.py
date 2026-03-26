@@ -4,7 +4,7 @@ import output_handler
 
 # Csak a szükséges handler funkciók
 from gemini_handler import (
-    generate_structured_summary, get_strategic_topics, validate_news_clusters, 
+    define_topics, gather_articles_for_topics, generate_structured_summary, get_strategic_topics, validate_news_clusters, 
     get_gemini_embeddings, process_topics_and_filter
 )
 
@@ -194,7 +194,8 @@ def main():
         print("no raw news, exiting")
         return
 
-    topics = process_topics_and_filter(raw_news)
+    topics = define_topics(raw_news)
+    topics = gather_articles_for_topics(topics, raw_news)
 
     print(topics)
 

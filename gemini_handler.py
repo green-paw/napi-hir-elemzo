@@ -317,6 +317,140 @@ def generate_structured_summary(event_name: str, news_items: List[Article]) -> D
 
 
 
+def define_topics(articles: List[Article]) -> List[Topic]:
+    topics_state: List[Topic] = load_checkpoint("step1_state.json", List[Topic]) or []
+    
+    if topics_state and all(t.article_ids for t in topics_state):
+        print("✅ Témák betöltve a cache-ből.")
+        return topics_state
+    
+    news_list_str = "\n".join([f"ID:{a.id} | {a.title}" for a in articles])
+
+    sys_instr = f"""
+    Te egy vezető geopolitikai, makrogazdasági és nemzetbiztonsági hírszerző elemző vagy. 
+    A feladatod a napi hírfolyam dekódolása: a rendszerszintű "jel" elkülönítése a mindennapi "zajtól".
+
+    ALAPELV: Egy hír csak akkor releváns, ha nemzeti, regionális vagy globális szinten befolyásolja a gazdaságot, a politikát vagy a biztonságot.
+
+    KIVÉTEL A BŰNÜGYI SZŰRŐ ALÓL (Ezeket KÖTELEZŐ átengedni):
+    - Magas szintű politikai, kormányzati, igazságszolgáltatási vagy nemzetbiztonsági érintettségű büntetőügyek. 
+    - Például: hivatali visszaélés, rendszerszintű korrupció, lehallgatási botrányok, magas rangú tisztségviselők (pl. rendőri vezetők, miniszterek) büntetőügyi vallomásai.
+
+    SZIGORÚ TILTÓLISTA (Ezeket AZONNAL és VÉGLEGESEN hagyd figyelmen kívül):
+    - KÖZÖNSÉGES bűnügyek, helyi rendőrségi hírek, balesetek (pl. bolti lopás, gyilkosság, közlekedési baleset, drogfogás az utcán).
+    - Bulvár, pletyka, celebhírek, magánéleti botrányok.
+    - "Kis színes" hírek, érdekességek, furcsaságok, életmód tanácsok.
+    - Napi tech-pletykák, új kütyük bejelentése.
+    - Egyedi cégek PR-közleményei, kiskereskedelmi akciók (pl. "Drágult a krumpli").
+    - Olyan politikai nyilatkozatok, amelyeknek nincs jogi vagy diplomáciai következménye (pl. "X beszólt Y-nak a Facebookon").
+    """
+
+    prompt = f"""
+    Íme az aktuális nyers hírfolyam:
+    {news_list_str}
+
+    ---
+    FELADAT:
+    A fenti lista alapján (és a tiltólistát szigorúan betartva) határozd meg azt a maximum 5-8 fő STRATÉGIAI IRÁNYVONALAT, ami a mai napot dominálja. 
+
+    SZABÁLYOK A KATEGÓRIÁK LÉTREHOZÁSÁHOZ (A "Vödrök"):
+    1. Ne használj túl tág, egy szavas fogalmakat (pl. "Makrogazdaság", "Politika" -> EZEK TILOSAK).
+    2. A kategória neve írja le a folyamatot vagy a területet. 
+    Jó példák: "Európai biztonságpolitika és NATO-döntések", "Globális inflációs és jegybanki folyamatok", "Magyar költségvetési és adóügyi lépések".
+    3. Csak olyan kategóriát hozz létre, amihez van tényleges, súlyos, stratégiai hír a listában. Ha egy nap nincs háborús hír, ne csinálj geopolitikai kategóriát!
+
+    KIMENET:
+    Csak a kiválasztott stratégiai irányvonalak neveit add vissza egy JSON listában, semmi mást!
+    """
+
+    res = llm_core.gemini_call(
+        client=client_main,
+        contents=prompt,
+        sys_instr=sys_instr,
+        model=config.MODEL_LITE_ID,
+        schema=LLMTopicList,
+        max_output_tokens=1024
+    )
+
+    if res and isinstance(res, LLMTopicList):
+        topics_state = [Topic(title=t) for t in res.topics]
+        save_checkpoint("step1_state.json", topics_state, List[Topic])
+        return topics_state
+    return []
+
+def gather_articles_for_topics(current_topics: List[Topic], articles: List[Article]) -> List[Topic]:
+    topics_state: List[Topic] = load_checkpoint("step1_state.json", List[Topic]) or []
+    
+    if topics_state and all(t.article_ids for t in topics_state):
+        print("✅ Témák betöltve a cache-ből.")
+        return topics_state
+    
+    chunk_size = 100
+
+    sys_instr = """Te egy precíz, gépi adatosztályozó algoritmus vagy. 
+    A feladatod egy konkrét stratégiai témakörhöz hozzárendelni a megadott hírlistából a releváns elemeket.
+
+    SZABÁLYOK:
+    1. Szigorú egyezés: Csak azokat a híreket válaszd ki, amelyek KÖZVETLENÜL és EGYÉRTELMŰEN az adott témába tartoznak. Ha kétséges, hagyd ki!
+    2. Nincs hallucináció: Kizárólag olyan ID-t adhatsz vissza, ami fizikailag szerepel a bemeneti listában.
+    3. Formátum: Semmilyen szöveges magyarázatot, bevezetőt ne írj. A válaszod kizárólag egy JSON lista lehet az ID-kkal.
+    4. Ha nincs találat, egy üres listát [] kell visszaadnod.
+    """
+
+    #loop through topics
+    for topic in current_topics:
+        #get chunk_size articles at a time
+        for i in range(0, len(articles), chunk_size):
+            news_chunk = articles[i:i + chunk_size]
+            news_chunk_str = "\n".join([f"ID:{a.id} | {a.title}" for a in news_chunk])
+
+            prompt = f"""
+            CÉL TÉMAKÖR: 
+            "{topic.title}"
+
+            VIZSGÁLANDÓ HÍREK:
+            {news_chunk_str}
+
+            ---
+            FELADAT:
+            Olvasd át a fenti híreket. Válaszd ki KIZÁRÓLAG azoknak a híreknek az ID-ját, amelyek szorosan illeszkednek a "{topic.title}" témakörhöz.
+            Add vissza a kiválasztott ID-kat (egész számok) JSON formátumban!
+            """
+
+            res = llm_core.gemini_call(
+                client=client_main,
+                contents=prompt,
+                sys_instr=sys_instr,
+                model=config.MODEL_LITE_ID,
+                schema=list[int],
+                max_output_tokens=512
+            )
+
+            if res and isinstance(res, list):         
+                if topic.article_ids is None:
+                    topic.article_ids = []
+                topic.article_ids.extend(res)
+            elif res and isinstance(res, str):
+                try:
+                    parsed = json.loads(res)
+                    if isinstance(parsed, list):
+                        if topic.article_ids is None:
+                            topic.article_ids = []
+                        topic.article_ids.extend(parsed)
+                except:
+                    ids = re.findall(r'\b\d+\b', res)
+                    if ids:
+                        if topic.article_ids is None:
+                            topic.article_ids = []
+                        topic.article_ids.extend([int(id) for id in ids])
+
+    save_checkpoint("step1_state.json", current_topics, List[Topic])
+    return current_topics
+
+
+
+
+
 
 def process_topics_and_filter(articles: List[Article]) -> List[Topic]:
     topics_state: List[Topic] = load_checkpoint("step1_state.json", List[Topic]) or []

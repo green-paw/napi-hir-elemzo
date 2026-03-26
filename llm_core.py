@@ -76,7 +76,7 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
     attempt = 0
 
     safety_settings = [
-        types.SafetySetting(category=cat, threshold="BLOCK_ONLY_HIGH")
+        types.SafetySetting(category=cat, threshold="OFF")
         for cat in [
             "HARM_CATEGORY_HATE_SPEECH", 
             "HARM_CATEGORY_HARASSMENT", 
@@ -95,19 +95,18 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
                 "safety_settings": safety_settings,
             }
             
-    if schema:
+    if schema and schema != "json":
         config_args["response_schema"] = schema
         
-    # A büntetést CSAK a normál flash modellnél alkalmazzuk, a lite-nál nem!
-    #if "lite" not in model.lower():
-    #    config_args["frequency_penalty"] = 1.0
-
     for attempt in range(max_retries):
         try:
+            config_object = types.GenerateContentConfig(**config_args)
+            #print(f"{model} call | config_object: {config_object}")
+
             response = client.models.generate_content(
                 model=model,
                 contents=contents,
-                config=types.GenerateContentConfig(**config_args)
+                config=config_object
             )
             break  # Ha sikeres, kilépünk a retry loopból
         except Exception as e:
@@ -121,26 +120,28 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
                 time.sleep(wait)
             else:
                 # Minden más végzetes hiba (pl. jogosultság, rossz paraméter)
-                print(f"❌ Végzetes hiba történt: {e}")
+                print(f"❌ LLM core: Végzetes hiba történt: {e}")
                 sys.exit(1)
 
     if response is None and attempt == max_retries - 1:
         print("❌ Kritikus: Minden újrapróbálkozás sikertelen volt.")
         sys.exit(1)
 
+    # logolás
     try:
-        if response is not None and hasattr(response, 'usage_metadata'):
+        if response is not None:
             usage_tracker.add(model, response)
-            print(f"📊 {model} | Output tokens: {response.usage_metadata.candidates_token_count}")
-        if response is not None and hasattr(response, 'candidates') and len(response.candidates) > 0:
-            if response.candidates[0].finish_reason == "MAX_TOKENS":
-                print(f"⚠️ FIGYELMEZTETÉS ({model}): A válasz túl hosszú, le lett vágva!")            
+            input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
+            cached_tokens = getattr(response.usage_metadata, 'cached_content_token_count', 0) or 0
+            output_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0)
+            finish_reason = response.candidates[0].finish_reason if hasattr(response, 'candidates') and response.candidates else 'N/A'
+            print(f"📊 {model} | Input/cached tokens: {input_tokens} / {cached_tokens} | Output tokens: {output_tokens} | Finish reason: {finish_reason}")
     except:
         pass
 
     # 3. OKOS VISSZATÉRÉS
     if response is not None:
-        if schema:
+        if schema and schema != "json":
             try:
                 # Ha van schema, a .parsed adja a tiszta Python típust (pl. listát)
                 return response.parsed

@@ -36,11 +36,11 @@ jobs:
       - name: Create checkpoints directory
         run: mkdir -p checkpoints
 
-      - name: Restore Checkpoints Cache
+      - name: Restore/Save Checkpoints Cache
         uses: actions/cache@v4
         with:
           path: checkpoints/
-          key: ${{ runner.os }}-news-checkpoints-v1
+          key: ${{ runner.os }}-news-checkpoints-${{ github.run_id }}
           restore-keys: |
             ${{ runner.os }}-news-checkpoints-
 
@@ -59,18 +59,36 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          CACHE_SETTINGS: ${{ vars.CACHE_SETTINGS }}
+          CURRENT_BRANCH: ${{ github.ref_name }}
         run: python -u main.py
+
+      - name: Save Checkpoints Cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: checkpoints/
+          key: ${{ runner.os }}-news-checkpoints-${{ github.run_id }}
 
       - name: Prepare public directory
         run: |
           mkdir -p public
-          if [ -f index.html ]; then
-            cp index.html public/${{ env.OUTPUT_FILENAME }}
+          # Ellenőrizzük, van-e bármilyen HTML fájl a gyökérkönyvtárban
+          if ls *.html 1> /dev/null 2>&1; then
+            if [ -f index.html ]; then
+              cp index.html public/${{ env.OUTPUT_FILENAME }}
+            else
+              cp *.html public/
+            fi
+            # Jelezzük a következő lépésnek, hogy van mit publikálni
+            echo "has_html=true" >> $GITHUB_ENV
           else
-            cp *.html public/
+            echo "Nincs HTML fájl, a felkészítés és a publikálás kimarad."
+            echo "has_html=false" >> $GITHUB_ENV
           fi
 
       - name: Deploy to GitHub Pages
+        if: env.has_html == 'true'  # <--- Csak akkor fut le, ha az előző lépés talált HTML-t
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

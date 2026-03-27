@@ -8,6 +8,8 @@ from datetime import datetime, timedelta
 from typing import List
 from models import Article
 
+from checkpoint_manager import load_checkpoint, save_checkpoint
+
 def clean_news_text(entry, field='title'):
     """Kinyeri és megtisztítja a szöveget (HTML mentesítés, unescape)."""
     raw = entry.get(f"{field}_detail", {}).get('value', entry.get(field, ''))
@@ -25,7 +27,10 @@ def smart_truncate(text, max_length=600):
     return text[:max_length].rsplit(' ', 1)[0] + "..."
 
 def fetch_news() -> List[Article]:
-    news_pool: List[Article] = []
+    news_pool: List[Article] = load_checkpoint("news_pool.json", List[Article]) or []
+    if news_pool:
+        return news_pool
+
     seen_links = set() # Duplikáció szűréshez
     item_id = 0
     now = datetime.now()
@@ -102,4 +107,6 @@ def fetch_news() -> List[Article]:
     news_pool.sort(key=lambda x: x.published, reverse=True)
     
     print(f"✅ Begyűjtés kész: {len(news_pool)} egyedi, releváns hír.")
+
+    save_checkpoint("news_pool.json", news_pool, List[Article])
     return news_pool

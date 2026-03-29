@@ -46,7 +46,7 @@ def _render_node(node: Union[models.ReportNode, models.EventAnalysis], context: 
         ai_url = f"https://www.perplexity.ai/search?q={urllib.parse.quote(node.event_title)}"
         
         discrepancies_html = "".join([f"<li>{d}</li>" for d in node.discrepancies])
-        bias_html = "".join([f"<li><b>{src}:</b> {desc}</li>" for src, desc in node.bias_report.items()])
+        bias_html = "".join([f"<li><b>{entry.source}:</b> {entry.description}</li>" for entry in node.bias_report])
 
         html += f"""
         <div class="news-section" style="margin-left: {indent}px;">

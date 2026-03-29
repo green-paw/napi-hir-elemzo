@@ -74,11 +74,11 @@ def setup_gemini_cache(client, formatted_text: str, model: str = config.MODEL_LI
             new_cache = execute_with_retry(
                 client.caches.create,
                 model=model,
-                config=types.CreateCacheConfig(
-                    display_name=DISPLAY_NAME,
-                    contents=[types.Content(parts=[types.Part(text=formatted_text)])],
-                    ttl_seconds=7200 # Emeltük 2 órára a biztonság kedvéért
-                )
+                config={
+                    "display_name": DISPLAY_NAME,
+                    "contents": formatted_text, # A GenAI okos, egyből megeszi a stringet
+                    "ttl": "1800s" # Fontos: Itt stringként kéri az 's'-t a másodperchez
+                }
             )
             return new_cache.name
         except Exception as e:

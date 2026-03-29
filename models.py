@@ -3,6 +3,19 @@ from typing import List, Dict, Optional, Union, Any
 from datetime import datetime
 from google.genai import Client
 
+
+class BiasEntry(BaseModel):
+    source: str = Field(description="A hírforrás neve (pl. Telex, Origo)")
+    description: str = Field(description="A tálalás és elfogultság leírása")
+
+class CategoryBucket(BaseModel):
+    category_name: str
+    article_ids: List[int]
+
+class SplitResponse(BaseModel):
+    buckets: List[CategoryBucket]
+
+
 class Article(BaseModel):
     id: int
     source: str
@@ -17,7 +30,7 @@ class EventAnalysis(BaseModel):
     event_title: str = Field(description="Az esemény rövid, beszédes címe")
     summary: str = Field(description="Az esemény objektív összefoglalója")
     discrepancies: List[str] = Field(description="Ténybeli ellentmondások a források között")
-    bias_report: Dict[str, str] = Field(description="Forrásonkénti elfogultság és tálalási mód")
+    bias_report: List[BiasEntry] = Field(description="Forrásonkénti elfogultság és tálalási mód")
     manipulation_index: int = Field(description="1-10 közötti skála a dezinformáció gyanújára")
     article_ids: List[int] = Field(description="Az elemzésben részt vett hírek azonosítói")
 

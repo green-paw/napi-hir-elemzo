@@ -18,15 +18,19 @@ def fill_embeddings(context: models.SessionContext):
             batch[idx].embedding = emb.values
 
 def split_and_merge(context: models.SessionContext, article_ids: List[int], path: List[str]) -> Dict[str, List[int]]:
-    """Az LLM segítségével kategóriákba (vödrökbe) osztja a híreket."""
     fragment = "\n".join([f"ID: {aid} | {context.articles[aid].title}" for aid in article_ids])
     
     sys_instr = f"Te egy hírszerkesztő vagy. Az aktuális útvonalad: {' > '.join(path)}. " \
                 "Csoportosítsd a megadott híreket 3-6 releváns alkategóriába!"
     
-    prompt = f"Hírek listája:\n{fragment}\n\nAdj vissza egy JSON-t: {{'kategória_név': [id1, id2, ...]}}"
+    # Kicsit módosítjuk a promptot, hogy passzoljon az új sémához
+    prompt = f"Hírek listája:\n{fragment}\n\nOszd be a híreket az objektum struktúra alapján."
     
-    return gemini_core.generate(context, prompt, sys_instr, schema=dict)
+    # HASZNÁLJUK AZ ÚJ SÉMÁT!
+    response_obj = gemini_core.generate(context, prompt, sys_instr, schema=models.SplitResponse)
+    
+    # Visszaalakítjuk szótárrá, hogy az orchestrator érintetlen maradhasson
+    return {bucket.category_name: bucket.article_ids for bucket in response_obj.buckets}
 
 def llm_anchor_test(context: models.SessionContext, article_ids: List[int], path: List[str]) -> bool:
     fragment = "\n".join([f"ID: {aid} | {context.articles[aid].title}" for aid in article_ids])

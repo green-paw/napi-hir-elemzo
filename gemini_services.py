@@ -20,31 +20,60 @@ def fill_embeddings(context: models.SessionContext):
 def split_and_merge(context: models.SessionContext, article_ids: List[int], path: List[str]) -> Dict[str, List[int]]:
     fragment = "\n".join([f"ID: {aid} | {context.articles[aid].title}" for aid in article_ids])
     
-    sys_instr = f"Te egy hírszerkesztő vagy. Az aktuális útvonalad: {' > '.join(path)}. " \
-                "Csoportosítsd a megadott híreket 3-6 releváns alkategóriába!"
+    # --- SZIGORÍTOTT STRATÉGIAI KATEGÓRIÁK ---
+    if not path:
+        # 0. SZINT: A te pontos kategórialistád
+        sys_instr = (
+            "Te egy stratégiai hírelemző vagy. A feladatod a hírek PONTOS besorolása az alábbi 5 fő kategóriába:\n"
+            "1. 'Magyar belpolitika és közigazgatás'\n"
+            "2. 'Magyar gazdaság és üzleti környezet'\n"
+            "3. 'Globális geopolitika és biztonságpolitika'\n"
+            "4. 'Világgazdaság és nemzetközi pénzügyek'\n"
+            "5. 'Vegyes / Egyéb'\n\n"
+            "KIZÁRÓLAG ezeket a neveket használd! Minden hírt sorolj be valahová."
+        )
+    else:
+        # MÉLYEBB SZINTEK: Szabadabb, de magyar nyelvű alkategóriák
+        sys_instr = (
+            f"Te egy szakmai rovatvezető vagy. Aktuális szekció: {' > '.join(path)}. "
+            "Bontsd a híreket 3-4 specifikusabb alkategóriára a tartalmuk alapján! "
+            "A kategórianevek rövidek és MAGYAR nyelvűek legyenek."
+        )
     
-    prompt = f"Hírek listája:\n{fragment}\n\nOszd be a híreket az objektum struktúra alapján."
-    
-    # Lekérjük az adatokat a modelltől
+    prompt = f"Hírek listája:\n{fragment}\n\nOszd be a híreket a megadott JSON struktúra szerint!"
+
+    # Generálás a Lite modellel
     response_obj = gemini_core.generate(context, prompt, sys_instr, schema=models.SplitResponse)
-    
-    # --- JAVÍTÁS: BIZTONSÁGI HÁLÓ (FALLBACK) ---
-    # Ha a response_obj None, vagy a modell valamiért egy sima stringet adott vissza
+
+    # --- BIZTONSÁGI SZŰRÉS (HALLUCINÁCIÓ ELLEN) ---
     if not response_obj or not hasattr(response_obj, 'buckets'):
-        print(f"   ⚠️ AI formázási hiba a kategóriák bontásánál! 'Vegyes' csoport alkalmazása.")
-        return {"Vegyes (Automatikus)": article_ids}
+        return {"Vegyes / Egyéb": article_ids}
     
-    # Átalakítjuk szótárrá, és kiszűrjük az esetleges üres kategóriákat
     result = {}
+    valid_input_ids = set(article_ids)
+    
     for bucket in response_obj.buckets:
-        if bucket.article_ids:  # Csak akkor vesszük fel, ha rakott is bele ID-t
-            result[bucket.category_name] = bucket.article_ids
+        clean_ids = [aid for aid in bucket.article_ids if aid in valid_input_ids and aid in context.articles]
+        if clean_ids:
+            result[bucket.category_name] = clean_ids
+            for cid in clean_ids: valid_input_ids.remove(cid)
             
-    # Még egy utolsó ellenőrzés: ha az AI visszaadott egy objektumot, de tök üresen
-    if not result:
-        print(f"   ⚠️ Az AI üres kategóriákat generált! 'Vegyes' csoport alkalmazása.")
-        return {"Vegyes (Automatikus)": article_ids}
+    # Ami kimaradt, megy a Vegyesbe
+    if valid_input_ids:
+        target_cat = "Vegyes / Egyéb" if not path else f"Egyéb ({path[-1]})"
         
+        # --- CÍMEK KIÍRÁSA A KONZOLRA ---
+        print(f"   ⚠️ {len(valid_input_ids)} hír kimaradt a besorolásból ({target_cat}). Címek:")
+        for aid in valid_input_ids:
+            title = context.articles[aid].title
+            print(f"      - [ID: {aid}] {title}")
+        # -------------------------------
+
+        if target_cat in result:
+            result[target_cat].extend(list(valid_input_ids))
+        else:
+            result[target_cat] = list(valid_input_ids)
+            
     return result
 
 def llm_anchor_test(context: models.SessionContext, article_ids: List[int], path: List[str]) -> bool:

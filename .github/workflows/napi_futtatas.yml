@@ -64,6 +64,12 @@ jobs:
           CURRENT_BRANCH: ${{ github.ref_name }}
         run: python -u main.py
 
+      - name: Run Cache Cleanup
+        if: always()  # Ez a kulcs! Akkor is lefut, ha az előző lépés elbukott.
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: python cleanup_cache.py        
+
       - name: Save Checkpoints Cache
         uses: actions/cache/save@v4
         if: always()

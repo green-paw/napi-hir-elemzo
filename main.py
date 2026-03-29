@@ -22,6 +22,8 @@ import random
 import builtins
 from datetime import datetime
 
+import checkpoint_manager
+
 _original_print = builtins.print
 def timestamped_print(*args, **kwargs):
     timestamp = datetime.now().strftime("[%H:%M:%S]")
@@ -218,14 +220,20 @@ def main():
         print("no raw news, exiting")
         return
 
-    news_texts = [f"{n.title} {n.summary[:200]}" for n in raw_news]    
-    topic_embs: List[List[float]] = get_gemini_embeddings(news_texts, 100)
-    raw_news = [
-            article.model_copy(update={"embeddings": vector})
-            for article, vector in zip(raw_news, topic_embs)
-        ]
-    articles: dict[int, models.Article] = {article.id: article for article in raw_news}
-    hierarchy: List[List[models.ClusterNode]] = build_hierarchy(topic_embs, news_texts)
+    articles_load = checkpoint_manager.load_checkpoint("articles.json", dict[int, models.Article])
+    if articles_load is None:
+        news_texts = [f"{n.title} - {n.summary[:200]}" for n in raw_news]    
+        topic_embs: List[List[float]] = get_gemini_embeddings(news_texts, 100)
+        raw_news = [
+                article.model_copy(update={"embeddings": vector})
+                for article, vector in zip(raw_news, topic_embs)
+            ]
+        articles: dict[int, models.Article] = {article.id: article for article in raw_news}
+        checkpoint_manager.save_checkpoint("articles.json", articles, dict[int, models.Article])
+    else:
+        articles = articles_load
+
+    hierarchy: List[List[models.ClusterNode]] = build_hierarchy([a.embeddings for a in articles.values()], [f"{a.title} - {a.summary[:200]}" for a in articles.values()])
 
     print_hierarchy_stats(hierarchy)
 

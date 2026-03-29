@@ -16,6 +16,38 @@ def timestamped_print(*args, **kwargs):
 
 builtins.print = timestamped_print
 
+import config
+from google.genai import Client
+
+def clear_all_caches():
+    client = Client(api_key=config.GOOGLE_API_KEY)
+    print("🧹 Aktív cache-ek keresése...")
+    
+    try:
+        # Kilistázzuk az összes meglévő cache-t
+        active_caches = client.caches.list()
+        
+        count = 0
+        for c in active_caches:
+            print(f"🗑️ Törlés: {c.display_name} ({c.name})...")
+            client.caches.delete(name=c.name)
+            count += 1
+            
+        if count == 0:
+            print("✨ Nem találtam törlendő cache-t.")
+        else:
+            print(f"✅ Összesen {count} cache törölve.")
+            
+    except Exception as e:
+        print(f"❌ Hiba a takarítás során: {e}")
+
+if __name__ == "__main__":
+    clear_all_caches()
+
+
+
+
+
 
 def main():
     print("--- 🚀 AI Hírszerzési Rendszer Indítása ---")
@@ -76,5 +108,5 @@ def _print_execution_summary(logger: TokenLogger):
     print(f"💾 Ebből cache-elt: {total_cached}")
     print(f"🔄 API hívások száma: {len(logger.log)}")
 
-if __name__ == "__main__":
-    main()
+#if __name__ == "__main__":
+#    main()

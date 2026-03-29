@@ -16,64 +16,79 @@ def fill_embeddings(context: models.SessionContext):
             batch[idx].embedding = emb.values
 
 def split_and_merge(context: models.SessionContext, article_ids: List[int], path: List[str]) -> Dict[str, List[int]]:
-    fragment = "\n".join([f"ID: {aid} | {context.articles[aid].title}" for aid in article_ids])
+    CHUNK_SIZE = 50
+    aggregated_results = {}
+    valid_input_ids = set(article_ids)
     
-    # --- SZIGORÍTOTT STRATÉGIAI KATEGÓRIÁK ---
-    if not path:
-        sys_instr = (
-            "Te egy stratégiai hírelemző vagy. A feladatod a hírek PONTOS besorolása az alábbi 5 fő kategóriába:\n"
-            "1. 'Magyar belpolitika és közigazgatás'\n"
-            "2. 'Magyar gazdaság és üzleti környezet'\n"
-            "3. 'Globális geopolitika és biztonságpolitika'\n"
-            "4. 'Világgazdaság és nemzetközi pénzügyek'\n"
-            "5. 'Vegyes / Egyéb'\n\n"
-            "KIZÁRÓLAG ezeket a pontos neveket használd! Minden hírt sorolj be valahová."
-        )
+    # 1. KATEGÓRIA STRATÉGIA MEGHATÁROZÁSA
+    is_root = len(path) == 0
+    if is_root:
+        # FIX KATEGÓRIÁK (Első kör)
+        base_categories = [
+            "Magyar belpolitika és közigazgatás",
+            "Magyar gazdaság és üzleti környezet",
+            "Globális geopolitika és biztonságpolitika",
+            "Világgazdaság és nemzetközi pénzügyek",
+            "Vegyes / Egyéb"
+        ]
+        category_instruction = f"Minden hírt PONTOSAN ezen kategóriák egyikébe sorolj be: {base_categories}. Új kategóriát létrehozni TILOS."
     else:
-        sys_instr = (
-            f"Te egy szakmai rovatvezető vagy. Aktuális szekció: {' > '.join(path)}. "
-            "Bontsd a híreket 3-4 specifikusabb alkategóriára a tartalmuk alapján! "
-            "A kategórianevek rövidek és MAGYAR nyelvűek legyenek."
-        )
-    
-    prompt = f"Hírek listája:\n{fragment}\n\nOszd be a híreket a megadott JSON struktúra szerint!"
+        # DINAMIKUS KATEGÓRIÁK (További körök)
+        base_categories = []
+        category_instruction = "Hozz létre 3-4 releváns alkategóriát a hírek tartalma alapján. A kategórianevek magyarok legyenek."
 
-    # Generálás a Lite modellel
-    response_obj = gemini_core.generate(context, prompt, sys_instr, schema=models.SplitResponse)
-
-    # --- BIZTONSÁGI SZŰRÉS (HALLUCINÁCIÓ ELLEN) ---
-    if not response_obj or not hasattr(response_obj, 'buckets'):
-        print(f"   ⚠️ AI hiba a kategóriák bontásánál! Minden hír a 'Vegyes / Egyéb' csoportba kerül.")
-        return {"Vegyes / Egyéb": article_ids}
-    
-    result = {}
-    valid_input_ids = set(article_ids) # Eredeti ID-k halmaza
-    
-    for bucket in response_obj.buckets:
-        # Csak azokat az ID-kat tartjuk meg, amik tényleg benne voltak a bemenetben
-        clean_ids = [aid for aid in bucket.article_ids if aid in valid_input_ids]
+    # 2. CHUNKOK FELDOLGOZÁSA
+    for i in range(0, len(article_ids), CHUNK_SIZE):
+        chunk = article_ids[i:i + CHUNK_SIZE]
+        print(f"      ⏳ Chunk feldolgozás ({i+1}-{min(i+CHUNK_SIZE, len(article_ids))} hír)...")
         
-        if clean_ids:
-            result[bucket.category_name] = clean_ids
-            # Kivesszük őket a halmazból, hogy egy hír ne szerepelhessen kétszer
-            for cid in clean_ids:
-                valid_input_ids.discard(cid)
-            
-    # Ha maradtak besorolatlan hírek (hallucinált vagy elfelejtett ID-k miatt)
-    if valid_input_ids:
-        target_cat = "Vegyes / Egyéb" if not path else f"Vegyes ({path[-1]})"
+        fragment = "\n".join([f"ID: {aid} | {context.articles[aid].title}" for aid in chunk])
         
-        # Címek kiírása a konzolra a kérésed szerint
-        print(f"   ⚠️ {len(valid_input_ids)} hír kimaradt a besorolásból ({target_cat}). Címek:")
-        for aid in valid_input_ids:
-            print(f"      - [ID: {aid}] {context.articles[aid].title}")
-            
-        if target_cat in result:
-            result[target_cat].extend(list(valid_input_ids))
+        # Frissítjük az instrukciót a már meglévő dinamikus kategóriákkal (ha nem root)
+        current_cats = list(aggregated_results.keys())
+        if not is_root and current_cats:
+            dynamic_instruction = f"Már létező kategóriák: {current_cats}. Elsősorban ezekbe sorolj, csak akkor nyiss újat, ha végképp nem illik bele semmi."
         else:
-            result[target_cat] = list(valid_input_ids)
+            dynamic_instruction = ""
+
+        sys_instr = (
+            f"Te egy hírszerkesztő vagy. Aktuális szekció: {' > '.join(path) if path else 'Főoldal'}.\n"
+            f"{category_instruction}\n{dynamic_instruction}\n"
+            "Csak a megadott ID-kat használd!"
+        )
+        
+        prompt = f"Hírek listája:\n{fragment}\n\nOszd be a híreket a JSON struktúra szerint!"
+
+        try:
+            response_obj = gemini_core.generate(context, prompt, sys_instr, schema=models.SplitResponse)
             
-    return result
+            if response_obj and hasattr(response_obj, 'buckets'):
+                for bucket in response_obj.buckets:
+                    cat = bucket.category_name
+                    # Csak a bemeneti chunkban szereplő ID-kat fogadjuk el (hallucináció szűrés)
+                    clean_ids = [aid for aid in bucket.article_ids if aid in chunk]
+                    
+                    if clean_ids:
+                        if cat not in aggregated_results:
+                            # Ha nem root, és az AI új kategóriát talált ki a 3-4 felett, 
+                            # itt lehetne korlátozni, de hagyjuk rugalmasan
+                            aggregated_results[cat] = []
+                        aggregated_results[cat].extend(clean_ids)
+                        for cid in clean_ids:
+                            valid_input_ids.discard(cid)
+        except Exception as e:
+            print(f"      ⚠️ Hiba a chunk feldolgozásakor: {e}")
+
+    # 3. MARADÉK KEZELÉSE (Csak az első körben érdekes a Vegyes)
+    if valid_input_ids:
+        target_cat = "Vegyes / Egyéb" if is_root else f"Egyéb ({path[-1]})"
+        print(f"   ⚠️ {len(valid_input_ids)} hír maradt ki a besorolásból -> {target_cat}")
+        
+        if target_cat not in aggregated_results:
+            aggregated_results[target_cat] = []
+        aggregated_results[target_cat].extend(list(valid_input_ids))
+
+    return aggregated_results
 
 def llm_anchor_test(context: models.SessionContext, article_ids: List[int], path: List[str]) -> bool:
     fragment = "\n".join([f"ID: {aid} | {context.articles[aid].title}" for aid in article_ids])

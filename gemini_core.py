@@ -49,6 +49,16 @@ def generate(context: SessionContext, contents: Any, sys_instr: str, schema: Any
     )
     
     context.logger.add(model, response)
+
+    try:
+        if response is not None:
+            input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
+            cached_tokens = getattr(response.usage_metadata, 'cached_content_token_count', 0) or 0
+            output_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0)
+            finish_reason = response.candidates[0].finish_reason if hasattr(response, 'candidates') and response.candidates else 'N/A'
+            print(f"📊 {model} | Input tokens: {input_tokens} | Output tokens: {output_tokens} | Cached tokens: {cached_tokens} | Finish reason: {finish_reason}")
+    except:
+        pass
     
     try:
         if schema:

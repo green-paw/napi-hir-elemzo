@@ -9,10 +9,8 @@ def fill_embeddings(context: models.SessionContext):
     
     for i in range(0, len(articles_to_embed), 100):
         batch = articles_to_embed[i:i+100]
-        # Csak a címet és a summary elejét küldjük az embeddinghez (költséghatékony)
         texts = [f"{a.title}\n{a.summary[:200]}" for a in batch]
         
-        # A gemini_core.embed már a 'gemini-embedding-001'-et használja
         res = gemini_core.embed(context, texts)
         for idx, emb in enumerate(res.embeddings):
             batch[idx].embedding = emb.values
@@ -22,7 +20,6 @@ def split_and_merge(context: models.SessionContext, article_ids: List[int], path
     
     # --- SZIGORÍTOTT STRATÉGIAI KATEGÓRIÁK ---
     if not path:
-        # 0. SZINT: A te pontos kategórialistád
         sys_instr = (
             "Te egy stratégiai hírelemző vagy. A feladatod a hírek PONTOS besorolása az alábbi 5 fő kategóriába:\n"
             "1. 'Magyar belpolitika és közigazgatás'\n"
@@ -30,10 +27,9 @@ def split_and_merge(context: models.SessionContext, article_ids: List[int], path
             "3. 'Globális geopolitika és biztonságpolitika'\n"
             "4. 'Világgazdaság és nemzetközi pénzügyek'\n"
             "5. 'Vegyes / Egyéb'\n\n"
-            "KIZÁRÓLAG ezeket a neveket használd! Minden hírt sorolj be valahová."
+            "KIZÁRÓLAG ezeket a pontos neveket használd! Minden hírt sorolj be valahová."
         )
     else:
-        # MÉLYEBB SZINTEK: Szabadabb, de magyar nyelvű alkategóriák
         sys_instr = (
             f"Te egy szakmai rovatvezető vagy. Aktuális szekció: {' > '.join(path)}. "
             "Bontsd a híreket 3-4 specifikusabb alkategóriára a tartalmuk alapján! "
@@ -47,28 +43,31 @@ def split_and_merge(context: models.SessionContext, article_ids: List[int], path
 
     # --- BIZTONSÁGI SZŰRÉS (HALLUCINÁCIÓ ELLEN) ---
     if not response_obj or not hasattr(response_obj, 'buckets'):
+        print(f"   ⚠️ AI hiba a kategóriák bontásánál! Minden hír a 'Vegyes / Egyéb' csoportba kerül.")
         return {"Vegyes / Egyéb": article_ids}
     
     result = {}
-    valid_input_ids = set(article_ids)
+    valid_input_ids = set(article_ids) # Eredeti ID-k halmaza
     
     for bucket in response_obj.buckets:
-        clean_ids = [aid for aid in bucket.article_ids if aid in valid_input_ids and aid in context.articles]
+        # Csak azokat az ID-kat tartjuk meg, amik tényleg benne voltak a bemenetben
+        clean_ids = [aid for aid in bucket.article_ids if aid in valid_input_ids]
+        
         if clean_ids:
             result[bucket.category_name] = clean_ids
-            for cid in clean_ids: valid_input_ids.remove(cid)
+            # Kivesszük őket a halmazból, hogy egy hír ne szerepelhessen kétszer
+            for cid in clean_ids:
+                valid_input_ids.discard(cid)
             
-    # Ami kimaradt, megy a Vegyesbe
+    # Ha maradtak besorolatlan hírek (hallucinált vagy elfelejtett ID-k miatt)
     if valid_input_ids:
-        target_cat = "Vegyes / Egyéb" if not path else f"Egyéb ({path[-1]})"
+        target_cat = "Vegyes / Egyéb" if not path else f"Vegyes ({path[-1]})"
         
-        # --- CÍMEK KIÍRÁSA A KONZOLRA ---
+        # Címek kiírása a konzolra a kérésed szerint
         print(f"   ⚠️ {len(valid_input_ids)} hír kimaradt a besorolásból ({target_cat}). Címek:")
         for aid in valid_input_ids:
-            title = context.articles[aid].title
-            print(f"      - [ID: {aid}] {title}")
-        # -------------------------------
-
+            print(f"      - [ID: {aid}] {context.articles[aid].title}")
+            
         if target_cat in result:
             result[target_cat].extend(list(valid_input_ids))
         else:
@@ -78,29 +77,17 @@ def split_and_merge(context: models.SessionContext, article_ids: List[int], path
 
 def llm_anchor_test(context: models.SessionContext, article_ids: List[int], path: List[str]) -> bool:
     fragment = "\n".join([f"ID: {aid} | {context.articles[aid].title}" for aid in article_ids])
+    path_str = " > ".join(path) if path else "Gyökér"
     
-    # ITT HASZNÁLJUK FEL A PATH-T:
-    path_str = " > ".join(path) if path else "Általános hírek"
-    
-    sys_instr = f"Téma kategóriája: {path_str}. Eldöntendő: Ezek a hírek egyetlen konkrét eseményről szólnak, vagy több különálló témáról?"
+    sys_instr = f"Kategória: {path_str}. Eldöntendő: Ezek a hírek egyetlen konkrét eseményről szólnak, vagy több különálló témáról?"
     prompt = f"Hírek:\n{fragment}\n\nVálaszolj: 'SINGLE' vagy 'MULTIPLE'."
     
     res_text = gemini_core.generate(context, prompt, sys_instr)
     return "SINGLE" in res_text.upper()
 
 def analyze_event_contrastive(context: models.SessionContext, article_ids: List[int], path: List[str]) -> models.EventAnalysis:
-    # ITT HASZNÁLJUK FEL A PATH-T:
     path_str = " > ".join(path) if path else "Általános"
-    
-    prompt = f"Végezz mélyelemzést a következő hír-ID-k alapján: {article_ids}. " \
-             f"Vedd figyelembe, hogy ezek a '{path_str}' kategóriába tartoznak! " \
-             "Keresd az ellentmondásokat és az elfogultságot!"
-    
+    prompt = f"Végezz mélyelemzést a hírek alapján (Kategória: {path_str}). Hír-ID-k: {article_ids}. Keresd az ellentmondásokat!"
     sys_instr = "Te egy elfogulatlan oknyomozó újságíró vagy. Használd a kontextusban lévő híreket."
     
-    return gemini_core.generate(
-        context, 
-        prompt, 
-        sys_instr, 
-        schema=models.EventAnalysis
-    )
+    return gemini_core.generate(context, prompt, sys_instr, schema=models.EventAnalysis)

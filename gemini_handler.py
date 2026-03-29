@@ -100,6 +100,8 @@ def get_gemini_embeddings(texts: List[str], chunk_size=100) -> List[List[float]]
     """Vektorok lekérése újrapróbálkozási logikával."""
     all_embeddings = []
     
+    if chunk_size > 100: chunk_size = 100
+
     for i in range(0, len(texts), chunk_size):
         batch = texts[i:i + chunk_size]
         

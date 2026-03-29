@@ -219,7 +219,7 @@ def main():
         return
 
     news_texts = [f"{n.title} {n.summary[:200]}" for n in raw_news]    
-    topic_embs: List[List[float]] = get_gemini_embeddings(news_texts, 200)
+    topic_embs: List[List[float]] = get_gemini_embeddings(news_texts, 100)
     raw_news = [
             article.model_copy(update={"embeddings": vector})
             for article, vector in zip(raw_news, topic_embs)

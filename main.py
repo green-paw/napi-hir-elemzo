@@ -6,6 +6,17 @@ import gemini_core
 import output_handler
 from models import TokenLogger
 
+import builtins
+from datetime import datetime
+
+_original_print = builtins.print
+def timestamped_print(*args, **kwargs):
+    timestamp = datetime.now().strftime("[%H:%M:%S]")
+    _original_print(f"{timestamp} ", *args, **kwargs)
+
+builtins.print = timestamped_print
+
+
 def main():
     print("--- 🚀 AI Hírszerzési Rendszer Indítása ---")
     

@@ -23,14 +23,29 @@ def split_and_merge(context: models.SessionContext, article_ids: List[int], path
     sys_instr = f"Te egy hírszerkesztő vagy. Az aktuális útvonalad: {' > '.join(path)}. " \
                 "Csoportosítsd a megadott híreket 3-6 releváns alkategóriába!"
     
-    # Kicsit módosítjuk a promptot, hogy passzoljon az új sémához
     prompt = f"Hírek listája:\n{fragment}\n\nOszd be a híreket az objektum struktúra alapján."
     
-    # HASZNÁLJUK AZ ÚJ SÉMÁT!
+    # Lekérjük az adatokat a modelltől
     response_obj = gemini_core.generate(context, prompt, sys_instr, schema=models.SplitResponse)
     
-    # Visszaalakítjuk szótárrá, hogy az orchestrator érintetlen maradhasson
-    return {bucket.category_name: bucket.article_ids for bucket in response_obj.buckets}
+    # --- JAVÍTÁS: BIZTONSÁGI HÁLÓ (FALLBACK) ---
+    # Ha a response_obj None, vagy a modell valamiért egy sima stringet adott vissza
+    if not response_obj or not hasattr(response_obj, 'buckets'):
+        print(f"   ⚠️ AI formázási hiba a kategóriák bontásánál! 'Vegyes' csoport alkalmazása.")
+        return {"Vegyes (Automatikus)": article_ids}
+    
+    # Átalakítjuk szótárrá, és kiszűrjük az esetleges üres kategóriákat
+    result = {}
+    for bucket in response_obj.buckets:
+        if bucket.article_ids:  # Csak akkor vesszük fel, ha rakott is bele ID-t
+            result[bucket.category_name] = bucket.article_ids
+            
+    # Még egy utolsó ellenőrzés: ha az AI visszaadott egy objektumot, de tök üresen
+    if not result:
+        print(f"   ⚠️ Az AI üres kategóriákat generált! 'Vegyes' csoport alkalmazása.")
+        return {"Vegyes (Automatikus)": article_ids}
+        
+    return result
 
 def llm_anchor_test(context: models.SessionContext, article_ids: List[int], path: List[str]) -> bool:
     fragment = "\n".join([f"ID: {aid} | {context.articles[aid].title}" for aid in article_ids])

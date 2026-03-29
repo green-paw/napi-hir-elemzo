@@ -96,15 +96,13 @@ def validate_news_clusters(cluster_data: str, schema=MultiClusterResponse) -> di
         print(f"⚠️ JSON hiba a validációnál: {e}")
         return {"events": []}
     
-def get_gemini_embeddings(texts):
+def get_gemini_embeddings(texts: List[str], chunk_size=100) -> List[List[float]]:
     """Vektorok lekérése újrapróbálkozási logikával."""
     all_embeddings = []
     
-    # 100-as batch-ek (ez jó)
-    for i in range(0, len(texts), 100):
-        batch = texts[i:i + 100]
+    for i in range(0, len(texts), chunk_size):
+        batch = texts[i:i + chunk_size]
         
-        # Belső újrapróbálkozás a 429-es hiba kezelésére
         for attempt in range(5):
             try:
                 response = client_main.models.embed_content(

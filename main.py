@@ -1,5 +1,6 @@
 from typing import List
-from models import Article, ClusterResultSingle
+#from models import Article, ClusterNode, ClusterResultSingle
+import models
 import output_handler
 
 # Csak a szükséges handler funkciók
@@ -9,9 +10,9 @@ from gemini_handler import (
 )
 
 from rss_handler import fetch_news
+from arithmetics import VectorMath, build_hierarchy
 
 # általános importok
-import math
 import time
 from sklearn.cluster import AgglomerativeClustering
 
@@ -29,11 +30,7 @@ def timestamped_print(*args, **kwargs):
 builtins.print = timestamped_print
 
 # --- Szemantikus szűrő matematikai alapjai ---
-def cosine_similarity(v1, v2):
-    dot_product = sum(x * y for x, y in zip(v1, v2))
-    mag1 = math.sqrt(sum(x * x for x in v1))
-    mag2 = math.sqrt(sum(x * x for x in v2))
-    return dot_product / (mag1 * mag2) if mag1 and mag2 else 0
+
 
 def calculate_priority_score(scores):
     """Kiszámítja a súlyozott összpontszámot a sorbarendezéshez."""
@@ -49,7 +46,7 @@ def calculate_priority_score(scores):
            (s.get('impact', 0) * 0.5) + \
            (s.get('novelty', 0) * 0.2)
     
-def semantic_filter(news_pool: List[Article], topics: List[str], top_k=300):
+def semantic_filter(news_pool: List[models.Article], topics: List[str], top_k=300):
     if not topics or not news_pool: return news_pool
     print(f"🔍 Szemantikus rangsorolás: {len(news_pool)} hír...")
     
@@ -62,7 +59,7 @@ def semantic_filter(news_pool: List[Article], topics: List[str], top_k=300):
     # 2. Relevancia számítása
     for i, n_emb in enumerate(news_embs):
         # Megnézzük, mennyire passzol a hír BÁRMELYIK témához
-        sims = [cosine_similarity(n_emb, t_emb) for t_emb in topic_embs]
+        sims = [VectorMath.get_similarities(n_emb, t_emb) for t_emb in topic_embs]
         max_sim = max(sims) if sims else 0
         
         # Elmentjük a pontszámot a hír objektumba
@@ -81,7 +78,7 @@ def semantic_filter(news_pool: List[Article], topics: List[str], top_k=300):
     
     return final_selection
 
-def cluster_news(news_pool: List[Article]) -> List[ClusterResultSingle]:
+def cluster_news(news_pool: List[models.Article]) -> List[models.ClusterResultSingle]:
     if not news_pool: return []
     print(f"🧩 Klaszterezés ({len(news_pool)} hír)...")
     
@@ -120,7 +117,7 @@ def cluster_news(news_pool: List[Article]) -> List[ClusterResultSingle]:
 
     return final_clusters
 
-def auto_cluster(embeddings: List[List[float]], news_pool: List[Article], initial_threshold=0.7, max_cluster_size=20) -> dict:
+def auto_cluster(embeddings: List[List[float]], news_pool: List[models.Article], initial_threshold=0.7, max_cluster_size=20) -> dict:
     current_threshold = initial_threshold
     attempts = 0
     max_attempts = 20
@@ -156,12 +153,12 @@ def auto_cluster(embeddings: List[List[float]], news_pool: List[Article], initia
             
     return groups
 
-def filter_and_rank_clusters(clusters_data: List[ClusterResultSingle]) -> List[ClusterResultSingle]:
+def filter_and_rank_clusters(clusters_data: List[models.ClusterResultSingle]) -> List[models.ClusterResultSingle]:
     """
     Végső szűrés a súlyozott pontszám alapján. 
     Csak a tényleg fontos hírek mennek tovább elemzésre.
     """
-    final_selection: List[ClusterResultSingle] = []
+    final_selection: List[models.ClusterResultSingle] = []
     
     for c in clusters_data:
         # Meghívjuk a korábban megírt pontozó függvényt
@@ -183,13 +180,61 @@ def filter_and_rank_clusters(clusters_data: List[ClusterResultSingle]) -> List[C
     # Egy utolsó biztonsági sorbarendezés
     return sorted(final_selection, key=lambda x: getattr(x, 'total_score', 0) if not isinstance(x, dict) else x.get('total_score', 0), reverse=True)
 
+def print_hierarchy_stats(hierarchy: List[List[models.ClusterNode]]):
+    print("\n" + "="*50)
+    print(" HIERARCHIA STATISZTIKA")
+    print("="*50)
+    
+    for i, level_nodes in enumerate(hierarchy):
+        # Kiszámoljuk az átlagos csoportméretet (hány eredeti hír van egy node-ban)
+        avg_size = sum(len(n.member_indices) for n in level_nodes) / len(level_nodes)
+        
+        print(f"\n[SZINT {i}] Nodes száma: {len(level_nodes)}")
+        print(f"   - Átlagos hírszám csoportonként: {avg_size:.2f}")
+        
+        # Példa: Nézzük meg a legnagyobb csoportot ezen a szinten
+        largest_node = max(level_nodes, key=lambda n: len(n.member_indices))
+        print(f"   - Legnagyobb csoport: {len(largest_node.member_indices)} hír")
+        
+        # Ha már van összefoglalónk (summary), kiírjuk a legnagyobb csoportét
+        if largest_node.summary:
+            print(f"   - Példa téma: {largest_node.summary}")
+        elif i > 0:
+            # Ha még nincs LLM summary, írjuk ki a Medoid hír elejét referenciának
+            medoid = largest_node.get_medoid_child()
+            # Ha a medoid is csoport, addig megyünk le, amíg szöveget nem találunk
+            while not medoid.is_leaf() and medoid.children:
+                medoid = medoid.get_medoid_child()
+            
+            sample_text = medoid.original_text[:70] if medoid.original_text else "N/A"
+            print(f"   - Tartalmi minta: {sample_text}...")
+
+    print("\n" + "="*50)
+
 def main():
     # 1. Lekérés
     raw_news = fetch_news()
     if not raw_news:
         print("no raw news, exiting")
         return
-    
+
+    news_texts = [f"{n.title} {n.summary[:200]}" for n in raw_news]    
+    topic_embs: List[List[float]] = get_gemini_embeddings(news_texts, 200)
+    raw_news = [
+            article.model_copy(update={"embeddings": vector})
+            for article, vector in zip(raw_news, topic_embs)
+        ]
+    articles: dict[int, models.Article] = {article.id: article for article in raw_news}
+    hierarchy: List[List[models.ClusterNode]] = build_hierarchy(topic_embs, news_texts)
+
+    print_hierarchy_stats(hierarchy)
+
+    return
+
+
+
+
+
     # 2. Stratégiai témák
     # Megjegyzés: random helyett az utolsó N hír is jó lehet, de a random segít a diverzitásban
     sample_size = min(len(raw_news), 300)

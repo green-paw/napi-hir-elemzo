@@ -32,7 +32,7 @@ def fetch_news() -> List[Article]:
         return news_pool
 
     seen_links = set() # Duplikáció szűréshez
-    item_id = 0
+    #item_id = 0
     now = datetime.now()
     limit = timedelta(hours=24)
     
@@ -76,7 +76,7 @@ def fetch_news() -> List[Article]:
                 summary = smart_truncate(clean_news_text({'summary': raw_summary}, 'summary'), 600)
 
                 news_pool.append(Article(
-                    id=item_id,
+                    #id=item_id,
                     source=name,
                     title=title,
                     summary=summary,
@@ -86,7 +86,7 @@ def fetch_news() -> List[Article]:
                 ))
                 
                 seen_links.add(entry.link)
-                item_id += 1
+                #item_id += 1
                 
         except Exception as e:
             print(f"⚠️ Hiba a(z) {name} forrásnál: {e}")
@@ -94,18 +94,17 @@ def fetch_news() -> List[Article]:
     seen_titles = set()
     unique_news = []
     for n in news_pool:
-        # Tisztítjuk a címet (kisbetű, szóközök le) a pontosabb egyezésért
         clean_title = n.title.strip().lower()
         if clean_title not in seen_titles:
             seen_titles.add(clean_title)
             unique_news.append(n)
     
     print(f"🧹 Duplikátumok kiszűrve: {len(news_pool)} -> {len(unique_news)} hír.")
-    news_pool = unique_news # Ezzel dolgozunk tovább
-
-    # Időrendbe tétel (legfrissebb elöl), hogy a main() fixen a legújabbakat lássa
+    news_pool = unique_news
     news_pool.sort(key=lambda x: x.published, reverse=True)
-    
+    for idx, article in enumerate(news_pool, start=1):
+        article.id = idx
+
     print(f"✅ Begyűjtés kész: {len(news_pool)} egyedi, releváns hír.")
 
     save_checkpoint("news_pool.json", news_pool, List[Article])

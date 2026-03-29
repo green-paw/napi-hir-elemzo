@@ -20,21 +20,42 @@ def execute_with_retry(func: Callable, *args, max_retries: int = 5, **kwargs) ->
                 raise e
 
 def generate(context: SessionContext, contents: Any, sys_instr: str, schema: Any = None, model: str = config.MODEL_LITE_ID) -> Any:
+    """Strukturált vagy szöveges generálás okos cache-kezeléssel."""
+    
+    # --- A JAVÍTÁS LÉNYEGE ---
+    # Ha van aktív cache, az API nem engedélyezi a 'system_instruction' mezőt.
+    # Ilyenkor a rendszerutasítást a sima prompt (contents) elejére fűzzük.
+    if context.cache_id:
+        final_contents = f"[RENDSZERUTASÍTÁS]\n{sys_instr}\n\n[FELADAT]\n{contents}"
+        final_sys_instr = None
+    else:
+        final_contents = contents
+        final_sys_instr = sys_instr
+
     gen_config = types.GenerateContentConfig(
-        system_instruction=sys_instr,
+        system_instruction=final_sys_instr, # Cache esetén ez None lesz
         cached_content=context.cache_id or None,
         response_mime_type="application/json" if schema else "text/plain",
         response_schema=schema,
         temperature=0.1,
     )
-    response = execute_with_retry(context.client.models.generate_content, model=model, contents=contents, config=gen_config)
+    
+    # Itt már a final_contents-t küldjük be
+    response = execute_with_retry(
+        context.client.models.generate_content, 
+        model=model, 
+        contents=final_contents, 
+        config=gen_config
+    )
+    
     context.logger.add(model, response)
+    
     try:
         if schema:
             if schema != "json":
-                return response.parsed # Visszaadja a Pydantic objektumot
-            return response.text # Visszaadja a nyers JSON stringet
-        return response.text # Sima szöveges válasz
+                return response.parsed
+            return response.text
+        return response.text
     except Exception as e:
         print(f"⚠️ Válasz feldolgozási hiba: {e}")
         return response.text if hasattr(response, 'text') else response

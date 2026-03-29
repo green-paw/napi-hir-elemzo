@@ -22,15 +22,15 @@ def load_checkpoint(filename: str, expected_type: Any) -> Optional[Any]:
 
     print(f"CACHE SETTINGS: {settings_str}")
     
-    use_cache_env = True # Alapértelmezett érték, ha valami hiányzik
+    use_cache_env = False # Alapértelmezett érték, ha valami hiányzik
     
     # 2. JSON feldolgozása
     try:
         settings = json.loads(settings_str)
-        val = settings.get(current_branch, True)
+        val = settings.get(current_branch, False)
         use_cache_env = str(val).lower() == "true"
     except json.JSONDecodeError:
-        print("⚠️ Hiba a CACHE_SETTINGS JSON formátumában. Alapértelmezett Cache = True.")
+        print("⚠️ Hiba a CACHE_SETTINGS JSON formátumában. Alapértelmezett Cache = False.")
 
     # 3. Döntés a betöltésről
     if not use_cache_env or args.force:

@@ -100,7 +100,7 @@ def build_hierarchy(embeddings: np.ndarray, articles: dict[int, models.Article])
 @staticmethod
 def get_weighted_keywords(node: models.ClusterNode, 
                         articles: Dict[int, models.Article], 
-                        top_n: int = 10) -> str:
+                        top_n: int = 15) -> str:
     """
     Kiszámolja a csoport legreprezentatívabb szavait LLM nélkül, 
     a centroidhoz legközelebbi hír (medoid) súlyozásával.
@@ -108,8 +108,10 @@ def get_weighted_keywords(node: models.ClusterNode,
     # 1. Alapszavak gyűjtése és szűrése
     all_words = []
     stop_words = {
-        "hogy", "vagy", "mint", "mert", "pedig", "volt", "lett", "ezer", 
-        "millió", "szóló", "szerint", "alatt", "után", "miatt", "között"
+        "hogy", "vagy", "mint", "mert", "pedig", "volt", "lett", "ezer", "millió",
+        "szerint", "mondta", "közölte", "alatt", "után", "miatt", "között", "belül",
+        "minden", "csak", "lenne", "erről", "ebben", "annak", "lenne", "vagyis",
+        "after", "with", "news", "says", "about", "from", "into", "their", "more"
     }
     
     for idx in node.member_indices:

@@ -36,7 +36,11 @@ def fetch_news() -> List[Article]:
     now = datetime.now()
     limit = timedelta(hours=24)
     
-    BLACKLIST = ["sport", "bulvár", "szórakozás", "horoszkóp", "időjárás", "recept", "életmód", "bulvar", "tv-műsor"]
+    BLACKLIST = [
+        "sport", "bulvár", "bulvar", "szórakozás", "horoszkóp", "időjárás", 
+        "recept", "életmód", "tv-műsor", "dating", "profile", "galéria", 
+        "nyereményjáték", "kvíz", "promóció"
+    ]
 
     print(f"📰 Hírek lekérése és szűrése ({limit.days * 24}h limit)...")
     
@@ -59,11 +63,21 @@ def fetch_news() -> List[Article]:
                 if now - dt > limit:
                     continue
                 
-                # 2. KATEGÓRIA SZŰRÉS
+                # 2. KATEGÓRIA ÉS TARTALMI SZŰRÉS
                 tags = [t.term.lower() for t in entry.get('tags', []) if hasattr(t, 'term')]
-                # Nézzük meg a címet is, mert sokszor oda írják a rovatot (pl. [Sport])
                 title_lower = entry.title.lower()
-                if any(bad in tags for bad in BLACKLIST) or any(f"[{bad}]" in title_lower for bad in BLACKLIST):
+                link_lower = entry.link.lower()
+
+                # Ellenőrizzük a tiltott szavakat: Tag-ekben, Címben és a Linkben is!
+                is_blacklisted = False
+                for bad_word in BLACKLIST:
+                    if (bad_word in tags or 
+                        bad_word in title_lower or 
+                        bad_word in link_lower):
+                        is_blacklisted = True
+                        break
+                
+                if is_blacklisted:
                     continue
 
                 # 3. TISZTÍTÁS ÉS ÖSSZEGYŰJTÉS

@@ -359,10 +359,11 @@ def validate_and_refine_hierarchy(level_nodes: List[models.ClusterNode],
             contents=VALIDATOR_PROMPT,
         )
         
-        print(response)
+        print(f"gemini response: {response}")
+        res_text = getattr(response, "text", response)
 
         # Sorokra bontjuk a válaszokat
-        llm_answers = [a.strip() for a in response.text.strip().split('\n') if a.strip()]
+        llm_answers = [a.strip() for a in res_text.strip().split('\n') if a.strip()]
 
         for node, answer in zip(batch, llm_answers):
             if len(answer) > 5:

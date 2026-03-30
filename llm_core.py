@@ -140,15 +140,15 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
         pass
 
     # 3. OKOS VISSZATÉRÉS
-    if response:
-        if schema and schema != "json":
-            try:
-                # Ha van schema, a .parsed adja a tiszta Python típust (pl. listát)
-                return response.parsed
-            except Exception as e:
-                print(f"⚠️ Parsing hiba, fallback nyers szövegre: {e}")
-                return response.text.strip()
-        
-        return response.text.strip()
-    else:
+    if not response or not hasattr(response, "text") or not response.text:
         return ""
+        
+    if schema and schema != "json":
+        try:
+            # Ha van schema, a .parsed adja a tiszta Python típust (pl. listát)
+            return response.parsed
+        except Exception as e:
+            print(f"⚠️ Parsing hiba, fallback nyers szövegre: {e}")
+            return response.text.strip()
+    
+    return response.text.strip()

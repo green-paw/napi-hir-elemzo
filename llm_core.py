@@ -140,7 +140,7 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
         pass
 
     # 3. OKOS VISSZATÉRÉS
-    if response is not None:
+    if response:
         if schema and schema != "json":
             try:
                 # Ha van schema, a .parsed adja a tiszta Python típust (pl. listát)
@@ -151,5 +151,4 @@ def gemini_call(client: Client, model: str = config.MODEL_LITE_ID, schema: Any =
         
         return response.text.strip()
     else:
-        print("⚠️ Visszatérés előtt: Nincs érvényes válasz a Gemini-tól.")
         return ""

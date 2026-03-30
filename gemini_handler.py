@@ -325,7 +325,7 @@ def validate_and_refine_hierarchy(level_nodes: List[models.ClusterNode],
 
     refined_nodes = []
     # Batch-eljük, hogy ne legyen 200 külön API hívás (pl. 10 csoport egyszerre)
-    batch_size = 10 
+    batch_size = 1 
     
     print(f"🛡️ Zsilip aktiválva: {len(level_nodes)} csoport ellenőrzése...")
 

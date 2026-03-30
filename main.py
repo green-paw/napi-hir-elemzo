@@ -229,7 +229,7 @@ def main():
         return
 
     # tesztelés alatt checkpoint kikapcsolva
-    articles_load = None # checkpoint_manager.load_checkpoint("articles.json", dict[int, models.Article])
+    articles_load = checkpoint_manager.load_checkpoint("articles.json", dict[int, models.Article])
     if articles_load is None:
         news_texts = [n.get_short_text() for n in raw_news]    
         topic_embs: List[List[float]] = get_gemini_embeddings(news_texts, 100)

@@ -98,13 +98,14 @@ def build_hierarchy(embeddings: np.ndarray, articles: dict[int, models.Article])
 
     # L2: Még mindig szigorú (0.90)
     level_2 = cluster_level(hierarchy[1], articles, 0.90, 2)
-    hierarchy.append(level_2)
-
-    return hierarchy
 
     # --- ITT JÖN AZ ATOMBIZTOS ZSILIP ---
     # Kidobjuk a dating-et, a Bloomberg hétvégét és a verseket
     cleaned_level_2 = gemini_handler.validate_and_refine_hierarchy(level_2, articles)
+
+    hierarchy.append(cleaned_level_2)
+
+    return hierarchy
 
 
 

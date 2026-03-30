@@ -1,7 +1,8 @@
-from typing import List
-
-from models import ClusterNode
+import models
 import numpy as np
+from typing import List, Dict
+import re
+from collections import Counter
 
 class VectorMath:
     @staticmethod
@@ -18,63 +19,129 @@ class VectorMath:
         # Mivel normalizáltak, a dot product a koszinusz hasonlóság
         return np.dot(pool_vecs, query_vec)
 
-def cluster_level(nodes: List[ClusterNode], threshold: float, level: int) -> List[ClusterNode]:
+def cluster_level(
+    nodes: List[models.ClusterNode], 
+    articles: Dict[int, models.Article],  # <--- Új paraméter
+    threshold: float, 
+    level: int
+) -> List[models.ClusterNode]:
+    
     embeddings = np.array([n.centroid for n in nodes])
     unassigned_indices = list(range(len(nodes)))
     new_level_nodes = []
 
     while unassigned_indices:
-        # 1. Sűrűség alapú választás: ki körül van a legtöbb szomszéd?
+        # 1. Sűrűség alapú választás (Leader keresés)
         current_pool = embeddings[unassigned_indices]
-        # Hasonlósági mátrix a maradék pontok között
         sim_matrix = np.dot(current_pool, current_pool.T)
-        # Megszámoljuk, melyik pontnak van a legtöbb küszöb feletti szomszédja
         neighbor_counts = np.sum(sim_matrix > threshold, axis=1)
         best_local_idx = np.argmax(neighbor_counts)
         
-        # 2. Leader kijelölése
         leader_global_idx = unassigned_indices[best_local_idx]
         leader_vec = embeddings[leader_global_idx]
 
-        # 3. Csoport összeállítása
+        # 2. Csoport összeállítása
         all_sims = np.dot(embeddings, leader_vec)
-        # Csak azokat vesszük be, akik még szabadok ÉS elég közel vannak
+        # Maszkolás: szabad indexek ÉS küszöb feletti hasonlóság
         member_mask = (all_sims >= threshold) & np.isin(np.arange(len(nodes)), unassigned_indices)
         group_indices = np.where(member_mask)[0]
         
         group_nodes = [nodes[i] for i in group_indices]
         
-        # 4. Új Node létrehozása
-        new_node = ClusterNode(
+        # 3. Új Node létrehozása
+        # Kigyűjtjük az összes hír-indexet, ami ehhez a csoporthoz tartozik (level 0-ig visszamenőleg)
+        combined_member_indices = [idx for n in group_nodes for idx in n.member_indices]
+        
+        new_node = models.ClusterNode(
             level=level,
             centroid=VectorMath.get_centroid(np.array([n.centroid for n in group_nodes])),
             children=group_nodes,
-            member_indices=[idx for n in group_nodes for idx in n.member_indices]
+            member_indices=combined_member_indices
         )
+        
+        # 4. KULCSSZAVAK GENERÁLÁSA (Itt hívjuk be az új logikát)
+        # Most, hogy a new_node-nak már vannak gyerekei és centroidja, 
+        # a get_weighted_keywords le tud fúrni a medoidig.
+        new_node.summary = get_weighted_keywords(new_node, articles)
+        
         new_level_nodes.append(new_node)
         
-        # Eltávolítjuk a kiosztott indexeket
-        unassigned_indices = [i for i in unassigned_indices if i not in group_indices]
+        # 5. Eltávolítjuk a kiosztott indexeket a listából
+        group_indices_set = set(group_indices)
+        unassigned_indices = [i for i in unassigned_indices if i not in group_indices_set]
 
     return new_level_nodes
 
-def build_hierarchy(all_embeddings: np.ndarray, all_texts: List[str]) -> List[List[ClusterNode]]:   
-    # 1. Előkészítés: Minden hír egy 0. szintű Node
-    leaf_nodes = [
-        ClusterNode(level=0, centroid=emb, original_text=txt, member_indices=[i]) 
-        for i, (emb, txt) in enumerate(zip(all_embeddings, all_texts))
-    ]
-
-    # 2. Szintek építése (példa küszöbökkel)
+def build_hierarchy(embeddings: np.ndarray, articles: dict[int, models.Article]) -> List[List[models.ClusterNode]]:
     thresholds = [0.90, 0.84, 0.78, 0.72]
-    current_nodes = leaf_nodes
-    all_levels = [leaf_nodes]
+    
+    # 0. Szint: A levelek létrehozása
+    # Itt a member_indices maga az article_id (vagy a sorrend indexe)
+    current_level_nodes = []
+    for i, emb in enumerate(embeddings):
+        article_id = list(articles.keys())[i]
+        node = models.ClusterNode(
+            level=0,
+            centroid=emb,
+            member_indices=[article_id],
+            summary=articles[article_id].title # A levél summary-je a hír címe
+        )
+        current_level_nodes.append(node)
+    
+    hierarchy = [current_level_nodes]
+    
+    # Magasabb szintek építése
+    for i, threshold in enumerate(thresholds):
+        next_level = cluster_level(hierarchy[-1], articles, threshold, i + 1)
+        hierarchy.append(next_level)
+        
+    return hierarchy
 
-    for i, t in enumerate(thresholds):
-        if len(current_nodes) <= 5: # Megállunk, ha már elég kicsi a csúcs
-            break
-        current_nodes = cluster_level(current_nodes, threshold=t, level=i+1)
-        all_levels.append(current_nodes)
-        print(f"Level {i+1} kész: {len(current_nodes)} csoport.")
+@staticmethod
+def get_weighted_keywords(node: models.ClusterNode, 
+                        articles: Dict[int, models.Article], 
+                        top_n: int = 5) -> str:
+    """
+    Kiszámolja a csoport legreprezentatívabb szavait LLM nélkül, 
+    a centroidhoz legközelebbi hír (medoid) súlyozásával.
+    """
+    # 1. Alapszavak gyűjtése és szűrése
+    all_words = []
+    stop_words = {
+        "hogy", "vagy", "mint", "mert", "pedig", "volt", "lett", "ezer", 
+        "millió", "szóló", "szerint", "alatt", "után", "miatt", "között"
+    }
+    
+    for idx in node.member_indices:
+        # A címek tartalmazzák a legfontosabb entitásokat
+        text = articles[idx].title.lower()
+        words = re.findall(r'\b\w{4,}\b', text)
+        all_words.extend([w for w in words if w not in stop_words])
 
-    return all_levels
+    if not all_words:
+        return "nincs_adat"
+
+    # 2. Gyakoriság alapú számlálás (Helyi súly)
+    counts = Counter(all_words)
+
+    # 3. A legreprezentatívabb hír (Medoid) megkeresése
+    # Lemegyünk a levelekig a legközelebbi ágon keresztül
+    temp_node = node
+    while not temp_node.is_leaf():
+        temp_node = temp_node.get_medoid_child()
+    
+    # Kinyerjük a horgony szöveget az Article objektumból
+    rep_article = articles[temp_node.member_indices[0]]
+    representative_text = rep_article.get_short_text().lower()
+
+    # 4. Súlyozott pontozás
+    # Pont = Gyakoriság * 2.5 (ha a szó benne van a központi hírben), különben 1.0
+    weighted_scores = {}
+    for word, count in counts.items():
+        multiplier = 2.5 if word in representative_text else 1.0
+        weighted_scores[word] = count * multiplier
+
+    # 5. Top N kiválasztása
+    sorted_keywords = sorted(weighted_scores.items(), key=lambda x: x[1], reverse=True)
+    
+    return ", ".join([word for word, score in sorted_keywords[:top_n]])

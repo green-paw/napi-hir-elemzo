@@ -30,6 +30,7 @@ class ClusterNode:
     # Tartalmi mezők
     summary: str = ""                   # LLM összefoglaló vagy kategória név
     original_text: Optional[str] = None # Csak a 0. szinten (leveleknél) használjuk
+    short_text: str = ""
     
     # Struktúra mezők
     children: List['ClusterNode'] = field(default_factory=list)

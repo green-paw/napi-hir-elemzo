@@ -231,55 +231,70 @@ def process_and_send(final_data_package):
 
 
 def export_hierarchy_to_html(hierarchy: List[List[models.ClusterNode]], articles: dict[int, models.Article], filename: str = "index.html"):
-    html_content = """
+    # Szétválogatjuk a "fontos" és "zajos" csoportokat a legfelső szinten
+    top_level = hierarchy[-1]
+    
+    # Fontos: amiben több hír van, mint 3
+    mainstream = [n for n in top_level if len(n.member_indices) > 3]
+    # Zaj: ami kicsi maradt a hierarchia tetején is
+    noise = [n for n in top_level if len(n.member_indices) <= 3]
+
+    html_head = """
     <!DOCTYPE html>
-    <html lang="hu">
+    <html>
     <head>
         <meta charset="UTF-8">
-        <title>Hír Hierarchia Vizualizáció</title>
         <style>
-            body { font-family: sans-serif; line-height: 1.5; background: #f4f4f9; padding: 20px; }
-            details { margin: 5px 0; padding: 5px 15px; border-left: 2px solid #ccc; background: #fff; border-radius: 4px; }
-            details[open] { border-left: 2px solid #2ecc71; }
-            summary { cursor: pointer; font-weight: bold; padding: 10px; list-style: none; outline: none; }
-            summary::-webkit-details-marker { display: none; }
-            summary:hover { background: #eee; }
-            .level-info { color: #888; font-size: 0.8em; margin-right: 10px; }
-            .keywords { color: #2980b9; font-style: italic; font-size: 0.9em; }
-            .article-link { color: #34495e; text-decoration: none; font-weight: normal; font-size: 0.9em; }
-            .article-link:hover { text-decoration: underline; color: #e67e22; }
-            .count { background: #e0e0e0; padding: 2px 6px; border-radius: 10px; font-size: 0.8em; margin-left: 10px; }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: #e0e0e0; padding: 40px; }
+            .container { max-width: 1000px; margin: auto; }
+            details { background: #2d2d2d; margin-bottom: 10px; border-radius: 8px; overflow: hidden; border: 1px solid #404040; }
+            summary { padding: 15px; cursor: pointer; font-weight: 600; display: flex; align-items: center; }
+            summary:hover { background: #3d3d3d; }
+            .tag { font-size: 0.7em; padding: 3px 8px; border-radius: 4px; margin-right: 12px; text-transform: uppercase; }
+            .tag-level { background: #2ecc71; color: white; }
+            .tag-count { background: #3498db; color: white; }
+            .keywords { color: #f1c40f; flex-grow: 1; font-family: monospace; }
+            .content { padding: 10px 20px 20px 40px; border-top: 1px solid #404040; }
+            .article-item { padding: 8px 0; border-bottom: 1px solid #3d3d3d; font-size: 0.95em; }
+            .article-link { color: #81ecec; text-decoration: none; }
+            .article-link:hover { text-decoration: underline; }
+            .noise-section { margin-top: 50px; opacity: 0.6; border-top: 2px dashed #444; padding-top: 20px; }
+            h1, h2 { color: #fff; }
         </style>
     </head>
     <body>
-        <h1>Hír Hierarchia - Stratégiai Áttekintés</h1>
+        <div class="container">
+            <h1>Híradó Stratégiai Térkép</h1>
     """
 
-    def render_node(node: models.ClusterNode):
-        count = len(node.member_indices)
+    def render_tree(node: models.ClusterNode) -> str:
         if node.is_leaf():
-            # Levél node: Egy konkrét hír
             art = articles[node.member_indices[0]]
-            return f'<div><span class="level-info">HÍR</span><a class="article-link" href="{art.link}" target="_blank">{art.title}</a></div>'
+            return f'<div class="article-item"><a class="article-link" href="{art.link}" target="_blank">📰 {art.title}</a></div>'
         
-        # Csoportosított node: Összecsukható rész
-        html = f'<details>'
-        html += f'<summary><span class="level-info">SZINT {node.level}</span> <span class="keywords">{node.summary}</span> <span class="count">{count} hír</span></summary>'
-        
-        # Gyerekek renderelése sorrendben
+        html = "<details>"
+        html += f"""<summary>
+            <span class="tag tag-level">L{node.level}</span>
+            <span class="keywords">{node.summary}</span>
+            <span class="tag tag-count">{len(node.member_indices)} hír</span>
+        </summary>"""
+        html += '<div class="content">'
         for child in node.children:
-            html += render_node(child)
-        
-        html += '</details>'
+            html += render_tree(child)
+        html += "</div></details>"
         return html
 
-    # A legfelső szint node-jaitól indulunk (általában 1 db Szint 4-es node)
-    top_level_nodes = hierarchy[-1]
-    for top_node in top_level_nodes:
-        html_content += render_node(top_node)
+    full_html = html_head + "<h2>Főbb Témák</h2>"
+    for node in sorted(mainstream, key=lambda x: len(x.member_indices), reverse=True):
+        full_html += render_tree(node)
 
-    html_content += "</body></html>"
+    if noise:
+        full_html += '<div class="noise-section"><h2>Egyéb és Zaj</h2>'
+        for node in noise:
+            full_html += render_tree(node)
+        full_html += "</div>"
 
+    full_html += "</div></body></html>"
+    
     with open(filename, "w", encoding="utf-8") as f:
-        f.write(html_content)
-    print(f"✅ Hierarchia exportálva: {filename}")
+        f.write(full_html)

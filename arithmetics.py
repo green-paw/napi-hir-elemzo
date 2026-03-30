@@ -100,7 +100,7 @@ def build_hierarchy(embeddings: np.ndarray, articles: dict[int, models.Article])
 @staticmethod
 def get_weighted_keywords(node: models.ClusterNode, 
                         articles: Dict[int, models.Article], 
-                        top_n: int = 5) -> str:
+                        top_n: int = 10) -> str:
     """
     Kiszámolja a csoport legreprezentatívabb szavait LLM nélkül, 
     a centroidhoz legközelebbi hír (medoid) súlyozásával.

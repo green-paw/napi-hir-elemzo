@@ -73,7 +73,7 @@ def cluster_level(
     return new_level_nodes
 
 def build_hierarchy(embeddings: np.ndarray, articles: dict[int, models.Article]) -> List[List[models.ClusterNode]]:
-    thresholds = [0.90, 0.84, 0.78, 0.72]
+    thresholds = [0.92, 0.86, 0.80, 0.74]
     
     # 0. Szint: A levelek létrehozása
     # Itt a member_indices maga az article_id (vagy a sorrend indexe)

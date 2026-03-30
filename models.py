@@ -15,6 +15,8 @@ class Article(BaseModel):
     match_score: float = Field(default=0.0, description="A hír relevancia pontszáma a témákhoz (0-1 között)")
     embeddings: List[float] = Field(default_factory=list, description="A hír szövegének numerikus reprezentációja a modellek számára")
 
+    def get_short_text(self) -> str:
+        return f"{self.title} - {self.summary[:200]}"
 
 @dataclass
 class ClusterNode:

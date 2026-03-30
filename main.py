@@ -11,6 +11,7 @@ from gemini_handler import (
 
 from rss_handler import fetch_news
 from arithmetics import VectorMath, build_hierarchy
+import numpy as np
 
 # általános importok
 import time
@@ -182,8 +183,15 @@ def filter_and_rank_clusters(clusters_data: List[models.ClusterResultSingle]) ->
     # Egy utolsó biztonsági sorbarendezés
     return sorted(final_selection, key=lambda x: getattr(x, 'total_score', 0) if not isinstance(x, dict) else x.get('total_score', 0), reverse=True)
 
+
+
+
+
+
+
+
 def print_hierarchy_stats(hierarchy: List[List[models.ClusterNode]]):
-    print("\n" + "="*50)
+    print("="*50)
     print(" HIERARCHIA STATISZTIKA")
     print("="*50)
     
@@ -220,9 +228,10 @@ def main():
         print("no raw news, exiting")
         return
 
+    # tesztelés alatt checkpoint kikapcsolva
     articles_load = None # checkpoint_manager.load_checkpoint("articles.json", dict[int, models.Article])
     if articles_load is None:
-        news_texts = [f"{n.title} - {n.summary[:200]}" for n in raw_news]    
+        news_texts = [n.get_short_text() for n in raw_news]    
         topic_embs: List[List[float]] = get_gemini_embeddings(news_texts, 100)
         raw_news = [
                 article.model_copy(update={"embeddings": vector})
@@ -233,7 +242,10 @@ def main():
     else:
         articles = articles_load
 
-    hierarchy: List[List[models.ClusterNode]] = build_hierarchy([a.embeddings for a in articles.values()], [f"{a.title} - {a.summary[:200]}" for a in articles.values()])
+    embs_for_clustering = np.array([a.embeddings for a in articles.values()], dtype=np.float32)
+    titles_for_clustering = [a.get_short_text() for a in articles.values()]
+    hierarchy: List[List[models.ClusterNode]] = build_hierarchy(embs_for_clustering, titles_for_clustering)
+    #hierarchy: List[List[models.ClusterNode]] = build_hierarchy([a.embeddings for a in articles.values()], [f"{a.title} - {a.summary[:200]}" for a in articles.values()])
 
     print_hierarchy_stats(hierarchy)
 

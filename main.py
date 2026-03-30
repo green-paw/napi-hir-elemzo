@@ -245,7 +245,7 @@ def main():
     embs_for_clustering = np.array([a.embeddings for a in articles.values()], dtype=np.float32)
     hierarchy = build_hierarchy(embs_for_clustering, articles)
 
-    print_hierarchy_stats(hierarchy)
+    output_handler.export_hierarchy_to_html(hierarchy, articles)
 
     return
 

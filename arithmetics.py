@@ -111,7 +111,9 @@ def get_weighted_keywords(node: models.ClusterNode,
         "hogy", "vagy", "mint", "mert", "pedig", "volt", "lett", "ezer", "millió",
         "szerint", "mondta", "közölte", "alatt", "után", "miatt", "között", "belül",
         "minden", "csak", "lenne", "erről", "ebben", "annak", "lenne", "vagyis",
-        "after", "with", "news", "says", "about", "from", "into", "their", "more"
+        "lesz", "most", "előtt", "kell", "szerint"
+        "after", "with", "news", "says", "about", "from", "into", "their", "more",
+        "member", "profile", "telegraph", "dating"
     }
     
     for idx in node.member_indices:

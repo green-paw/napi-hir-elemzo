@@ -27,7 +27,7 @@ def smart_truncate(text, max_length=600):
     return text[:max_length].rsplit(' ', 1)[0] + "..."
 
 def fetch_news() -> List[Article]:
-    news_pool: List[Article] = load_checkpoint("news_pool.json", List[Article]) or []
+    news_pool: List[Article] = [] #load_checkpoint("news_pool.json", List[Article]) or []
     if news_pool:
         return news_pool
 

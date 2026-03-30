@@ -344,7 +344,7 @@ def validate_and_refine_hierarchy(level_nodes: List[models.ClusterNode],
 
         SZABÁLYOK:
         1. Ha a tartalom ÉRDEMI HÍR: Írj egyetlen, maximum 12 szavas, tárgyilagos magyar nyelvű összefoglalót. SZIGORÚAN MAGYAR NYELVEN.
-        2. Ha a tartalom ZAJ (társkereső, bulvár pletyka, horoszkóp, recept, technikai hiba, rövid tőzsdei adatfolyam, magánvélemény, vers): NE VÁLASZOLJ SEMMIT, csak egy üres string jöjjön.
+        2. Ha a tartalom ZAJ (társkereső, bulvár, pletyka, horoszkóp, recept, technikai hiba, rövid tőzsdei adatfolyam, magánvélemény, vers): NE VÁLASZOLJ SEMMIT, csak egy üres string jöjjön.
         3. Ne használj bevezető szöveget, körítést, formázást. Ha a hír-csoport fontos akkor csak az összefoglaló jöjjön, ha nem érdekes akkor üres string.
 
         CÍMEK:

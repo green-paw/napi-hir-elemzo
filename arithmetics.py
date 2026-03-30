@@ -1,3 +1,4 @@
+import gemini_handler
 import models
 import numpy as np
 from typing import List, Dict
@@ -77,7 +78,7 @@ def build_hierarchy(embeddings: np.ndarray, articles: dict[int, models.Article])
     
     # 0. Szint: A levelek létrehozása
     # Itt a member_indices maga az article_id (vagy a sorrend indexe)
-    current_level_nodes = []
+    current_level_nodes: List[models.ClusterNode] = []
     for i, emb in enumerate(embeddings):
         article_id = list(articles.keys())[i]
         node = models.ClusterNode(
@@ -88,8 +89,25 @@ def build_hierarchy(embeddings: np.ndarray, articles: dict[int, models.Article])
         )
         current_level_nodes.append(node)
     
-    hierarchy = [current_level_nodes]
-    
+    hierarchy: List[List[models.ClusterNode]] = [current_level_nodes]
+
+
+    # L1: Szigorú (0.94)
+    level_1 = cluster_level(hierarchy[0], articles, 0.94, 1)
+    hierarchy.append(level_1)
+
+    # L2: Még mindig szigorú (0.90)
+    level_2 = cluster_level(hierarchy[1], articles, 0.90, 2)
+    hierarchy.append(level_2)
+
+    return hierarchy
+
+    # --- ITT JÖN AZ ATOMBIZTOS ZSILIP ---
+    # Kidobjuk a dating-et, a Bloomberg hétvégét és a verseket
+    cleaned_level_2 = gemini_handler.validate_and_refine_hierarchy(level_2, articles)
+
+
+
     # Magasabb szintek építése
     for i, threshold in enumerate(thresholds):
         next_level = cluster_level(hierarchy[-1], articles, threshold, i + 1)

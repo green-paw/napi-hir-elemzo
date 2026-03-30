@@ -8,6 +8,7 @@ from typing import Any, Dict, List
 from models import Article, MultiClusterIdResponse, MultiClusterResponse
 from models import StructuredEventSummary
 import llm_core
+import models
 
 
 # 1. Globális kliens létrehozása itt, a handlerben
@@ -310,3 +311,68 @@ def generate_structured_summary(event_name: str, news_items: List[Article]) -> D
             "category": "EGYÉB", 
             "score": 0
         }
+    
+
+
+
+
+def validate_and_refine_hierarchy(level_nodes: List[models.ClusterNode], 
+                                articles: Dict[int, models.Article]) -> List[models.ClusterNode]:
+    """
+    Átfuttatja a Szint 2 csoportjait az LLM-en. 
+    Ami zaj, azt kidobja, ami hír, annak új summary-t ad.
+    """
+
+    refined_nodes = []
+    # Batch-eljük, hogy ne legyen 200 külön API hívás (pl. 10 csoport egyszerre)
+    batch_size = 10 
+    
+    print(f"🛡️ Zsilip aktiválva: {len(level_nodes)} csoport ellenőrzése...")
+
+    for i in range(0, len(level_nodes), batch_size):
+        batch = level_nodes[i : i + batch_size]
+        
+        # Összerakjuk a promptot a batch-re
+        formatted_batch = ""
+        for idx, node in enumerate(batch):
+            titles = "\n".join([f"- {articles[aid].title}" for aid in node.member_indices[:5]])
+            formatted_batch += f"--- CSOPORT {idx} ---\n{titles}\n\n"
+
+        VALIDATOR_PROMPT = f"""
+        Elemezd a következő hír-csoport címeit. 
+        Döntsd el, hogy valódi, közérdekű hír-e (politika, gazdaság, háború, kiemelkedő tudományos vagy társadalmi esemény).
+
+        SZABÁLYOK:
+        1. Ha a tartalom ÉRDEMI HÍR: Írj egyetlen, maximum 12 szavas, tárgyilagos magyar nyelvű összefoglalót. SZIGORÚAN MAGYAR NYELVEN.
+        2. Ha a tartalom ZAJ (társkereső, bulvár pletyka, horoszkóp, recept, technikai hiba, rövid tőzsdei adatfolyam, magánvélemény, vers): NE VÁLASZOLJ SEMMIT, csak egy üres string jöjjön.
+        3. Ne használj bevezető szöveget, körítést, formázást. Ha a hír-csoport fontos akkor csak az összefoglaló jöjjön, ha nem érdekes akkor üres string.
+
+        CÍMEK:
+        {formatted_batch}
+        """
+
+        
+        # Gemini hívás (Gemini 2.5 Flash Lite ideális erre)
+        response = llm_core.gemini_call(
+            client_main,
+            sys_instr="Te egy objektív független hírelemző vagy, politikai és gazdasági témákkal kell foglalkoznod.",
+            contents=VALIDATOR_PROMPT,
+        )
+        
+        print(response)
+
+        # Sorokra bontjuk a válaszokat
+        llm_answers = [a.strip() for a in response.text.strip().split('\n') if a.strip()]
+
+        for node, answer in zip(batch, llm_answers):
+            if len(answer) > 5:
+                # Ez egy érdemi hír! Frissítjük a summary-t
+                node.summary = answer
+                # Opcionális: itt újraembeddingelhetnénk a summary-t, 
+                # hogy a SZINT 3 már ez alapján klaszterezzen!
+                refined_nodes.append(node)
+            else:
+                # Ez zaj, nem engedjük tovább a hierarchiában
+                print(f"🗑️ Kiszűrve: {articles[node.member_indices[0]].title[:60]}...")
+
+    return refined_nodes

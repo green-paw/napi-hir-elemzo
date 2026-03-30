@@ -329,14 +329,10 @@ def validate_and_refine_hierarchy(level_nodes: List[models.ClusterNode],
     
     print(f"🛡️ Zsilip aktiválva: {len(level_nodes)} csoport ellenőrzése...")
 
-    for i in range(0, len(level_nodes), batch_size):
-        batch = level_nodes[i : i + batch_size]
-        
-        # Összerakjuk a promptot a batch-re
+    for idx, node in enumerate(level_nodes):
         formatted_batch = ""
-        for idx, node in enumerate(batch):
-            titles = "\n".join([f"- {articles[aid].title}" for aid in node.member_indices[:5]])
-            formatted_batch += f"--- CSOPORT {idx} ---\n{titles}\n\n"
+        titles = "\n".join([f"- {articles[aid].title}" for aid in node.member_indices[:5]])
+        formatted_batch += f"--- CSOPORT {idx} ---\n{titles}\n\n"
 
         VALIDATOR_PROMPT = f"""
         Elemezd a következő hír-csoport címeit. 
@@ -359,21 +355,14 @@ def validate_and_refine_hierarchy(level_nodes: List[models.ClusterNode],
             contents=VALIDATOR_PROMPT,
         )
         
+        if not response:
+            print(f"🗑️ Kiszűrve: {articles[node.member_indices[0]].title[:60]}...")
+            continue
+
         print(f"gemini response: {response}")
         res_text = getattr(response, "text", response)
 
-        # Sorokra bontjuk a válaszokat
-        llm_answers = [a.strip() for a in res_text.strip().split('\n') if a.strip()]
-
-        for node, answer in zip(batch, llm_answers):
-            if len(answer) > 5:
-                # Ez egy érdemi hír! Frissítjük a summary-t
-                node.summary = answer
-                # Opcionális: itt újraembeddingelhetnénk a summary-t, 
-                # hogy a SZINT 3 már ez alapján klaszterezzen!
-                refined_nodes.append(node)
-            else:
-                # Ez zaj, nem engedjük tovább a hierarchiában
-                print(f"🗑️ Kiszűrve: {articles[node.member_indices[0]].title[:60]}...")
+        node.summary = res_text
+        refined_nodes.append(node)
 
     return refined_nodes

@@ -90,7 +90,7 @@ def fetch_news() -> List[Article]:
                 summary = smart_truncate(clean_news_text({'summary': raw_summary}, 'summary'), 600)
 
                 news_pool.append(Article(
-                    #id=item_id,
+                    id=0,
                     source=name,
                     title=title,
                     summary=summary,

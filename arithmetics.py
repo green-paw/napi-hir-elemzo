@@ -66,7 +66,7 @@ def build_hierarchy(all_embeddings: np.ndarray, all_texts: List[str]) -> List[Li
     ]
 
     # 2. Szintek építése (példa küszöbökkel)
-    thresholds = [0.90, 0.82, 0.72, 0.60]
+    thresholds = [0.90, 0.84, 0.78, 0.72]
     current_nodes = leaf_nodes
     all_levels = [leaf_nodes]
 

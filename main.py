@@ -243,9 +243,7 @@ def main():
         articles = articles_load
 
     embs_for_clustering = np.array([a.embeddings for a in articles.values()], dtype=np.float32)
-    titles_for_clustering = [a.get_short_text() for a in articles.values()]
-    hierarchy: List[List[models.ClusterNode]] = build_hierarchy(embs_for_clustering, titles_for_clustering)
-    #hierarchy: List[List[models.ClusterNode]] = build_hierarchy([a.embeddings for a in articles.values()], [f"{a.title} - {a.summary[:200]}" for a in articles.values()])
+    hierarchy = build_hierarchy(embs_for_clustering, articles)
 
     print_hierarchy_stats(hierarchy)
 

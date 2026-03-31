@@ -1,7 +1,6 @@
 from datetime import datetime
-
-from pydantic import BaseModel, Field
 from typing import List
+from pydantic import BaseModel, Field
 
 class Article(BaseModel):
     id: int = Field(description="A hír egyedi azonosítója")

@@ -8,7 +8,7 @@ from gemini_handler import (
     get_gemini_embeddings
 )
 
-from rss_handler import fetch_news
+from source import fetch_news
 
 # általános importok
 import math

@@ -339,10 +339,11 @@ def validate_and_refine_hierarchy(level_nodes: List[models.ClusterNode],
         Döntsd el, hogy valódi, közérdekű hír-e (politika, gazdaság, háború, kiemelkedő tudományos vagy társadalmi esemény).
 
         SZABÁLYOK:
-        1. Ha a tartalom ÉRDEMI HÍR: Írj egyetlen, maximum 12 szavas, tárgyilagos magyar nyelvű összefoglalót. SZIGORÚAN MAGYAR NYELVEN.
-        2. Ha a tartalom ZAJ (társkereső, bulvár, pletyka, horoszkóp, recept, technikai hiba, rövid tőzsdei adatfolyam, magánvélemény, vers): NE VÁLASZOLJ SEMMIT, csak egy üres string jöjjön.
-        3. Ne használj bevezető szöveget, körítést, formázást. Ha a hír-csoport fontos akkor csak az összefoglaló jöjjön, ha nem érdekes akkor üres string.
-
+        1. Ha a tartalom ÉRDEMI HÍR: Írj egyetlen, maximum 15 szavas, tárgyilagos magyar nyelvű összefoglalót. SZIGORÚAN MAGYAR NYELVEN.
+        2. Ha a tartalom ZAJ (társkereső, bulvár, pletyka, horoszkóp, recept, technikai hiba, rövid tőzsdei adatfolyam, magánvélemény, vers): NE VÁLASZOLJ SEMMIT. Ne tegyél üres idézőjeleket (""), csak ne küldj semmi választ.
+        3. SZIGORÚAN TILOS ilyeneket írni: "Zaj", "Nem valós hír", "Nem érdemi hír", "Nincs érdemi hír". Ha ilyesmit akarnál írni HAGYD ÜRESEN a kimenetet
+        4. Ne használj bevezető szöveget, körítést, formázást.
+        
         CÍMEK:
         {formatted_batch}
         """

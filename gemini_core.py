@@ -1,16 +1,16 @@
 import time
 import random
-from typing import Any, Callable
+from typing import Any, Callable, List, Dict, Optional, Union
 from google.genai import types, Client
-from token_logger import TokenLogger
 
 import config
+from token_logger import TokenLogger # Feltételezem, a korábbi kód bekerült ide
 
 client = Client(api_key=config.GOOGLE_API_KEY)
 logger = TokenLogger()
 
 def execute_with_retry(func: Callable, *args, max_retries: int = 5, **kwargs) -> Any:
-    """Univerzális retry logika."""
+    """Univerzális retry logika exponential backoff-fal."""
     for attempt in range(max_retries):
         try:
             return func(*args, **kwargs)
@@ -18,52 +18,97 @@ def execute_with_retry(func: Callable, *args, max_retries: int = 5, **kwargs) ->
             err = str(e).lower()
             if any(x in err for x in ["429", "500", "503", "quota"]) and attempt < max_retries - 1:
                 wait = ((2 ** attempt) * 5) + random.uniform(0, 3)
+                print(f"🔄 API hiba ({err[:40]}...). Újrapróbálkozás {wait:.1f} mp múlva (Attempt {attempt+1}/{max_retries})")
                 time.sleep(wait)
             else:
                 raise e
 
-def generate(contents: Any, sys_instr: str, schema: Any = None, model: str = config.MODEL_LITE_ID) -> Any:
-    final_contents = contents
-    final_sys_instr = sys_instr
+def generate(
+    contents: Any, 
+    sys_instr: str, 
+    schema: Any = None, 
+    model: str = config.MODEL_LITE_ID
+) -> Any:
+    """Szöveg vagy strukturált adat generálása az LLM-mel."""
+    
+    # A Pydantic sémák és a nyers JSON megkülönböztetése
+    response_mime_type = "text/plain"
+    response_schema = None
+    
+    if schema:
+        response_mime_type = "application/json"
+        if schema != "json":
+            response_schema = schema
 
     gen_config = types.GenerateContentConfig(
-        system_instruction=final_sys_instr,
-        cached_content=None,
-        response_mime_type="application/json" if schema else "text/plain",
-        response_schema=schema,
+        system_instruction=sys_instr,
+        response_mime_type=response_mime_type,
+        response_schema=response_schema,
         temperature=0.1,
     )
     
-    # Itt már a final_contents-t küldjük be
     response = execute_with_retry(
         client.models.generate_content, 
         model=model, 
-        contents=final_contents, 
+        contents=contents, 
         config=gen_config
     )
     
     logger.add(model, response)
 
+    # Logging a konzolra (ahogy te írtad, nagyon hasznos debuggoláshoz)
     try:
-        if response is not None:
-            input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
-            cached_tokens = getattr(response.usage_metadata, 'cached_content_token_count', 0) or 0
-            output_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0)
-            finish_reason = response.candidates[0].finish_reason if hasattr(response, 'candidates') and response.candidates else 'N/A'
-            print(f"📊 {model} | Input tokens: {input_tokens} | Output tokens: {output_tokens} | Cached tokens: {cached_tokens} | Finish reason: {finish_reason}")
-    except:
-        pass
+        if response is not None and hasattr(response, 'usage_metadata'):
+            usage = response.usage_metadata
+            input_tokens = getattr(usage, 'prompt_token_count', 0) or 0
+            cached_tokens = getattr(usage, 'cached_content_token_count', 0) or 0
+            output_tokens = getattr(usage, 'candidates_token_count', 0) or 0
+            
+            finish_reason = 'N/A'
+            if hasattr(response, 'candidates') and response.candidates:
+                finish_reason = response.candidates[0].finish_reason
+                
+            print(f"📊 {model} | In: {input_tokens} | Out: {output_tokens} | Cache: {cached_tokens} | Reason: {finish_reason}")
+    except Exception as e:
+        print(f"⚠️ Logger hiba a konzolos kiírásnál: {e}")
     
+    # Biztonságos visszatérési érték feldolgozás
     try:
-        if schema:
-            if schema != "json": 
-                return response.parsed
-            return response.text # amikor json-t kérünk tőle de nem akarjuk pydantic-ba kényszeríteni
+        if schema and schema != "json" and hasattr(response, 'parsed') and response.parsed:
+            return response.parsed
         return response.text
     except Exception as e:
         print(f"⚠️ Válasz feldolgozási hiba: {e}")
         return response.text if hasattr(response, 'text') else response
 
-def embed(texts: list) -> Any:
-    return execute_with_retry(client.models.embed_content, model="gemini-embedding-001", contents=texts, config=types.EmbedContentConfig(task_type="CLUSTERING"))
+def embed(texts: List[str], task_type: str = "CLUSTERING", batch_size: int = 100) -> List[List[float]]:
+    """
+    Vektorok generálása kötegesítve (batching), hogy elkerüljük az API limiteket.
+    Visszatérési értéke egy tiszta 2D-s float lista.
+    """
+    if not texts:
+        return []
 
+    all_embeddings = []
+    
+    # Feldolgozás batch_size-os (pl. 100-as) darabokban
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i + batch_size]
+        
+        response = execute_with_retry(
+            client.models.embed_content, 
+            model="gemini-embedding-001", 
+            contents=batch, 
+            config=types.EmbedContentConfig(task_type=task_type)
+        )
+        
+        # A válaszból kinyerjük a tiszta float tömböket (values)
+        if hasattr(response, 'embeddings'):
+            for emb in response.embeddings:
+                all_embeddings.append(emb.values)
+        
+        # Ha több batch van, teszünk egy minimális szünetet a Rate Limit miatt
+        if i + batch_size < len(texts):
+            time.sleep(1)
+
+    return all_embeddings

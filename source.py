@@ -57,7 +57,7 @@ class NewsItem(BaseModel):
 
 def fetch_news() -> List[NewsItem]:
     # Cache/Checkpoint ellenőrzése
-    news_pool: List[NewsItem] = load_checkpoint("news_pool.json", List[NewsItem]) or []
+    news_pool: List[NewsItem] = [] #load_checkpoint("news_pool.json", List[NewsItem]) or []
     if news_pool:
         print("📦 Hírek betöltve a checkpointból.")
         return news_pool

@@ -122,7 +122,7 @@ def fetch_news() -> List[NewsItem]:
             
     # 5. Cím alapú duplikáció szűrés (tisztított címekkel)
     seen_titles = set()
-    unique_news = []
+    unique_news: List[NewsItem] = []
 
     for n in temp_pool:
         # A Pydantic már megtisztította a n.title-t
@@ -134,7 +134,7 @@ def fetch_news() -> List[NewsItem]:
     # 6. Időrendbe tétel és ID-k újrakiosztása (hogy ne legyenek lyukak a szűrés után)
     unique_news.sort(key=lambda x: x.published, reverse=True)
     
-    final_pool = []
+    final_pool: List[NewsItem] = []
     for idx, item in enumerate(unique_news):
         item.id = f"C{idx + 1}" # Újrageneráljuk a sorrend miatt
         final_pool.append(item)

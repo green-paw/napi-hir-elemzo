@@ -27,7 +27,8 @@ def generate(
     contents: Any, 
     sys_instr: str, 
     schema: Any = None, 
-    model: str = config.MODEL_LITE_ID
+    model: str = config.MODEL_LITE_ID,
+    max_output_tokens: int = 1024
 ) -> Any:
     """Szöveg vagy strukturált adat generálása az LLM-mel."""
     
@@ -45,6 +46,7 @@ def generate(
         response_mime_type=response_mime_type,
         response_schema=response_schema,
         temperature=0.1,
+        max_output_tokens=max_output_tokens
     )
     
     response = execute_with_retry(

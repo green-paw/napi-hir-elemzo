@@ -83,9 +83,8 @@ def main():
 
     # Statisztika
     try:
-        from llm_core import usage_tracker        
-        usage = usage_tracker.get_aggregated_stats()
-        print(f"📊 Token használat: {usage}")
+        from gemini_core import logger        
+        logger.print_summary()
     except:
         pass
 

@@ -44,13 +44,11 @@ class ClusteringService:
                 
         return np.array([item.embedding for item in news_items])
 
-def run(self, news_items: List[NewsItem]) -> Tuple[List[List[NewsItem]], List[NewsItem]]:
+def run(self, news_items: List[NewsItem]) -> Tuple[List[List[List[NewsItem]]], List[NewsItem]]:
         if not news_items:
             return [], []
 
-        # 1. Betöltjük a teljes, vektorizált listát a cache-ből, ha van
         cached_items = load_checkpoint("news_items_with_embeddings.json", List[NewsItem])
-        
         if cached_items:
             # Szinkronizáljuk a vektorokat az aktuális listával (ha pl. új hírek jöttek azóta)
             # De egyszerűbb, ha a teljes listát cseréljük a cache-eltre:

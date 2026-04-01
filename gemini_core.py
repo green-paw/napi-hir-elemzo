@@ -59,6 +59,8 @@ def generate(
     # Logging a konzolra (ahogy te írtad, nagyon hasznos debuggoláshoz)
     try:
         if response is not None and hasattr(response, 'usage_metadata'):
+            logger.add(model, response)
+
             usage = response.usage_metadata
             input_tokens = getattr(usage, 'prompt_token_count', 0) or 0
             cached_tokens = getattr(usage, 'cached_content_token_count', 0) or 0

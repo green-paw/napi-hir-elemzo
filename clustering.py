@@ -44,7 +44,7 @@ class ClusteringService:
                 
         return np.array([item.embedding for item in news_items])
 
-def run(self, news_items: List[NewsItem]) -> Tuple[List[List[List[NewsItem]]], List[NewsItem]]:
+    def run(self, news_items: List[NewsItem]) -> Tuple[List[List[List[NewsItem]]], List[NewsItem]]:
         if not news_items:
             return [], []
 

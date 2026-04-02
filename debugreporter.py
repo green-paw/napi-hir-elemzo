@@ -36,28 +36,17 @@ class DebugReporter:
         # Makro csoportok listázása
         for i, macro in enumerate(macro_clusters):
             html.append(f"<div class='macro'>")
-            html.append(f"<h2># {i+1}. Makró Klaszter ({len(macro)} mikró)</h2>")
+            html.append(f"<p># {i+1}. Makró Klaszter ({len(macro)} mikró)</p>")
             
             macro.sort(key=len, reverse=True)
 
             for j, micro in enumerate(macro):
-                # Az első elem a reprezentatív (vagy centroid közeli)
-                rep = micro[0]
-                others = micro[1:]
-                
-                html.append(f"<div class='micro'>")
-                html.append(f"<h3>Mikró {j} ({len(micro)} hír)</h3>")
-                html.append(f"<div class='rep'>REPREZENTÁNS: {rep.title}</div>")
-                html.append(f"<div class='meta'>ID: {rep.id} | Forrás: {rep.source_id}</div>")
-                html.append(f"<p>{rep.content[:500]}...</p>")
-                
-                if others:
-                    html.append("<div class='others'><strong>További hírek ebben a mikróban:</strong><ul>")
-                    for o in others:
-                        html.append(f"<li>{o.title} <span class='meta'>({o.source_id} | {o.id})</span></li>")
-                    html.append("</ul></div>")
-                
-                html.append("</div>")
+                html.append(f"<div>Mikró {j} ({len(micro)} hír)</br><ul>")
+                for item in micro:
+                    html.append(f"<li>{item.title} <span class='meta'>({item.source_id} | {item.id})</span></li>")
+                html.append("</ul></div>")
+
+
             html.append("</div>")
 
         # Magányos hírek

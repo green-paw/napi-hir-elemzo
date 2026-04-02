@@ -62,9 +62,13 @@ def main():
             continue
         item.profile = get_item_profile(item.embedding, anchors)
 
+    filtered_macros = [m for m in filtered_macro_clusters if m.profile["NET_RELEVANCE"] > 0.5]
+    filtered_lones = [m for m in lone_wolves if m.profile["NET_RELEVANCE"] > 0.5]
+
+
     # DEBUG GENERÁLÁS
     debug = DebugReporter("index.html")
-    debug.generate(filtered_macro_clusters, lone_wolves)
+    debug.generate(filtered_macros, filtered_lones)
 
     """
     

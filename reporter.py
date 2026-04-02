@@ -167,7 +167,7 @@ class DebugReporter:
             
             html.append(f"<li>")
             html.append(f"<b>{lw.title}</b><br>")
-            html.append(f"<small style='color: blue;'>{prof_str}</small>")
+            html.append(f"<small style='color: blue;'>{profile_str}</small>")
             html.append(f"</li>")
         html.append("</ul>")
 

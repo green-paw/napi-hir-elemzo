@@ -29,8 +29,10 @@ class DebugReporter:
             "<hr>"
         ]
 
+        #macro_clusters.sort(key=lambda macro: sum(len(micro) for micro in macro.micro_clusters), reverse=True)
+
         macro_clusters.sort(
-            key=lambda macro: sum(len(micro) for micro in macro.micro_clusters), 
+            key=lambda macro: max(macro.profile["POLITICS"], macro.profile["ECONOMY"], macro.profile["TECH"]) - macro.profile["TRASH"],
             reverse=True
         )
 

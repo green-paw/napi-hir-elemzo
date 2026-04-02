@@ -1,5 +1,5 @@
 from typing import List
-from reporter import HtmlReporter
+from reporter import DebugReporter, HtmlReporter
 from source import fetch_news
 from datetime import datetime
 
@@ -15,11 +15,6 @@ builtins.print = timestamped_print
 from typing import List
 from source import fetch_news, NewsItem
 from clustering import ClusteringService, MacroCluster, get_item_profile, get_multi_anchor_vectors
-from editor import validate_and_refine_clusters
-from filtering import filter_lone_wolves
-from checkpoint_manager import load_checkpoint, save_checkpoint
-
-import debugreporter
 
 def main():
     print("🚀 Hírfeldolgozó pipeline indítása...")
@@ -35,7 +30,7 @@ def main():
     # --- 2. FÁZIS: Vektorizálás és Klaszterezés ---
     # A ClusteringService magától kezeli az embeddinget és a cache-t benne
     print("📊 Matematikai klaszterezés (Mikro & Makro)...")
-    service = ClusteringService(expansion_ratio=1.3, micro_threshold=0.15)
+    service = ClusteringService(expansion_ratio=1.3, micro_threshold=0.23)
     macro_clusters, lone_wolves = service.run(news_items)
 
     macros = [MacroCluster(micro_clusters=m) for m in macro_clusters]
@@ -68,7 +63,7 @@ def main():
         item.profile = get_item_profile(item.embedding, anchors)
 
     # DEBUG GENERÁLÁS
-    debug = debugreporter.DebugReporter("index.html")
+    debug = DebugReporter("index.html")
     debug.generate(filtered_macro_clusters, lone_wolves)
 
     """

@@ -2,13 +2,14 @@ import os
 from datetime import datetime
 from typing import List
 
+from clustering import MacroCluster
 from source import NewsItem
 
 class DebugReporter:
     def __init__(self, output_path: str = "cluster_debug.html"):
         self.output_path = output_path
 
-    def generate(self, macro_clusters: List[List[List["NewsItem"]]], lone_wolves: List["NewsItem"]):
+    def generate(self, macro_clusters: List[MacroCluster], lone_wolves: List["NewsItem"]):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         html = [
@@ -29,18 +30,22 @@ class DebugReporter:
         ]
 
         macro_clusters.sort(
-            key=lambda macro: sum(len(micro) for micro in macro), 
+            key=lambda macro: sum(len(micro) for micro in macro.micro_clusters), 
             reverse=True
         )
 
         # Makro csoportok listázása
         for i, macro in enumerate(macro_clusters):
-            html.append(f"<div class='macro'>")
-            html.append(f"<p># {i+1}. Makró Klaszter ({len(macro)} mikró)</p>")
+            p = macro.profile
+            profile_str = f"POL: {p['POLITICS']} | ECO: {p['ECONOMY']} | TECH: {p['TECH']} | TRASH: {p['TRASH']}"
             
-            macro.sort(key=len, reverse=True)
+            html.append("<div class='macro'>")
+            html.append(f"<b># {i+1} MAKRO ({len(macro.micro_clusters)} mikró)</b>")
+            html.append(f"<div class='profile'>PROFIL: {profile_str}</div>")
 
-            for j, micro in enumerate(macro):
+            macro.micro_clusters.sort(key=len, reverse=True)
+
+            for j, micro in enumerate(macro.micro_clusters):
                 html.append(f"<div>Mikró {j} ({len(micro)} hír)</br><ul>")
                 for item in micro:
                     html.append(f"<li>{item.title} <span class='meta'>({item.source_id} | {item.id})</span></li>")

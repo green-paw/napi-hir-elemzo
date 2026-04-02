@@ -6,6 +6,14 @@ from source import NewsItem
 
 from checkpoint_manager import load_checkpoint, save_checkpoint
 
+from dataclasses import dataclass, field
+
+@dataclass
+class MacroCluster:
+    micro_clusters: List[List[NewsItem]]
+    profile: Dict[str, float] = field(default_factory=dict)
+    category: str = "" # Később az LLM tölti ki
+
 class ClusteringService:
     def __init__(self, expansion_ratio: float = 2.0, micro_threshold: float = 0.1):
         """
@@ -121,3 +129,45 @@ class ClusteringService:
                 lone_wolves.append(all_items_in_macro[0])
 
         return final_macro_clusters, lone_wolves
+    
+
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+from typing import Dict, List
+import gemini_core
+from checkpoint_manager import load_checkpoint, save_checkpoint
+
+# Definíciós lista a horgonyokhoz
+ANCHOR_DEFINITIONS = {
+    "POLITICS": "Government, elections, legislation, diplomacy, international relations, political parties.",
+    "ECONOMY": "Markets, finance, inflation, central banks, trade, corporate earnings, GDP, taxes.",
+    "TECH": "Space exploration, NASA, AI, software, hardware, scientific breakthroughs, engineering.",
+    "TRASH": "Dating profiles, celebrity gossip, recipes, horoscopes, social media fluff, lottery, daily weather."
+}
+
+def get_multi_anchor_vectors() -> Dict[str, np.ndarray]:
+    anchor_cache_file = "multi_anchors.json"
+    cached = load_checkpoint(anchor_cache_file, Dict[str, List[float]])
+    
+    if cached:
+        return {k: np.array(v).reshape(1, -1) for k, v in cached.items()}
+
+    print("⚓ Többirányú horgony-vektorok generálása...")
+    keys = list(ANCHOR_DEFINITIONS.keys())
+    texts = list(ANCHOR_DEFINITIONS.values())
+    
+    vectors = gemini_core.embed(texts, task_type="RETRIEVAL_QUERY")
+    
+    anchor_dict = {keys[i]: vectors[i] for i in range(len(keys))}
+    save_checkpoint(anchor_cache_file, anchor_dict, Dict[str, List[float]])
+    
+    return {k: np.array(v).reshape(1, -1) for k, v in anchor_dict.items()}
+
+def get_item_profile(item_embedding: List[float], anchors: Dict[str, np.ndarray]) -> Dict[str, float]:
+    """Kiszámolja a hír hasonlóságát minden egyes horgonyhoz."""
+    item_v = np.array(item_embedding).reshape(1, -1)
+    profile = {}
+    for name, anchor_v in anchors.items():
+        score = cosine_similarity(item_v, anchor_v)[0][0]
+        profile[name] = round(float(score), 3)
+    return profile

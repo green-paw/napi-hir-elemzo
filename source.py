@@ -1,10 +1,11 @@
+from dataclasses import field
 import time
 import html
 import re
 import feedparser
 import textwrap
 from datetime import datetime, timedelta
-from typing import List, Optional, Set
+from typing import Dict, List, Optional, Set
 
 from pydantic import BaseModel, Field, field_validator
 # Feltételezve, hogy a config-ban már az új RssSource struktúra van
@@ -42,6 +43,7 @@ class NewsItem(BaseModel):
     title: str
     content: str
     embedding: Optional[List[float]] = None
+    profile: Dict[str, float] = field(default_factory=dict)
 
     @field_validator('title', 'content')
     @classmethod

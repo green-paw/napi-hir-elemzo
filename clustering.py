@@ -149,8 +149,8 @@ def get_multi_anchor_vectors() -> Dict[str, np.ndarray]:
     anchor_cache_file = "multi_anchors.json"
     cached = load_checkpoint(anchor_cache_file, Dict[str, List[float]])
     
-    #if cached:
-    #    return {k: np.array(v).reshape(1, -1) for k, v in cached.items()}
+    if cached:
+        return {k: np.array(v).reshape(1, -1) for k, v in cached.items()}
 
     print("⚓ Többirányú horgony-vektorok generálása...")
     keys = list(ANCHOR_DEFINITIONS.keys())

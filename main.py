@@ -40,7 +40,7 @@ def main():
     # --- 2. FÁZIS: Vektorizálás és Klaszterezés ---
     # A ClusteringService magától kezeli az embeddinget és a cache-t benne
     print("📊 Matematikai klaszterezés (Mikro & Makro)...")
-    service = ClusteringService(expansion_ratio=2.0, micro_threshold=0.4)
+    service = ClusteringService(expansion_ratio=2.0, micro_threshold=0.2)
     macro_clusters, lone_wolves = service.run(news_items)
 
     # DEBUG GENERÁLÁS

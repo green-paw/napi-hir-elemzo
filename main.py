@@ -30,23 +30,30 @@ def main():
     # --- 2. FÁZIS: Vektorizálás és Klaszterezés ---
     # A ClusteringService magától kezeli az embeddinget és a cache-t benne
     print("📊 Matematikai klaszterezés (Mikro & Makro)...")
-    service = ClusteringService(expansion_ratio=1.4, micro_threshold=0.35)
-    macro_clusters, lone_wolves = service.run(news_items)
 
+    anchors = get_multi_anchor_vectors()
+
+    service = ClusteringService(expansion_ratio=1.4, micro_threshold=0.35)
+    service._prepare_embeddings(news_items)
+    for i in news_items:
+        if not i.embedding: continue
+        i.profile = get_item_profile(i.embedding, anchors)
+
+    before = len(news_items)
+    news_items = [i for i in news_items if i.profile["NET_RELEVANCE"] > 1]
+    print(f"{before} hírből filterelés után maradt {len(news_items)}")
+
+    macro_clusters, lone_wolves = service.run(news_items)
     macros = [MacroCluster(micro_clusters=m) for m in macro_clusters]
 
     # --- 3. FÁZIS UTÁN: SZEMANTIKUS SZŰRÉS ---
-    anchors = get_multi_anchor_vectors()
     filtered_macro_clusters: List[MacroCluster] = []
 
     for macro in macros:
         # A reprezentáns hír (Mikró 0, Hír 0) profilja
         representative_item: NewsItem = macro.micro_clusters[0][0]
         if not representative_item.embedding: continue
-        profile = get_item_profile(representative_item.embedding, anchors)
-        
-        # Debug info elmentése (később a HTML-be kerülhet)
-        macro.profile = profile
+        macro.profile = get_item_profile(representative_item.embedding, anchors)
 
         """
         # SZŰRÉSI LOGIKA:
@@ -57,18 +64,9 @@ def main():
         """    
         filtered_macro_clusters.append(macro)
 
-    for item in lone_wolves:
-        if not item.embedding:
-            continue
-        item.profile = get_item_profile(item.embedding, anchors)
-
-    filtered_macros = [m for m in filtered_macro_clusters if m.profile["NET_RELEVANCE"] > 0.5]
-    filtered_lones = [m for m in lone_wolves if m.profile["NET_RELEVANCE"] > 0.5]
-
-
     # DEBUG GENERÁLÁS
     debug = DebugReporter("index.html")
-    debug.generate(filtered_macros, filtered_lones)
+    debug.generate(filtered_macro_clusters, lone_wolves)
 
     """
     

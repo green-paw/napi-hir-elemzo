@@ -32,7 +32,11 @@ class DebugReporter:
         #macro_clusters.sort(key=lambda macro: sum(len(micro) for micro in macro.micro_clusters), reverse=True)
 
         macro_clusters.sort(
-            key=lambda macro: max(macro.profile["POLITICS"], macro.profile["ECONOMY"], macro.profile["TECH"]) - macro.profile["TRASH"],
+            key=lambda macro: macro.profile["NET_RELEVANCE"],
+            reverse=True
+        )
+        lone_wolves.sort(
+            key=lambda item: item.profile["NET_RELEVANCE"],
             reverse=True
         )
 
@@ -56,11 +60,17 @@ class DebugReporter:
 
             html.append("</div>")
 
-        # Magányos hírek
-        html.append("<hr><h2>Magányos Hírek (Lone Wolves)</h2><ul>")
+        html.append("<h2>Lone Wolves (Filtered)</h2><ul>")
         for lw in lone_wolves:
-            html.append(f"<li><strong>{lw.title}</strong> <span class='meta'>({lw.source_id} | {lw.id})</span></li>")
-        html.append("</ul></body></html>")
+            p = lw.profile
+            # Formázott kiíratás a 10-es skálán, fix tizedesekkel
+            prof_str = f"P:{p['POLITICS']*10:.1f} | E:{p['ECONOMY']*10:.1f} | T:{p['TECH']*10:.1f} | TR:{p['TRASH']*10:.1f} | NET:{p['NET_RELEVANCE']*10:+.1f}"
+            
+            html.append(f"<li>")
+            html.append(f"<b>{lw.title}</b><br>")
+            html.append(f"<small style='color: blue;'>{prof_str}</small>")
+            html.append(f"</li>")
+        html.append("</ul>")
 
         with open(self.output_path, "w", encoding="utf-8") as f:
             f.write("\n".join(html))

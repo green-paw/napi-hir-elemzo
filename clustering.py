@@ -149,8 +149,8 @@ def get_multi_anchor_vectors() -> Dict[str, np.ndarray]:
     anchor_cache_file = "multi_anchors.json"
     cached = load_checkpoint(anchor_cache_file, Dict[str, List[float]])
     
-    if cached:
-        return {k: np.array(v).reshape(1, -1) for k, v in cached.items()}
+    #if cached:
+    #    return {k: np.array(v).reshape(1, -1) for k, v in cached.items()}
 
     print("⚓ Többirányú horgony-vektorok generálása...")
     keys = list(ANCHOR_DEFINITIONS.keys())
@@ -174,4 +174,6 @@ def get_item_profile(item_embedding: List[float], anchors: Dict[str, np.ndarray]
     for name, anchor_v in anchors.items():
         score = cosine_similarity(item_v, anchor_v)[0][0]
         profile[name] = scale_score(score) * 10
+    profile_max = max(profile["POLITICS"], profile["ECONOMY"], profile["TECH"]) 
+    profile["NET_RELEVANCE"] = profile_max - profile["TRASH"]
     return profile

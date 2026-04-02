@@ -62,7 +62,10 @@ def main():
         """    
         filtered_macro_clusters.append(macro)
 
-# Ezután már csak a 'filtered_macro_clusters' megy az LLM Editorhoz!
+    for item in lone_wolves:
+        if not item.embedding:
+            continue
+        item.profile = get_item_profile(item.embedding, anchors)
 
     # DEBUG GENERÁLÁS
     debug = debugreporter.DebugReporter("index.html")

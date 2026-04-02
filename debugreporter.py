@@ -38,6 +38,8 @@ class DebugReporter:
             html.append(f"<div class='macro'>")
             html.append(f"<h2># {i+1}. Makró Klaszter ({len(macro)} mikró)</h2>")
             
+            macro.sort(key=len, reverse=True)
+
             for j, micro in enumerate(macro):
                 # Az első elem a reprezentatív (vagy centroid közeli)
                 rep = micro[0]

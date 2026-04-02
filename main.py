@@ -19,6 +19,8 @@ from editor import validate_and_refine_clusters
 from filtering import filter_lone_wolves
 from checkpoint_manager import load_checkpoint, save_checkpoint
 
+import debugreporter
+
 def main():
     print("🚀 Hírfeldolgozó pipeline indítása...")
 
@@ -40,6 +42,12 @@ def main():
     print("📊 Matematikai klaszterezés (Mikro & Makro)...")
     service = ClusteringService(expansion_ratio=4.0, micro_threshold=0.15)
     macro_clusters, lone_wolves = service.run(news_items)
+
+    # DEBUG GENERÁLÁS
+    debug = debugreporter.DebugReporter("index.html")
+    debug.generate(macro_clusters, lone_wolves)
+
+    """
     
     # --- 3. FÁZIS: Makro-klaszterek validálása (Editor LLM) ---
     print(f"✍️ {len(macro_clusters)} makro-klaszter validálása az LLM-mel...")
@@ -80,6 +88,8 @@ def main():
 
     print("\n" + "="*50)
     print("✅ Pipeline sikeresen lefutott.")
+
+    """
 
     # Statisztika
     try:

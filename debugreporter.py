@@ -28,6 +28,11 @@ class DebugReporter:
             "<hr>"
         ]
 
+        macro_clusters.sort(
+            key=lambda macro: sum(len(micro) for micro in macro), 
+            reverse=True
+        )
+
         # Makro csoportok listázása
         for i, macro in enumerate(macro_clusters):
             html.append(f"<div class='macro'>")

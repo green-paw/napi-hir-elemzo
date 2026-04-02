@@ -142,7 +142,7 @@ ANCHOR_DEFINITIONS = {
     "POLITICS": "Government, elections, legislation, diplomacy, international relations, political parties.",
     "ECONOMY": "Markets, finance, inflation, central banks, trade, corporate earnings, GDP, taxes.",
     "TECH": "Space exploration, NASA, AI, software, hardware, scientific breakthroughs, engineering.",
-    "TRASH": "Dating profiles, celebrity gossip, recipes, horoscopes, social media fluff, lottery, daily weather."
+    "TRASH": "Dating profiles, celebrity gossip, recipes, horoscopes, social media fluff, lottery, daily weather, member profiles for dating, dating advertisements, personal introduction, non-news content, user accounts, age and gender tags, lifestyle fluff."
 }
 
 def get_multi_anchor_vectors() -> Dict[str, np.ndarray]:
@@ -163,11 +163,15 @@ def get_multi_anchor_vectors() -> Dict[str, np.ndarray]:
     
     return {k: np.array(v).reshape(1, -1) for k, v in anchor_dict.items()}
 
+def scale_score(raw_score: float, v_min: float = 0.4, v_max: float = 0.8) -> float:
+    scaled = (raw_score - v_min) / (v_max - v_min)
+    return round(float(np.clip(scaled, 0.0, 1.0)), 2)
+
 def get_item_profile(item_embedding: List[float], anchors: Dict[str, np.ndarray]) -> Dict[str, float]:
     """Kiszámolja a hír hasonlóságát minden egyes horgonyhoz."""
     item_v = np.array(item_embedding).reshape(1, -1)
     profile = {}
     for name, anchor_v in anchors.items():
         score = cosine_similarity(item_v, anchor_v)[0][0]
-        profile[name] = round(float(score), 3)
+        profile[name] = scale_score(score) * 10
     return profile

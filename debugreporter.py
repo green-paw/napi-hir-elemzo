@@ -39,7 +39,7 @@ class DebugReporter:
         # Makro csoportok listázása
         for i, macro in enumerate(macro_clusters):
             p = macro.profile
-            profile_str = f"POL: {p['POLITICS']} | ECO: {p['ECONOMY']} | TECH: {p['TECH']} | TRASH: {p['TRASH']}"
+            profile_str = f"POL: {p['POLITICS']:.1f} | ECO: {p['ECONOMY']:.1f} | TECH: {p['TECH']:.1f} | TRASH: {p['TRASH']:.1f}"
             
             html.append("<div class='macro'>")
             html.append(f"<b># {i+1} MAKRO ({len(macro.micro_clusters)} mikró)</b>")

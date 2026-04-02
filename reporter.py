@@ -142,7 +142,7 @@ class DebugReporter:
         # Makro csoportok listázása
         for i, macro in enumerate(macro_clusters):
             p = macro.profile
-            profile_str = f"POL: {p['POLITICS']:.1f} | ECO: {p['ECONOMY']:.1f} | TECH: {p['TECH']:.1f} | TRASH: {p['TRASH']:.1f}"
+            profile_str = f"POL: {p['POLITICS']:.1f} | ECO: {p['ECONOMY']:.1f} | TECH: {p['TECH']:.1f} | TRASH: {p['TRASH']:.1f} -> NET: {p['NET_RELEVANCE']:.1f}"
             
             html.append("<div class='macro'>")
             html.append(f"<b># {i+1} MAKRO ({len(macro.micro_clusters)} mikró)</b>")
@@ -162,8 +162,7 @@ class DebugReporter:
         html.append("<h2>Lone Wolves (Filtered)</h2><ul>")
         for lw in lone_wolves:
             p = lw.profile
-            # Formázott kiíratás a 10-es skálán, fix tizedesekkel
-            profile_str = f"POL: {p['POLITICS']:.1f} | ECO: {p['ECONOMY']:.1f} | TECH: {p['TECH']:.1f} | TRASH: {p['TRASH']:.1f}"
+            profile_str = f"NET: {p['NET_RELEVANCE']}"
             
             html.append(f"<li>")
             html.append(f"<b>{lw.title}</b><br>")

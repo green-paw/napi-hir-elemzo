@@ -145,8 +145,8 @@ class ClusteringService:
         clustering = AgglomerativeClustering(
             n_clusters=None, 
             metric='cosine', # Nagyon fontos a megfelelő távolságmérés! (Régebbi sklearn esetén: affinity='cosine')
-            linkage='average',
-            distance_threshold=0.15  # 0.65 helyett 0.30 - ez sokkal finomabb vágást csinál
+            linkage='complete',
+            distance_threshold=0.3  # 0.65 helyett 0.30 - ez sokkal finomabb vágást csinál
         ).fit(embeddings)
 
         mega_dict: Dict[int, List[MacroCluster]] = {}

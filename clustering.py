@@ -281,9 +281,9 @@ class ClusteringService:
                 rovat_makrok.sort(key=lambda x: x.score, reverse=True)
                 megas.append(MegaCluster(title=rovat_cim, macros=rovat_makrok))
 
-            # 5. A Mega-klasztereket is rendezzük a saját pontszámuk (átlaguk) alapján
-            megas.sort(key=lambda x: x.score, reverse=True)
-            return megas
+        # 5. A Mega-klasztereket is rendezzük a saját pontszámuk (átlaguk) alapján
+        megas.sort(key=lambda x: x.score, reverse=True)
+        return megas
 
 
 # --- PROFILOZÓ FUNKCIÓK ---

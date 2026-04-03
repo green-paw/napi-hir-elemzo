@@ -146,7 +146,7 @@ class ClusteringService:
             n_clusters=None, 
             metric='cosine', # Nagyon fontos a megfelelő távolságmérés! (Régebbi sklearn esetén: affinity='cosine')
             linkage='complete',
-            distance_threshold=0.2  # 0.65 helyett 0.30 - ez sokkal finomabb vágást csinál
+            distance_threshold=0.15  # 0.65 helyett 0.30 - ez sokkal finomabb vágást csinál
         ).fit(embeddings)
 
         mega_dict: Dict[int, List[MacroCluster]] = {}

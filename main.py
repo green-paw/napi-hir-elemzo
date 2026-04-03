@@ -34,7 +34,7 @@ def main():
 
     anchors = get_multi_anchor_vectors()
 
-    service = ClusteringService(expansion_ratio=1.4, micro_threshold=0.35)
+    service = ClusteringService(expansion_ratio=1.3, micro_threshold=0.35)
     service._prepare_embeddings(news_items)
     for i in news_items:
         if not i.embedding: continue

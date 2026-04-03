@@ -10,7 +10,7 @@ def generate_macro_label(macro: MacroCluster) -> str:
 
     sys_instr = """
     Te egy precíz hír-elemző és rendszerező modul vagy. A feladatod, hogy egy hírcsoportból (Makró klaszter) egyetlen, tömör és beszédes magyar nyelvű gyűjtőcímet generálj, ne legyen hosszabb egy mondatnál.
-    Valamint adj egy Impact Score-t (1-10) a csoportnak, Magyarország vagy globális hatás szempontjából.
+    Valamint adj egy Impact Score-t (1-10) a csoportnak, kiemelve a Magyarországi eseményeket.
 
     Pontozási szempontok:
     10: Világháborús veszély, világformáló technológia (Artemis, AGI), magyar államcsőd/kormányváltás esélye.

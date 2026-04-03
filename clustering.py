@@ -143,7 +143,10 @@ class ClusteringService:
         embeddings = np.array([m.embedding for m in valid_macros])
         
         clustering = AgglomerativeClustering(
-            n_clusters=None, distance_threshold=self.mega_threshold, linkage='average'
+            n_clusters=None, 
+            metric='cosine', # Nagyon fontos a megfelelő távolságmérés! (Régebbi sklearn esetén: affinity='cosine')
+            linkage='average',
+            distance_threshold=0.30  # 0.65 helyett 0.30 - ez sokkal finomabb vágást csinál
         ).fit(embeddings)
 
         mega_dict: Dict[int, List[MacroCluster]] = {}

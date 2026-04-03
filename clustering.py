@@ -8,6 +8,10 @@ import gemini_core
 from source import NewsItem
 from checkpoint_manager import load_checkpoint, save_checkpoint
 
+import json
+from typing import List, Dict
+import gemini_core # A te belső hívód
+
 # --- ADATSTRUKTÚRÁK ---
 
 @dataclass
@@ -159,6 +163,82 @@ class ClusteringService:
             megas.append(MegaCluster(macros=sorted_macros))
 
         return sorted(megas, key=lambda x: x.score, reverse=True)
+
+    def build_megas_with_llm(self, top_macros: List['MacroCluster']) -> List['MegaCluster']:
+        if not top_macros:
+            return []
+
+        # 1. Hozzárendelünk egy ideiglenes ID-t minden makróhoz, és minimalizáljuk a szöveget
+        prompt_lines = []
+        id_to_macro = {}
+        for idx, macro in enumerate(top_macros):
+            id_to_macro[idx] = macro
+            # Csak az ID-t és a Címet küldjük, ez spórolja a legtöbb tokent!
+            prompt_lines.append(f"[{idx}] {macro.title}")
+
+        compact_text = "\n".join(prompt_lines)
+
+        # 2. A Rendszer-utasítás (System Prompt), ami szigorú JSON kimenetet kér
+        sys_instr = """
+        Te egy főszerkesztő vagy. A feladatod, hogy a megadott napi hírekből (makrókból) 
+        logikus, összefüggő rovatokat (Témaköröket) alkoss egy hírlevél számára.
+        
+        Szabályok:
+        1. Értsd meg az ok-okozati összefüggéseket (pl. egy háborús fenyegetés és a tőzsdei reakció egy rovatba tartozik).
+        2. Hozz létre 5-10 átfogó témakört (pl. "Közel-keleti válság és Energiapiac", "Magyar Belpolitika", "Űrkutatás és Tech").
+        3. Minden bemeneti hír ID-ját be kell sorolnod pontosan egy rovatba.
+        4. KIZÁRÓLAG érvényes JSON formátumban válaszolj, semmi más szöveget ne írj!
+        
+        Elvárt JSON formátum:
+        {
+            "rovatok": [
+                {
+                    "cim": "Témakör beszédes neve",
+                    "makro_idk": [0, 5, 12, 45]
+                }
+            ]
+        }
+        """
+
+        # 3. LLM Hívás (Megkérjük a modellt, hogy JSON-t adjon vissza)
+        print("🧠 Editor (LLM) megkezdte a Mega-klaszterek kialakítását...")
+        response_text = gemini_core.generate(
+            contents=f"Íme a mai hírek listája:\n\n{compact_text}",
+            sys_instr=sys_instr,
+            schema="json"
+            # Ha a gemini_core támogatja, érdemes itt kikényszeríteni a JSON módot:
+            # response_mime_type="application/json" 
+        )
+
+        print(response_text)
+
+        # 4. JSON feldolgozása és MegaCluster objektumok építése
+        megas = []
+        try:
+            # Tisztítás, ha az LLM véletlenül markdown blokkba (```json) tenné
+            clean_json = response_text.strip().removeprefix("```json").removesuffix("```").strip()
+            data = json.loads(clean_json)
+            
+            for rovat in data.get("rovatok", []):
+                rovat_cim = rovat.get("cim", "Egyéb Hírek")
+                makro_idk = rovat.get("makro_idk", [])
+                
+                # Visszakeressük a makrókat az ID alapján
+                rovat_makrok = [id_to_macro[mid] for mid in makro_idk if mid in id_to_macro]
+                
+                if rovat_makrok:
+                    # Pontszám szerinti csökkenő sorrend a témakörön belül
+                    rovat_makrok.sort(key=lambda x: x.score, reverse=True)
+                    megas.append(MegaCluster(title=rovat_cim, macros=rovat_makrok))
+                    
+        except json.JSONDecodeError as e:
+            print(f"⚠️ Hiba az LLM JSON feldolgozásakor: {e}")
+            # Biztonsági háló: ha besül az LLM, egy nagy csoportba rakjuk az egészet
+            megas.append(MegaCluster(title="Napi Hírek Összefoglalója", macros=top_macros))
+
+        # 5. A Mega-klasztereket is rendezzük a saját pontszámuk (átlaguk) alapján
+        megas.sort(key=lambda x: x.score, reverse=True)
+        return megas
 
 
 # --- PROFILOZÓ FUNKCIÓK ---

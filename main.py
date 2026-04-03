@@ -71,7 +71,7 @@ def main():
     secondary_macros = [m for m in macros if m not in top_macros]
 
     # 8. Csak a top makrókból építünk mega klasztereket (Témaköröket)
-    mega_clusters = service.build_megas(top_macros)
+    mega_clusters = service.build_megas_with_llm(top_macros)
 
     # 9. Debug HTML generálása
     debug = reporter.DebugReporter("index.html")

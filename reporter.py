@@ -108,6 +108,27 @@ class DebugReporter:
     def __init__(self, output_path: str = "cluster_debug.html"):
         self.output_path = output_path
 
+    def list_macros(self, macros: List[MacroCluster]) -> list[str]:
+        html = []
+        for i, macro in enumerate(macros, 1):
+            p = macro.profile
+            profile_str = f"POL: {p['POLITICS']:.1f} | ECO: {p['ECONOMY']:.1f} | TECH: {p['TECH']:.1f} | TRASH: {p['TRASH']:.1f} -> NET: {p['NET_RELEVANCE']:.1f}"
+            
+            html.append("<div class='macro'>")
+            html.append(f"<b>#{i} - {macro.title} ({len(macro.micro_clusters)} mikró)</b>")
+            html.append(f"<div class='profile'>PROFIL: {profile_str}</div>")
+
+            macro.micro_clusters.sort(key=len, reverse=True)
+
+            for j, micro in enumerate(macro.micro_clusters):
+                html.append(f"<div>Mikró {j} ({len(micro)} hír)</br><ul>")
+                for item in micro:
+                    html.append(f"<li>{item.title} <span class='meta'>({item.source_id} | {item.id})</span></li>")
+                html.append("</ul></div>")
+            html.append("</div>")
+        return html
+
+
     def generate(self, macro_clusters: List[MacroCluster], lone_wolves: List["NewsItem"]):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
@@ -139,51 +160,14 @@ class DebugReporter:
             reverse=True
         )
 
-        top_macros = [m for m in macro_clusters if float(m.impact) + m.profile["NET_RELEVANCE"] >= 9.0]
+        weight = 0.3
+        top_macros = [m for m in macro_clusters if float(m.impact)*(1+weight) + m.profile["NET_RELEVANCE"]*(1-weight) >= 9.0]
         secondary_macros = [m for m in macro_clusters if m not in top_macros]
 
-        html.append("<b>FONTOS MAKRÓK</b>")
-
-        # Makro csoportok listázása
-        for i, macro in enumerate(top_macros, 1):
-            p = macro.profile
-            profile_str = f"POL: {p['POLITICS']:.1f} | ECO: {p['ECONOMY']:.1f} | TECH: {p['TECH']:.1f} | TRASH: {p['TRASH']:.1f} -> NET: {p['NET_RELEVANCE']:.1f}"
-            
-            html.append("<div class='macro'>")
-            html.append(f"<b>#{i} - {macro.title} ({len(macro.micro_clusters)} mikró)</b>")
-            html.append(f"<div class='profile'>PROFIL: {profile_str}</div>")
-
-            macro.micro_clusters.sort(key=len, reverse=True)
-
-            for j, micro in enumerate(macro.micro_clusters):
-                html.append(f"<div>Mikró {j} ({len(micro)} hír)</br><ul>")
-                for item in micro:
-                    html.append(f"<li>{item.title} <span class='meta'>({item.source_id} | {item.id})</span></li>")
-                html.append("</ul></div>")
-
-
-            html.append("</div>")
-
-        html.append("<hr /><b>MÁSODLAGOS MAKRÓK</b>")
-
-        for i, macro in enumerate(secondary_macros, 1):
-            p = macro.profile
-            profile_str = f"POL: {p['POLITICS']:.1f} | ECO: {p['ECONOMY']:.1f} | TECH: {p['TECH']:.1f} | TRASH: {p['TRASH']:.1f} -> NET: {p['NET_RELEVANCE']:.1f}"
-            
-            html.append("<div class='macro'>")
-            html.append(f"<b>#{i} - {macro.title} ({len(macro.micro_clusters)} mikró)</b>")
-            html.append(f"<div class='profile'>PROFIL: {profile_str}</div>")
-
-            macro.micro_clusters.sort(key=len, reverse=True)
-
-            for j, micro in enumerate(macro.micro_clusters):
-                html.append(f"<div>Mikró {j} ({len(micro)} hír)</br><ul>")
-                for item in micro:
-                    html.append(f"<li>{item.title} <span class='meta'>({item.source_id} | {item.id})</span></li>")
-                html.append("</ul></div>")
-
-
-            html.append("</div>")
+        html.append("<h2>FONTOS MAKRÓK</h2>")
+        html.extend(self.list_macros(top_macros))
+        html.append("<h2>MÁSODLAGOS MAKRÓK</h2>")
+        html.extend(self.list_macros(secondary_macros))
 
         html.append("<h2>Lone Wolves (Filtered)</h2><ul>")
         for lw in lone_wolves:

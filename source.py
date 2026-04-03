@@ -1,14 +1,14 @@
-from dataclasses import field
 import time
 import html
 import re
 import feedparser
 import textwrap
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 from pydantic import BaseModel, Field, field_validator
-# Feltételezve, hogy a config-ban már az új RssSource struktúra van
 import config 
 from checkpoint_manager import load_checkpoint, save_checkpoint
 
@@ -57,91 +57,101 @@ class NewsItem(BaseModel):
 
 # --- FŐ FÜGGVÉNY ---
 
+# --- SZÁLKEZELT MUNKAFÜGGVÉNY ---
+
+def process_single_source(args: Tuple[str, config.RssSource, datetime, timedelta]) -> List[NewsItem]:
+    """Egyetlen RSS forrás feldolgozása egy külön szálon."""
+    name, source, now, limit = args
+    BLACKLIST: List[str] = ["sport", "bulvár", "szórakozás", "horoszkóp", "időjárás", "recept", "életmód", "bulvar", "tv-műsor"]
+    local_items: List[NewsItem] = []
+
+    try:
+        feed = feedparser.parse(source.url)
+        for entry in feed.entries:
+            # 1. Időbeli szűrés
+            dt: datetime = now
+            if hasattr(entry, 'published_parsed') and entry.published_parsed:
+                dt = datetime.fromtimestamp(time.mktime(entry.published_parsed))
+            elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
+                dt = datetime.fromtimestamp(time.mktime(entry.updated_parsed))
+            
+            if now - dt > limit:
+                continue
+            
+            # 2. Kategória szűrés
+            tags: List[str] = [t.term.lower() for t in entry.get('tags', []) if hasattr(t, 'term')]
+            title_lower: str = entry.title.lower()
+            if any(bad in tags for bad in BLACKLIST) or any(f"[{bad}]" in title_lower for bad in BLACKLIST):
+                continue
+
+            # 3. Adatkinyerés
+            raw_title: str = extract_safe_text(entry, 'title')
+            raw_content: str = extract_safe_text(entry, 'content')
+            
+            if not raw_title:
+                continue
+
+            item = NewsItem(
+                id="",
+                source_id=name,
+                source_meta=source,
+                link=entry.link,
+                published=dt,
+                title=raw_title,
+                content=raw_content
+            )
+            local_items.append(item)
+            
+    except Exception as e:
+        print(f"⚠️ Hiba a(z) {name} forrásnál: {e}")
+    
+    return local_items
+
+# --- FŐ FÜGGVÉNY ---
+
 def fetch_news() -> List[NewsItem]:
-    # Cache/Checkpoint ellenőrzése
-    news_pool: List[NewsItem] = [] #load_checkpoint("news_pool.json", List[NewsItem]) or []
+    news_pool: List[NewsItem] = [] # load_checkpoint...
     if news_pool:
         print("📦 Hírek betöltve a checkpointból.")
         return news_pool
 
-    seen_links: Set[str] = set()
-    now = datetime.now()
-    limit = timedelta(hours=24)
+    now: datetime = datetime.now()
+    limit: timedelta = timedelta(hours=24)
     
-    BLACKLIST = ["sport", "bulvár", "szórakozás", "horoszkóp", "időjárás", "recept", "életmód", "bulvar", "tv-műsor"]
+    print(f"📰 Hírek lekérése ({limit.days * 24}h limit) threading használatával...")
 
-    print(f"📰 Hírek lekérése ({limit.days * 24}h limit)...")
-    
+    # Előkészítjük a feladatokat a ThreadPool-nak
+    tasks: List[Tuple[str, config.RssSource, datetime, timedelta]] = [
+        (name, source, now, limit) for name, source in config.RSS_SOURCES.items()
+    ]
+
     temp_pool: List[NewsItem] = []
+    
+    # Max szálak száma: források száma vagy egy ésszerű limit (pl. 10)
+    with ThreadPoolExecutor(max_workers=min(len(tasks), 10)) as executor:
+        results = executor.map(process_single_source, tasks)
+        for result_list in results:
+            temp_pool.extend(result_list)
 
-    for name, source in config.RSS_SOURCES.items():
-        try:
-            feed = feedparser.parse(source.url)
-            for entry in feed.entries:
-                # 0. Duplikáció szűrés link alapján
-                if entry.link in seen_links:
-                    continue
-
-                # 1. Időbeli szűrés
-                dt = now
-                if hasattr(entry, 'published_parsed') and entry.published_parsed:
-                    dt = datetime.fromtimestamp(time.mktime(entry.published_parsed))
-                elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
-                    dt = datetime.fromtimestamp(time.mktime(entry.updated_parsed))
-                
-                if now - dt > limit:
-                    continue
-                
-                # 2. Kategória szűrés (Blacklist)
-                tags = [t.term.lower() for t in entry.get('tags', []) if hasattr(t, 'term')]
-                title_lower = entry.title.lower()
-                if any(bad in tags for bad in BLACKLIST) or any(f"[{bad}]" in title_lower for bad in BLACKLIST):
-                    continue
-
-                # 3. Adatkinyerés
-                raw_title = extract_safe_text(entry, 'title')
-                raw_content = extract_safe_text(entry, 'content')
-                
-                if not raw_title:
-                    continue
-
-                # 4. Objektum létrehozása (Az automatikus tisztítás itt fut le!)
-                item = NewsItem(
-                    id="",
-                    source_id=name,
-                    source_meta=source,
-                    link=entry.link,
-                    published=dt,
-                    title=raw_title,
-                    content=raw_content
-                )
-                
-                temp_pool.append(item)
-                seen_links.add(entry.link)
-                
-        except Exception as e:
-            print(f"⚠️ Hiba a(z) {name} forrásnál: {e}")
-            
-    # 5. Cím alapú duplikáció szűrés (tisztított címekkel)
-    seen_titles = set()
+    # Utófeldolgozás: Duplikáció szűrés (Link és Cím)
+    seen_links: Set[str] = set()
+    seen_titles: Set[str] = set()
     unique_news: List[NewsItem] = []
 
+    # Időrendbe rakjuk először, hogy a legfrissebbek maradjanak meg duplikáció esetén
+    temp_pool.sort(key=lambda x: x.published, reverse=True)
+
     for n in temp_pool:
-        # A Pydantic már megtisztította a n.title-t
-        clean_t = n.title.strip().lower()
-        if clean_t not in seen_titles:
+        clean_t: str = n.title.strip().lower()
+        if n.link not in seen_links and clean_t not in seen_titles:
+            seen_links.add(n.link)
             seen_titles.add(clean_t)
             unique_news.append(n)
     
-    # 6. Időrendbe tétel és ID-k újrakiosztása (hogy ne legyenek lyukak a szűrés után)
-    unique_news.sort(key=lambda x: x.published, reverse=True)
-    
-    final_pool: List[NewsItem] = []
+    # ID-k kiosztása
     for idx, item in enumerate(unique_news):
-        item.id = f"C{idx + 1}" # Újrageneráljuk a sorrend miatt
-        final_pool.append(item)
+        item.id = f"C{idx + 1}"
 
-    print(f"✅ Begyűjtés kész: {len(final_pool)} egyedi, releváns hír.")
-
-    save_checkpoint("news_pool.json", final_pool, List[NewsItem])
-    return final_pool
+    print(f"✅ Begyűjtés kész: {len(unique_news)} egyedi hír.")
+    save_checkpoint("news_pool.json", unique_news, List[NewsItem])
+    return unique_news

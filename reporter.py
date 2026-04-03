@@ -112,11 +112,11 @@ class DebugReporter:
         html = []
         for i, macro in enumerate(macros, 1):
             p = macro.profile
-            profile_str = f"POL: {p['POLITICS']:.1f} | ECO: {p['ECONOMY']:.1f} | TECH: {p['TECH']:.1f} | TRASH: {p['TRASH']:.1f} -> NET: {p['NET_RELEVANCE']:.1f}"
+            profile_str = f"IMPACT: {macro.impact} | POL: {p['POLITICS']:.1f} | ECO: {p['ECONOMY']:.1f} | TECH: {p['TECH']:.1f} | TRASH: {p['TRASH']:.1f} -> NET: {p['NET_RELEVANCE']:.1f}"
             
             html.append("<div class='macro'>")
             html.append(f"<b>#{i} - {macro.title} ({len(macro.micro_clusters)} mikró)</b>")
-            html.append(f"<div class='profile'>PROFIL: {profile_str}</div>")
+            html.append(f"<div class='profile'>{profile_str}</div>")
 
             macro.micro_clusters.sort(key=len, reverse=True)
 

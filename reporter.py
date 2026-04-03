@@ -139,8 +139,34 @@ class DebugReporter:
             reverse=True
         )
 
+        top_macros = [m for m in macro_clusters if int(m.title.split("|", 1)[0].strip()) >= 5 and m.profile["NET_RELEVANCE"] >= 5.0]
+        secondary_macros = [m for m in macro_clusters if m not in top_macros]
+
+        html.append("<b>FONTOS MAKRÓK</b>")
+
         # Makro csoportok listázása
-        for i, macro in enumerate(macro_clusters, 1):
+        for i, macro in enumerate(top_macros, 1):
+            p = macro.profile
+            profile_str = f"POL: {p['POLITICS']:.1f} | ECO: {p['ECONOMY']:.1f} | TECH: {p['TECH']:.1f} | TRASH: {p['TRASH']:.1f} -> NET: {p['NET_RELEVANCE']:.1f}"
+            
+            html.append("<div class='macro'>")
+            html.append(f"<b>#{i} - {macro.title} ({len(macro.micro_clusters)} mikró)</b>")
+            html.append(f"<div class='profile'>PROFIL: {profile_str}</div>")
+
+            macro.micro_clusters.sort(key=len, reverse=True)
+
+            for j, micro in enumerate(macro.micro_clusters):
+                html.append(f"<div>Mikró {j} ({len(micro)} hír)</br><ul>")
+                for item in micro:
+                    html.append(f"<li>{item.title} <span class='meta'>({item.source_id} | {item.id})</span></li>")
+                html.append("</ul></div>")
+
+
+            html.append("</div>")
+
+        html.append("<hr /><b>MÁSODLAGOS MAKRÓK</b>")
+
+        for i, macro in enumerate(secondary_macros, 1):
             p = macro.profile
             profile_str = f"POL: {p['POLITICS']:.1f} | ECO: {p['ECONOMY']:.1f} | TECH: {p['TECH']:.1f} | TRASH: {p['TRASH']:.1f} -> NET: {p['NET_RELEVANCE']:.1f}"
             

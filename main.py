@@ -47,9 +47,11 @@ def main():
     macro_clusters, lone_wolves = service.run(news_items)
     macros = [MacroCluster(micro_clusters=m) for m in macro_clusters]
 
-    for i, m in enumerate(macros, 1):
-        print(f"Makró név generálás {i}/{len(macros)}")
-        editor.generate_macro_label(m)
+    editor.process_macros_parallel(macros)
+
+    #for i, m in enumerate(macros, 1):
+    #    print(f"Makró név generálás {i}/{len(macros)}")
+    #    editor.generate_macro_label(m)
 
     items_to_embed = [item for item in macros if item.embedding is None]
     

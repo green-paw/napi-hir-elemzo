@@ -6,6 +6,32 @@ from typing import Dict, List
 
 from source import NewsItem
 
+import concurrent.futures
+
+def process_macros_parallel(macros: list[MacroCluster], max_workers: int = 15):
+    """
+    Párhuzamosan generál neveket és pontszámokat a makróknak.
+    """
+    total = len(macros)
+    print(f"🚀 Párhuzamos névgenerálás indítása {max_workers} szálon...")
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Leképezzük a feladatokat (Future objektumok)
+        future_to_macro = {executor.submit(generate_macro_label, m): m for m in macros}
+        
+        done_count = 0
+        for future in concurrent.futures.as_completed(future_to_macro):
+            macro = future_to_macro[future]
+            try:
+                # Itt kapjuk meg a visszatérési értéket, 
+                # de a függvény belül már módosította a macro.title-t
+                res = future.result() 
+                done_count += 1
+                if done_count % 5 == 0 or done_count == total:
+                    print(f"✅ Kész: {done_count}/{total} - {res[:40]}...")
+            except Exception as exc:
+                print(f"❌ Hiba a(z) {macro.title[:20]}... makrónál: {exc}")
+
 def generate_macro_label(macro: MacroCluster) -> str:
 
     sys_instr = """

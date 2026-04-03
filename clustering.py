@@ -140,8 +140,8 @@ from checkpoint_manager import load_checkpoint, save_checkpoint
 
 # Definíciós lista a horgonyokhoz
 ANCHOR_DEFINITIONS = {
-    "POLITICS": "Government, elections, legislation, diplomacy, international relations, political parties.",
-    "ECONOMY": "Markets, finance, inflation, central banks, trade, corporate earnings, GDP, taxes.",
+    "POLITICS": "Government, elections, legislation, diplomacy, international relations, political parties, Tisza, Fidesz, Orbán, Magyar Péter, kém, választás",
+    "ECONOMY": "Markets, finance, inflation, central banks, trade, corporate earnings, GDP, taxes, gazdaság, infláció, olajár, üzemanyag, energia.",
     "TECH": "Space exploration, NASA, AI, software, hardware, scientific breakthroughs, engineering.",
     "TRASH": "Dating profiles, celebrity gossip, recipes, horoscopes, social media fluff, lottery, daily weather, member profiles for dating, dating advertisements, personal introduction, non-news content, user accounts, age and gender tags, lifestyle fluff."
 }

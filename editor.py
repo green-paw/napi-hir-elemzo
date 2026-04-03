@@ -8,7 +8,7 @@ from source import NewsItem
 
 import concurrent.futures
 
-def process_macros_parallel(macros: list[MacroCluster], max_workers: int = 15):
+def generate_macro_labels_parallel(macros: list[MacroCluster], max_workers: int = 15):
     """
     Párhuzamosan generál neveket és pontszámokat a makróknak.
     """

@@ -4,7 +4,13 @@ import gemini_core
 import reporter
 import source
 from source import NewsItem
-from clustering import ClusteringService, MacroCluster, get_item_profile, get_multi_anchor_vectors
+from clustering import (
+    ClusteringService, 
+    get_multi_anchor_vectors, 
+    get_item_profile, 
+    ensure_item_embeddings, 
+    ensure_macro_embeddings
+)
 
 from datetime import datetime
 import builtins
@@ -28,55 +34,49 @@ def main():
         print("❌ Nincsenek feldolgozandó hírek. Leállás.")
         return
 
-    # --- 2. FÁZIS: Vektorizálás és Klaszterezés ---
-    # A ClusteringService magától kezeli az embeddinget és a cache-t benne
-    print("📊 Matematikai klaszterezés (Mikro & Makro)...")
-
+    # 1. Horgonyok betöltése
     anchors = get_multi_anchor_vectors()
 
-    service = ClusteringService(expansion_ratio=1.3, micro_threshold=0.35)
-    service._prepare_embeddings(news_items)
+    # 2. Hírek vektorizálása és profilozása
+    ensure_item_embeddings(news_items)
     for i in news_items:
-        if not i.embedding: continue
-        i.profile = get_item_profile(i.embedding, anchors)
+        if i.embedding:
+            i.profile = get_item_profile(i.embedding, anchors)
 
+    # 3. Szemét szűrése a nyers hírekből
     before = len(news_items)
-    news_items = [i for i in news_items if i.profile["NET_RELEVANCE"] > 1]
-    print(f"{before} hírből filterelés után maradt {len(news_items)}")
+    news_items = [i for i in news_items if i.profile.get("NET_RELEVANCE", 0) > 1.0]
+    print(f"Szűrés: {before} hírből maradt {len(news_items)}")
 
-    macro_clusters, lone_wolves = service.run(news_items)
-    macros = [MacroCluster(micro_clusters=m) for m in macro_clusters]
+    # 4. Makró klaszterek építése
+    service = ClusteringService(expansion_ratio=1.3, micro_threshold=0.35)
+    macros, lone_wolves = service.build_macros(news_items)
 
-    editor.process_macros_parallel(macros)
+    # 5. LLM Cím és Impact Score generálása
+    editor.generate_macro_labels_parallel(macros)
 
-    #for i, m in enumerate(macros, 1):
-    #    print(f"Makró név generálás {i}/{len(macros)}")
-    #    editor.generate_macro_label(m)
+    # 6. Makrók vektorizálása (a letisztított címek alapján) és profilozása
+    ensure_macro_embeddings(macros)
+    for m in macros:
+        if m.embedding:
+            m.profile = get_item_profile(m.embedding, anchors)
 
-    items_to_embed = [item for item in macros if item.embedding is None]
-    
-    if items_to_embed:
-        print(f"🧠 {len(items_to_embed)} makró vektorizálása folyamatban...")
-        texts = [item.title for item in items_to_embed]
-        vectors = gemini_core.embed(texts, task_type="CLUSTERING")
-        
-        if len(vectors) == len(items_to_embed):
-            for item, vector in zip(items_to_embed, vectors):
-                item.embedding = vector
-        else:
-            print("⚠️ Hiba: A kapott vektorok száma nem egyezik a kéréssel!")
-            for macro in items_to_embed:
-                representative_micro = max(macro.micro_clusters, key=len)
-                if representative_micro and len(representative_micro) > 0:
-                    macro.embedding = representative_micro[0].embedding            
+    # 7. Szigorú szűrés a "Top" makrókra (Súlyozott képlet)
+    top_macros = [
+        m for m in macros 
+        if m.impact is not None and m.score >= 9.0
+    ]
+    print(f"Top makrók kiválasztva: {len(top_macros)} / {len(macros)}")
 
-    for macro in macros:
-        if not macro.embedding: continue
-        macro.profile = get_item_profile(macro.embedding, anchors)
+    secondary_macros = [m for m in macros if m not in top_macros]
 
-    # DEBUG GENERÁLÁS
+    # 8. Csak a top makrókból építünk mega klasztereket (Témaköröket)
+    mega_clusters = service.build_megas(top_macros)
+
+    # 9. Debug HTML generálása
     debug = reporter.DebugReporter("index.html")
-    debug.generate(macros, lone_wolves)
+    debug.generate(mega_clusters, secondary_macros, lone_wolves)
+
 
     """
     

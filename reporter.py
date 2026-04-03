@@ -101,25 +101,28 @@ import os
 from datetime import datetime
 from typing import List
 
-from clustering import MacroCluster
+from clustering import MacroCluster, MegaCluster
 from source import NewsItem
+
+from datetime import datetime
+from typing import List
 
 class DebugReporter:
     def __init__(self, output_path: str = "cluster_debug.html"):
         self.output_path = output_path
-    weight = 0.3
 
-    def get_score(self, macro: MacroCluster) -> float:
-        try:
-            return float(macro.impact)*(1+self.weight) + macro.profile['NET_RELEVANCE']*(1-self.weight)
-        except:
-            return 0.0
-
-    def list_macros(self, macros: List[MacroCluster]) -> list[str]:
+    def list_macros(self, macros: List["MacroCluster"]) -> list[str]:
         html = []
         for i, macro in enumerate(macros, 1):
             p = macro.profile
-            profile_str = f"SCORE: {self.get_score(macro)} | I{macro.impact} NET{p['NET_RELEVANCE']:.1f} | P{p['POLITICS']:.1f} E{p['ECONOMY']:.1f} T{p['TECH']:.1f} N{p['TRASH']:.1f}"
+            # Biztonsági .get() hívások, hogy ne omoljon össze, ha egy kulcs hiányzik
+            net_rel = p.get('NET_RELEVANCE', 0.0)
+            pol = p.get('POLITICS', 0.0)
+            eco = p.get('ECONOMY', 0.0)
+            tech = p.get('TECH', 0.0)
+            trash = p.get('TRASH', 0.0)
+            
+            profile_str = f"SCORE: {macro.score:.1f} | IMP {macro.impact} NET {net_rel:.1f} | P {pol:.1f} E {eco:.1f} T {tech:.1f} N {trash:.1f}"
             
             html.append("<div class='macro'>")
             html.append(f"<b>#{i} - {macro.title} ({len(macro.micro_clusters)} mikró)</b>")
@@ -135,56 +138,63 @@ class DebugReporter:
             html.append("</div>")
         return html
 
-
-    def generate(self, macro_clusters: List[MacroCluster], lone_wolves: List["NewsItem"]):
+    def generate(self, mega_clusters: List["MegaCluster"], secondary_macros: List["MacroCluster"], lone_wolves: List["NewsItem"]):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        total_top_macros = sum(len(mega.macros) for mega in mega_clusters)
+        total_macros = total_top_macros + len(secondary_macros)
         
         html = [
             "<html><head><meta charset='UTF-8'><style>",
             "body { font-family: sans-serif; line-height: 1.5; padding: 12px; color: #000; background: #fff; }",
-            ".macro { border: 2px solid #000; margin-bottom: 6px; padding: 12px; }",
+            ".mega { border: 3px solid #900; margin-bottom: 20px; padding: 15px; background: #fff8f8; border-radius: 6px; }",
+            ".macro { border: 2px solid #000; margin-bottom: 6px; padding: 12px; background: #fff; }",
             ".micro { border: 1px solid #666; margin: 10px 0 10px 40px; padding: 15px; background: #f9f9f9; }",
+            ".profile { font-family: monospace; color: #0066cc; font-size: 0.9em; margin: 5px 0; }",
             ".rep { font-weight: bold; color: #d00; margin-bottom: 5px; }",
             ".others { font-size: 0.9em; color: #444; border-top: 1px dashed #ccc; margin-top: 10px; padding-top: 5px; }",
             "h1, h2, h3 { margin-top: 0; }",
+            "h3.mega-title { color: #900; }",
             ".meta { color: #666; font-size: 0.8em; }",
             "hr { border: 0; border-top: 1px solid #000; margin: 40px 0; }",
             "</style></head><body>",
-            f"<h1>Klaszterezés Debug Nézet</h1>",
+            f"<h1>Klaszterezés Debug Nézet (Témakörök)</h1>",
             f"<p class='meta'>Generálva: {now}</p>",
-            f"<p>Összesen: {len(macro_clusters)} makró csoport | {len(lone_wolves)} magányos hír</p>",
+            f"<p>Összesen: {len(mega_clusters)} Mega Klaszter | {total_macros} makró csoport | {len(lone_wolves)} magányos hír</p>",
             "<hr>"
         ]
 
-        #macro_clusters.sort(key=lambda macro: sum(len(micro) for micro in macro.micro_clusters), reverse=True)
+        # 1. MEGA KLASZTEREK (Kiemelt témakörök)
+        html.append(f"<h2>🔥 FŐ TÉMAKÖRÖK (MEGA KLASZTEREK - {len(mega_clusters)} db)</h2>")
+        for m_idx, mega in enumerate(mega_clusters, 1):
+            html.append("<div class='mega'>")
+            # Ha az Editor még nem adott nevet a Megának, egy generikus címet használunk
+            mega_title = mega.title if mega.title else f"Témakör #{m_idx}"
+            html.append(f"<h3 class='mega-title'>{mega_title} (Átlag Score: {mega.score:.1f} | {len(mega.macros)} Makró)</h3>")
+            
+            # A makrók kilistázása a témakörön belül
+            html.extend(self.list_macros(mega.macros))
+            html.append("</div>")
 
-        macro_clusters.sort(
-            key=lambda macro: self.get_score(macro),
-            reverse=True
-        )
-        lone_wolves.sort(
-            key=lambda item: item.profile["NET_RELEVANCE"],
-            reverse=True
-        )
-
-        top_macros = [m for m in macro_clusters if self.get_score(m) >= 9.0]
-        secondary_macros = [m for m in macro_clusters if m not in top_macros]
-
-        html.append(f"<h2>FONTOS MAKRÓK ({len(top_macros)})</h2>")
-        html.extend(self.list_macros(top_macros))
-        html.append(f"<h2>MÁSODLAGOS MAKRÓK ({len(secondary_macros)}</h2>")
+        # 2. MÁSODLAGOS MAKRÓK (Amik nem érték el a Top küszöböt)
+        secondary_macros.sort(key=lambda m: m.score, reverse=True)
+        html.append(f"<hr><h2>📌 MÁSODLAGOS MAKRÓK ({len(secondary_macros)})</h2>")
         html.extend(self.list_macros(secondary_macros))
 
-        html.append("<h2>Lone Wolves (Filtered)</h2><ul>")
+        # 3. LONE WOLVES
+        lone_wolves.sort(key=lambda item: item.profile.get("NET_RELEVANCE", 0), reverse=True)
+        html.append("<hr><h2>🐺 Lone Wolves (Filtered)</h2><ul>")
         for lw in lone_wolves:
             p = lw.profile
-            profile_str = f"NET: {p['NET_RELEVANCE']:.1f}"
+            net_rel = p.get('NET_RELEVANCE', 0.0)
             
             html.append(f"<li>")
             html.append(f"<b>{lw.title}</b><br>")
-            html.append(f"<small style='color: blue;'>{profile_str}</small>")
+            html.append(f"<small style='color: blue;'>NET: {net_rel:.1f}</small>")
             html.append(f"</li>")
         html.append("</ul>")
+
+        html.append("</body></html>")
 
         with open(self.output_path, "w", encoding="utf-8") as f:
             f.write("\n".join(html))

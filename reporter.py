@@ -113,8 +113,8 @@ class DebugReporter:
         
         html = [
             "<html><head><meta charset='UTF-8'><style>",
-            "body { font-family: sans-serif; line-height: 1.5; padding: 20px; color: #000; background: #fff; }",
-            ".macro { border: 2px solid #000; margin-bottom: 40px; padding: 20px; }",
+            "body { font-family: sans-serif; line-height: 1.5; padding: 12px; color: #000; background: #fff; }",
+            ".macro { border: 2px solid #000; margin-bottom: 6px; padding: 12px; }",
             ".micro { border: 1px solid #666; margin: 10px 0 10px 40px; padding: 15px; background: #f9f9f9; }",
             ".rep { font-weight: bold; color: #d00; margin-bottom: 5px; }",
             ".others { font-size: 0.9em; color: #444; border-top: 1px dashed #ccc; margin-top: 10px; padding-top: 5px; }",
@@ -140,12 +140,12 @@ class DebugReporter:
         )
 
         # Makro csoportok listázása
-        for i, macro in enumerate(macro_clusters):
+        for i, macro in enumerate(macro_clusters, 1):
             p = macro.profile
             profile_str = f"POL: {p['POLITICS']:.1f} | ECO: {p['ECONOMY']:.1f} | TECH: {p['TECH']:.1f} | TRASH: {p['TRASH']:.1f} -> NET: {p['NET_RELEVANCE']:.1f}"
             
             html.append("<div class='macro'>")
-            html.append(f"<b># {i+1} MAKRO ({len(macro.micro_clusters)} mikró)</b>")
+            html.append(f"<b>#{i} - {macro.title} ({len(macro.micro_clusters)} mikró)</b>")
             html.append(f"<div class='profile'>PROFIL: {profile_str}</div>")
 
             macro.micro_clusters.sort(key=len, reverse=True)

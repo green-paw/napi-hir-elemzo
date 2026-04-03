@@ -139,7 +139,7 @@ class DebugReporter:
             reverse=True
         )
 
-        top_macros = [m for m in macro_clusters if int(m.title.split("|", 1)[0].strip()) >= 5 and m.profile["NET_RELEVANCE"] >= 5.0]
+        top_macros = [m for m in macro_clusters if float(m.impact) + m.profile["NET_RELEVANCE"] >= 9.0]
         secondary_macros = [m for m in macro_clusters if m not in top_macros]
 
         html.append("<b>FONTOS MAKRÓK</b>")

@@ -68,6 +68,12 @@ def generate_macro_label(macro: MacroCluster) -> str:
         max_output_tokens=256
     )
 
+
+    if label and label.strip() and len(label.split('|')) > 1:
+        macro.impact = int(label.split("|", 1)[0].strip())
+        macro.title = label.split("|", 1)[1].strip()
+        return macro.title
+
     if not label or not label.strip():
         representative_micro = max(macro.micro_clusters, key=len)
         if representative_micro and len(representative_micro) > 0:

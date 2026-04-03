@@ -14,6 +14,7 @@ class MacroCluster:
     profile: Dict[str, float] = field(default_factory=dict)
     title: str = ""
     embedding: Optional[List[float]] = None
+    impact: int = 0
 
 class ClusteringService:
     def __init__(self, expansion_ratio: float = 2.0, micro_threshold: float = 0.1):

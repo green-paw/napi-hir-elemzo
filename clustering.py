@@ -41,6 +41,49 @@ class MegaCluster:
         return sum(m.score for m in self.macros) / len(self.macros)
 
 
+import json
+
+def rescue_truncated_json(broken_str: str) -> dict:
+    broken_str = broken_str.strip()
+    
+    # 1. Ha egy idézőjel maradt nyitva a legvégén, lezárjuk
+    if broken_str.count('"') % 2 != 0:
+        broken_str += '"'
+    
+    # 2. Levágjuk a lógó vesszőket (hogy a tömb/objektum lezárható legyen)
+    broken_str = broken_str.rstrip(', \n\r')
+    
+    # 3. Zárójelek párosításának nyomon követése
+    stack = []
+    in_string = False
+    escape = False
+    
+    for char in broken_str:
+        if char == '"' and not escape:
+            in_string = not in_string
+        elif char == '\\' and in_string:
+            escape = not escape
+        else:
+            escape = False
+            
+        if not in_string:
+            if char in ['{', '[']:
+                stack.append(char)
+            elif char == '}' and stack and stack[-1] == '{':
+                stack.pop()
+            elif char == ']' and stack and stack[-1] == '[':
+                stack.pop()
+    
+    # 4. Hiányzó zárójelek pótlása fordított sorrendben
+    for char in reversed(stack):
+        if char == '{':
+            broken_str += '}'
+        elif char == '[':
+            broken_str += ']'
+            
+    return json.loads(broken_str)
+
+
 # --- VEKTORIZÁCIÓS SEGÉDFÜGGVÉNYEK ---
 
 def ensure_item_embeddings(news_items: List[NewsItem]) -> None:
@@ -205,40 +248,42 @@ class ClusteringService:
         response_text = gemini_core.generate(
             contents=f"Íme a mai hírek listája:\n\n{compact_text}",
             sys_instr=sys_instr,
-            schema="json"
+            schema="json",
+            max_output_tokens=2048
             # Ha a gemini_core támogatja, érdemes itt kikényszeríteni a JSON módot:
             # response_mime_type="application/json" 
         )
 
         print(response_text)
 
-        # 4. JSON feldolgozása és MegaCluster objektumok építése
         megas = []
+        clean_json = response_text.strip().removeprefix("```json").removesuffix("```").strip()
+        
         try:
-            # Tisztítás, ha az LLM véletlenül markdown blokkba (```json) tenné
-            clean_json = response_text.strip().removeprefix("```json").removesuffix("```").strip()
             data = json.loads(clean_json)
+        except json.JSONDecodeError:
+            print("⚠️ Csonka JSON érkezett, próbálom megmenteni a generált adatokat...")
+            try:
+                data = rescue_truncated_json(clean_json)
+                print("✅ JSON sikeresen megmentve!")
+            except Exception as e:
+                print(f"❌ Mentés sikertelen: {e}")
+                data = {"rovatok": []} # Biztonsági üres fallback
+                
+        # Feldolgozás a megmentett vagy eredeti data objektumból
+        for rovat in data.get("rovatok", []):
+            rovat_cim = rovat.get("cim", "Egyéb Hírek")
+            makro_idk = rovat.get("makro_idk", [])
             
-            for rovat in data.get("rovatok", []):
-                rovat_cim = rovat.get("cim", "Egyéb Hírek")
-                makro_idk = rovat.get("makro_idk", [])
-                
-                # Visszakeressük a makrókat az ID alapján
-                rovat_makrok = [id_to_macro[mid] for mid in makro_idk if mid in id_to_macro]
-                
-                if rovat_makrok:
-                    # Pontszám szerinti csökkenő sorrend a témakörön belül
-                    rovat_makrok.sort(key=lambda x: x.score, reverse=True)
-                    megas.append(MegaCluster(title=rovat_cim, macros=rovat_makrok))
-                    
-        except json.JSONDecodeError as e:
-            print(f"⚠️ Hiba az LLM JSON feldolgozásakor: {e}")
-            # Biztonsági háló: ha besül az LLM, egy nagy csoportba rakjuk az egészet
-            megas.append(MegaCluster(title="Napi Hírek Összefoglalója", macros=top_macros))
+            rovat_makrok = [id_to_macro[mid] for mid in makro_idk if mid in id_to_macro]
+            
+            if rovat_makrok:
+                rovat_makrok.sort(key=lambda x: x.score, reverse=True)
+                megas.append(MegaCluster(title=rovat_cim, macros=rovat_makrok))
 
-        # 5. A Mega-klasztereket is rendezzük a saját pontszámuk (átlaguk) alapján
-        megas.sort(key=lambda x: x.score, reverse=True)
-        return megas
+            # 5. A Mega-klasztereket is rendezzük a saját pontszámuk (átlaguk) alapján
+            megas.sort(key=lambda x: x.score, reverse=True)
+            return megas
 
 
 # --- PROFILOZÓ FUNKCIÓK ---

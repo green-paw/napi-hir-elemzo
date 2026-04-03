@@ -1,3 +1,4 @@
+import requests
 from dataclasses import field
 import time
 import html
@@ -67,9 +68,11 @@ def process_single_source(args: Tuple[str, config.RssSource, datetime, timedelta
     local_items: List[NewsItem] = []
 
     try:
-        feed = feedparser.parse(source.url)
+        response = requests.get(source.url, timeout=(5, 15))
+        response.raise_for_status() # Hiba esetén (pl. 404) kivételt dob
+        feed = feedparser.parse(response.content)
         for entry in feed.entries:
-            # 1. Időbeli szűrés
+
             dt: datetime = now
             if hasattr(entry, 'published_parsed') and entry.published_parsed:
                 dt = datetime.fromtimestamp(time.mktime(entry.published_parsed))
@@ -103,8 +106,12 @@ def process_single_source(args: Tuple[str, config.RssSource, datetime, timedelta
             )
             local_items.append(item)
             
+    except requests.exceptions.Timeout:
+        print(f"⚠️ Timeout: {source.url} nem válaszolt időben.")
+        return []
     except Exception as e:
-        print(f"⚠️ Hiba a(z) {name} forrásnál: {e}")
+        print(f"❌ Hiba a forrásnál ({source.url}): {e}")
+        return []
     
     return local_items
 

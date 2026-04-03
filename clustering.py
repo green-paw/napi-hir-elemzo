@@ -228,14 +228,15 @@ class ClusteringService:
 
         JAVASOLT KIINDULÁSI ROVATOK (Használd ezeket alapként, de bővítheted/módosíthatod):
         1. Magyar gazdaság és belpolitika (Pártok, hazai gazdasági döntések, korrupciós ügyek)
-        2. Magyar külpolitika, konfliktusok (Ukrajna, Brüsszeli viták, stb)
-        3. Globális konfliktusok (Háborúk, geopolitikai feszültség, Közel-Kelet, NATO)
+        2. Magyar külpolitika, konfliktusok
+        3. Globális konfliktusok: ezt nyugodtan bontsd tovább az aktuális konfliktusok szerint (Oroszország-Ukrajna, USA-Irán, Izrael, stb). Ne próbáld beerőltetni az összes geopolitikai hírcsoportot egy óriás rovatba
         4. Világgazdaság (Olajár, tőzsde, globális infláció, kereskedelmi vámok)
         5. Globális jelentőségű technikai hírek (Űrkutatás, AI, nagy tech-bejelentések)
 
         SZABÁLYOK:
+        - Magyar izoláció: a hírlevél magyar olvasóknak készül ezért azok a kategóriák amiket Magyarország belpolitikájáról készítesz ne vegyüljenek más EU országok belpolitikájával, kivéve ha az tényleg érinti Magyarországot
         - Ha egy hír (pl. Artemis) technikai, de van üzleti vonzata, akkor is a 'Technikai hírek' közé tedd!
-        - Ha egy téma túl nagy (20+ hír), bontsd kisebb logikus rovatokra.
+        - Ha egy téma túl nagy (20+ hír), bontsd kisebb logikus rovatokra. Ideálisan max 5-10 hír jut egy csoportra, kivétel lehet ha egy téma óriási jelentősggel bír és sok forrás ír róla
         - Ha találsz olyat, ami egyikbe sem illik (pl. Sport, Bulvár), hozz létre neki új rovatot.
         - KIZÁRÓLAG érvényes JSON formátumban válaszolj, semmi más szöveget ne írj!
         

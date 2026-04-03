@@ -9,7 +9,14 @@ from source import NewsItem
 def generate_macro_label(macro: MacroCluster) -> str:
 
     sys_instr = """
-    Te egy precíz hír-elemző és rendszerező modul vagy. A feladatod, hogy egy hírcsoportból (Makró klaszter) egyetlen, tömör és beszédes magyar nyelvű gyűjtőcímet generálj. Ne legyen hosszabb egy mondatnál.
+    Te egy precíz hír-elemző és rendszerező modul vagy. A feladatod, hogy egy hírcsoportból (Makró klaszter) egyetlen, tömör és beszédes magyar nyelvű gyűjtőcímet generálj, ne legyen hosszabb egy mondatnál.
+    Valamint adj egy Impact Score-t (1-10) a csoportnak, Magyarország vagy globális hatás szempontjából.
+
+    Pontozási szempontok:
+    10: Világháborús veszély, világformáló technológia (Artemis, AGI), magyar államcsőd/kormányváltás esélye.
+    7-9: Jelentős háborús eszkaláció, globális gazdasági válság jelei, nagy magyar politikai botrányok.
+    4-6: Fontos, de hétköznapibb hírek (választási kampány eseményei, tőzsdei mozgások, nagyobb céges hírek).
+    1-3: Technikai adatközlések, rutin pénzügyi jelentések, lokális (nem magyar) balesetek, töltelék hírek.
 
     Szabályok:
     Nyelvfüggetlenség: Bármilyen nyelvű híreket kapsz, a kimenet mindig magyar legyen.
@@ -17,8 +24,9 @@ def generate_macro_label(macro: MacroCluster) -> str:
     Összevonhatóság: Törekedj arra, hogy ha a hírek egy globális eseményről szólnak (pl. Artemis-program vagy Iráni konfliktus), a cím legyen alkalmas arra, hogy más, hasonló témájú csoportokkal is egybeessen.
     Specifikusság: Ha a csoport egy konkrét eseményről szól (pl. "Trump kirúgta Pam Bondit"), ne csak annyit írj, hogy "Amerikai politika".
 
-    Kimeneti formátum:
-    Csak a generált címet add vissza, mindenféle magyarázat vagy formázás nélkül.
+    Kimenet: PONT | CÍM
+    (példa: 8 | Trump totális vámháborút hirdetett az EU ellen)
+    Csak egy sor, mindenféle magyarázat vagy formázás nélkül.
     """
 
     all_text: list[str] = []
@@ -26,11 +34,12 @@ def generate_macro_label(macro: MacroCluster) -> str:
         for item in micro:
             all_text.append(f"{item.title} - {item.content[:100]}")
 
-    prompt = f"Generálj egy közös magyar címet ezeknek a híreknek:\n" + "\n".join(all_text)
+    prompt = f"Generálj egy közös magyar címet és adj pontszámot ezeknek a híreknek:\n" + "\n".join(all_text)
     
     label = gemini_core.generate(
         contents=prompt,
-        sys_instr=sys_instr
+        sys_instr=sys_instr,
+        max_output_tokens=256
     )
 
     if not label or not label.strip():

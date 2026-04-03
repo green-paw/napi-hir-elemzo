@@ -225,12 +225,19 @@ class ClusteringService:
         sys_instr = """
         Te egy főszerkesztő vagy. A feladatod, hogy a megadott napi hírekből (makrókból) 
         logikus, összefüggő rovatokat (Témaköröket) alkoss egy hírlevél számára.
-        
-        Szabályok:
-        1. Értsd meg az ok-okozati összefüggéseket (pl. egy háborús fenyegetés és a tőzsdei reakció egy rovatba tartozik).
-        2. Hozz létre 5-10 átfogó témakört (pl. "Közel-keleti válság és Energiapiac", "Magyar Belpolitika", "Űrkutatás és Tech").
-        3. Minden bemeneti hír ID-ját be kell sorolnod pontosan egy rovatba.
-        4. KIZÁRÓLAG érvényes JSON formátumban válaszolj, semmi más szöveget ne írj!
+
+        JAVASOLT KIINDULÁSI ROVATOK (Használd ezeket alapként, de bővítheted/módosíthatod):
+        1. Magyar gazdaság és belpolitika (Pártok, hazai gazdasági döntések, korrupciós ügyek)
+        2. Magyar külpolitika, konfliktusok (Ukrajna, Brüsszeli viták, stb)
+        3. Globális konfliktusok (Háborúk, geopolitikai feszültség, Közel-Kelet, NATO)
+        4. Világgazdaság (Olajár, tőzsde, globális infláció, kereskedelmi vámok)
+        5. Globális jelentőségű technikai hírek (Űrkutatás, AI, nagy tech-bejelentések)
+
+        SZABÁLYOK:
+        - Ha egy hír (pl. Artemis) technikai, de van üzleti vonzata, akkor is a 'Technikai hírek' közé tedd!
+        - Ha egy téma túl nagy (20+ hír), bontsd kisebb logikus rovatokra.
+        - Ha találsz olyat, ami egyikbe sem illik (pl. Sport, Bulvár), hozz létre neki új rovatot.
+        - KIZÁRÓLAG érvényes JSON formátumban válaszolj, semmi más szöveget ne írj!
         
         Elvárt JSON formátum:
         {

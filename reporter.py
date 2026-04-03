@@ -107,12 +107,19 @@ from source import NewsItem
 class DebugReporter:
     def __init__(self, output_path: str = "cluster_debug.html"):
         self.output_path = output_path
+    weight = 0.3
+
+    def get_score(self, macro: MacroCluster) -> float:
+        try:
+            return float(macro.impact)*(1+self.weight) + macro.profile['NET_RELEVANCE']*(1-self.weight)
+        except:
+            return 0.0
 
     def list_macros(self, macros: List[MacroCluster]) -> list[str]:
         html = []
         for i, macro in enumerate(macros, 1):
             p = macro.profile
-            profile_str = f"IMPACT: {macro.impact} | POL: {p['POLITICS']:.1f} | ECO: {p['ECONOMY']:.1f} | TECH: {p['TECH']:.1f} | TRASH: {p['TRASH']:.1f} -> NET: {p['NET_RELEVANCE']:.1f}"
+            profile_str = f"SCORE: {self.get_score(macro)} | I{macro.impact} NET{p['NET_RELEVANCE']:.1f} | P{p['POLITICS']:.1f} E{p['ECONOMY']:.1f} T{p['TECH']:.1f} N{p['TRASH']:.1f}"
             
             html.append("<div class='macro'>")
             html.append(f"<b>#{i} - {macro.title} ({len(macro.micro_clusters)} mikró)</b>")
@@ -152,7 +159,7 @@ class DebugReporter:
         #macro_clusters.sort(key=lambda macro: sum(len(micro) for micro in macro.micro_clusters), reverse=True)
 
         macro_clusters.sort(
-            key=lambda macro: macro.profile["NET_RELEVANCE"],
+            key=lambda macro: self.get_score(macro),
             reverse=True
         )
         lone_wolves.sort(
@@ -160,8 +167,7 @@ class DebugReporter:
             reverse=True
         )
 
-        weight = 0.3
-        top_macros = [m for m in macro_clusters if float(m.impact)*(1+weight) + m.profile["NET_RELEVANCE"]*(1-weight) >= 9.0]
+        top_macros = [m for m in macro_clusters if self.get_score(m) >= 9.0]
         secondary_macros = [m for m in macro_clusters if m not in top_macros]
 
         html.append(f"<h2>FONTOS MAKRÓK ({len(top_macros)})</h2>")

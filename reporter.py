@@ -164,9 +164,9 @@ class DebugReporter:
         top_macros = [m for m in macro_clusters if float(m.impact)*(1+weight) + m.profile["NET_RELEVANCE"]*(1-weight) >= 9.0]
         secondary_macros = [m for m in macro_clusters if m not in top_macros]
 
-        html.append("<h2>FONTOS MAKRÓK</h2>")
+        html.append(f"<h2>FONTOS MAKRÓK ({len(top_macros)})</h2>")
         html.extend(self.list_macros(top_macros))
-        html.append("<h2>MÁSODLAGOS MAKRÓK</h2>")
+        html.append(f"<h2>MÁSODLAGOS MAKRÓK ({len(secondary_macros)}</h2>")
         html.extend(self.list_macros(secondary_macros))
 
         html.append("<h2>Lone Wolves (Filtered)</h2><ul>")

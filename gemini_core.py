@@ -5,6 +5,7 @@ from google.genai import types, Client
 
 import config
 from token_logger import TokenLogger # Feltételezem, a korábbi kód bekerült ide
+from concurrent.futures import ThreadPoolExecutor
 
 client = Client(api_key=config.GOOGLE_API_KEY)
 logger = TokenLogger()
@@ -85,34 +86,42 @@ def generate(
         print(f"⚠️ Válasz feldolgozási hiba: {e}")
         return response.text if hasattr(response, 'text') else response
 
-def embed(texts: List[str], task_type: str = "CLUSTERING", batch_size: int = 100) -> List[List[float]]:
-    """
-    Vektorok generálása kötegesítve (batching), hogy elkerüljük az API limiteket.
-    Visszatérési értéke egy tiszta 2D-s float lista.
-    """
+def embed(texts: List[str], task_type: str = "CLUSTERING") -> List[List[float]]:
     if not texts:
         return []
 
-    all_embeddings = []
+    batch_size: int = 100
+    # Felosztjuk a szövegeket batch-ekre
+    batches: List[List[str]] = [texts[i:i + batch_size] for i in range(0, len(texts), batch_size)]
     
-    # Feldolgozás batch_size-os (pl. 100-as) darabokban
-    for i in range(0, len(texts), batch_size):
-        batch = texts[i:i + batch_size]
+    def process_batch(batch: List[str]) -> List[List[float]]:
+        """Egyetlen batch feldolgozása egy szálon."""
+        try:
+            response = execute_with_retry(
+                client.models.embed_content, 
+                model="gemini-embedding-001", 
+                contents=batch, 
+                config=types.EmbedContentConfig(task_type=task_type)
+            )
+            
+            if hasattr(response, 'embeddings'):
+                # Visszaadjuk a float listák listáját
+                return [emb.values for emb in response.embeddings]
+            return []
+        except Exception as e:
+            print(f"⚠️ Hiba az embedding batch feldolgozásakor: {e}")
+            return []
+
+    all_embeddings: List[List[float]] = []
+    
+    # Max workers: érdemes korlátozni, hogy ne fussunk bele azonnal Quota limitbe (pl. 5 szál)
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        # Az executor.map megőrzi a beküldött sorrendet a válaszoknál
+        results = executor.map(process_batch, batches)
         
-        response = execute_with_retry(
-            client.models.embed_content, 
-            model="gemini-embedding-001", 
-            contents=batch, 
-            config=types.EmbedContentConfig(task_type=task_type)
-        )
-        
-        # A válaszból kinyerjük a tiszta float tömböket (values)
-        if hasattr(response, 'embeddings'):
-            for emb in response.embeddings:
-                all_embeddings.append(emb.values)
-        
-        # Ha több batch van, teszünk egy minimális szünetet a Rate Limit miatt
-        if i + batch_size < len(texts):
-            time.sleep(1)
+        for result_list in results:
+            all_embeddings.extend(result_list)
+            # Mivel a szálak párhuzamosan futnak, a belső sleep-et kivettem, 
+            # az execute_with_retry-nek kell kezelnie a sebességkorlátot.
 
     return all_embeddings

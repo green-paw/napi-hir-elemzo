@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering
-from typing import List, Dict, Tuple
+from typing import List, Dict, Optional, Tuple
 import gemini_core
 from source import NewsItem
 
@@ -12,7 +12,8 @@ from dataclasses import dataclass, field
 class MacroCluster:
     micro_clusters: List[List[NewsItem]]
     profile: Dict[str, float] = field(default_factory=dict)
-    category: str = "" # Később az LLM tölti ki
+    title: str = ""
+    embedding: Optional[List[float]] = None
 
 class ClusteringService:
     def __init__(self, expansion_ratio: float = 2.0, micro_threshold: float = 0.1):

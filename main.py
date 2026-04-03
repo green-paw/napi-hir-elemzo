@@ -1,10 +1,13 @@
 from typing import List
-from reporter import DebugReporter, HtmlReporter
-from source import fetch_news
-from datetime import datetime
+import editor
+import gemini_core
+import reporter
+import source
+from source import NewsItem
+from clustering import ClusteringService, MacroCluster, get_item_profile, get_multi_anchor_vectors
 
-import builtins
 from datetime import datetime
+import builtins
 
 _original_print = builtins.print
 def timestamped_print(*args, **kwargs):
@@ -13,15 +16,13 @@ def timestamped_print(*args, **kwargs):
 
 builtins.print = timestamped_print
 from typing import List
-from source import fetch_news, NewsItem
-from clustering import ClusteringService, MacroCluster, get_item_profile, get_multi_anchor_vectors
 
 def main():
     print("🚀 Hírfeldolgozó pipeline indítása...")
 
     # --- 1. FÁZIS: Adatgyűjtés ---
     print("📥 Hírek letöltése az RSS feedekből...")
-    news_items = fetch_news()
+    news_items = source.fetch_news()
 
     if not news_items:
         print("❌ Nincsenek feldolgozandó hírek. Leállás.")
@@ -46,27 +47,34 @@ def main():
     macro_clusters, lone_wolves = service.run(news_items)
     macros = [MacroCluster(micro_clusters=m) for m in macro_clusters]
 
-    # --- 3. FÁZIS UTÁN: SZEMANTIKUS SZŰRÉS ---
-    filtered_macro_clusters: List[MacroCluster] = []
+    for i, m in enumerate(macros, 1):
+        print(f"Makró név generálás {i}/{len(macros)}")
+        editor.generate_macro_label(m)
+
+    items_to_embed = [item for item in macros if item.embedding is None]
+    
+    if items_to_embed:
+        print(f"🧠 {len(items_to_embed)} makró vektorizálása folyamatban...")
+        texts = [item.title for item in items_to_embed]
+        vectors = gemini_core.embed(texts, task_type="CLUSTERING")
+        
+        if len(vectors) == len(items_to_embed):
+            for item, vector in zip(items_to_embed, vectors):
+                item.embedding = vector
+        else:
+            print("⚠️ Hiba: A kapott vektorok száma nem egyezik a kéréssel!")
+            for macro in items_to_embed:
+                representative_micro = max(macro.micro_clusters, key=len)
+                if representative_micro and len(representative_micro) > 0:
+                    macro.embedding = representative_micro[0].embedding            
 
     for macro in macros:
-        # A reprezentáns hír (Mikró 0, Hír 0) profilja
-        representative_item: NewsItem = macro.micro_clusters[0][0]
-        if not representative_item.embedding: continue
-        macro.profile = get_item_profile(representative_item.embedding, anchors)
-
-        """
-        # SZŰRÉSI LOGIKA:
-        # Ha a TRASH dominál, vagy minden más túl gyenge, eldobjuk
-        if profile["TRASH"] > 0.7 or max(profile["POLITICS"], profile["ECONOMY"], profile["TECH"]) < 0.4:
-            print(f"🗑️ Klaszter kidobva (Zaj): {representative_item.title[:50]}...")
-            continue
-        """    
-        filtered_macro_clusters.append(macro)
+        if not macro.embedding: continue
+        macro.profile = get_item_profile(macro.embedding, anchors)
 
     # DEBUG GENERÁLÁS
-    debug = DebugReporter("index.html")
-    debug.generate(filtered_macro_clusters, lone_wolves)
+    debug = reporter.DebugReporter("index.html")
+    debug.generate(macros, lone_wolves)
 
     """
     

@@ -162,7 +162,7 @@ class DebugReporter:
         html.append("<h2>Lone Wolves (Filtered)</h2><ul>")
         for lw in lone_wolves:
             p = lw.profile
-            profile_str = f"NET: {p['NET_RELEVANCE']}"
+            profile_str = f"NET: {p['NET_RELEVANCE']:.1f}"
             
             html.append(f"<li>")
             html.append(f"<b>{lw.title}</b><br>")

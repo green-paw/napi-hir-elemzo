@@ -1,9 +1,61 @@
+from clustering import MacroCluster
 import gemini_core
 
 from pydantic import BaseModel, Field
 from typing import Dict, List
 
 from source import NewsItem
+
+def generate_macro_label(macro: MacroCluster) -> str:
+
+    sys_instr = """
+    Te egy precíz hír-elemző és rendszerező modul vagy. A feladatod, hogy egy hírcsoportból (Makró klaszter) egyetlen, tömör és beszédes magyar nyelvű gyűjtőcímet generálj. Ne legyen hosszabb egy mondatnál.
+
+    Szabályok:
+    Nyelvfüggetlenség: Bármilyen nyelvű híreket kapsz, a kimenet mindig magyar legyen.
+    Standardizálás: Kerüld a sallangokat (pl. "Hírek a...", "Beszámoló erről:"). Használj tárgyilagos, újságírói stílust.
+    Összevonhatóság: Törekedj arra, hogy ha a hírek egy globális eseményről szólnak (pl. Artemis-program vagy Iráni konfliktus), a cím legyen alkalmas arra, hogy más, hasonló témájú csoportokkal is egybeessen.
+    Specifikusság: Ha a csoport egy konkrét eseményről szól (pl. "Trump kirúgta Pam Bondit"), ne csak annyit írj, hogy "Amerikai politika".
+
+    Kimeneti formátum:
+    Csak a generált címet add vissza, mindenféle magyarázat vagy formázás nélkül.
+    """
+
+    all_text: list[str] = []
+    for micro in macro.micro_clusters:
+        for item in micro:
+            all_text.append(f"{item.title} - {item.content[:100]}")
+
+    prompt = f"Generálj egy közös magyar címet ezeknek a híreknek:\n" + "\n".join(all_text)
+    
+    label = gemini_core.generate(
+        contents=prompt,
+        sys_instr=sys_instr
+    )
+
+    if not label or not label.strip():
+        representative_micro = max(macro.micro_clusters, key=len)
+        if representative_micro and len(representative_micro) > 0:
+            label = representative_micro[0].title
+            macro.embedding = representative_micro[0].embedding
+        else:
+            label = "Vegyes hírek"
+
+    macro.title = label.strip()
+    return macro.title
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class RefinedEvent(BaseModel):
     summary: str = Field(description="Az esemény rövid, tényszerű összefoglalója magyarul (1 mondat).")

@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 from typing import Any, List, Dict
 
-from analyzer import AnalysisResult
+from main import AnalysisResult
 
 class HtmlReporter:
     """HTML jelentés generálása a validált eseményekből."""
@@ -229,6 +229,7 @@ def generate_analysis_html(macros: List[MacroCluster], output_file: str = "analy
     """
 
     for macro in macros:
+        if not macro.analysis: continue
         a: AnalysisResult = macro.analysis
         p = macro.profile
         net_rel = p.get('NET_RELEVANCE', 0.0)

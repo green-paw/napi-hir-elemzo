@@ -1,5 +1,5 @@
 from typing import List
-from analyzer import AnalysisResult, analyze_macro_cluster
+from analyzer import analyze_macro_cluster
 import editor
 import gemini_core
 import reporter
@@ -26,6 +26,13 @@ def timestamped_print(*args, **kwargs):
 
 builtins.print = timestamped_print
 from typing import List
+
+from pydantic import BaseModel, Field
+class AnalysisResult(BaseModel):
+    reconstruction: str = Field(description="A hír 6-10 mondatos tényszerű összefoglalója.")
+    narrative_games: str = Field(description="A források közötti tálalásbeli és kontextusbeli különbségek.")
+    manipulation_log: str = Field(description="Hergelés, logikai hibák és érzelmi manipulációk listája.")
+    objectivity_score: int = Field(description="1-10 skálán az összesített tárgyilagosság.")
 
 def main():
     print("🚀 Hírfeldolgozó pipeline indítása...")

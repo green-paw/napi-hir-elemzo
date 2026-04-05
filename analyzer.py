@@ -3,15 +3,10 @@ from google import genai
 from clustering import MacroCluster
 import gemini_core
 from google.genai import types
+from main import AnalysisResult
 from source import NewsItem
 
 from pydantic import BaseModel, Field
-
-class AnalysisResult(BaseModel):
-    reconstruction: str = Field(description="A hír 6-10 mondatos tényszerű összefoglalója.")
-    narrative_games: str = Field(description="A források közötti tálalásbeli és kontextusbeli különbségek.")
-    manipulation_log: str = Field(description="Hergelés, logikai hibák és érzelmi manipulációk listája.")
-    objectivity_score: int = Field(description="1-10 skálán az összesített tárgyilagosság.")
 
 def analyze_macro_cluster(macro: MacroCluster) -> AnalysisResult:
     all_news_items: List[NewsItem] = [

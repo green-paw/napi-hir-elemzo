@@ -9,7 +9,8 @@ from clustering import (
     get_multi_anchor_vectors, 
     get_item_profile, 
     ensure_item_embeddings, 
-    ensure_macro_embeddings
+    ensure_macro_embeddings,
+    get_taxonomy_suggestion
 )
 
 from datetime import datetime
@@ -69,6 +70,12 @@ def main():
     print(f"Top makrók kiválasztva: {len(top_macros)} / {len(macros)}")
 
     secondary_macros = [m for m in macros if m not in top_macros]
+
+    tax = get_taxonomy_suggestion(top_macros)
+    print(tax)
+
+    return
+
 
     # 8. Csak a top makrókból építünk mega klasztereket (Témaköröket)
     mega_clusters = service.build_megas_with_llm(top_macros)

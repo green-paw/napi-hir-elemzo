@@ -331,3 +331,41 @@ def get_item_profile(item_embedding: List[float], anchors: Dict[str, np.ndarray]
     profile_max = max(profile["POLITICS"], profile["ECONOMY"], profile["TECH"]) 
     profile["NET_RELEVANCE"] = profile_max - profile["TRASH"]
     return profile
+
+
+
+
+def get_taxonomy_suggestion(top_macros: List['MacroCluster']) -> str:
+    if not top_macros:
+        return ""
+
+    # Csak a címeket küldjük, hogy a modell a tartalomra koncentráljon
+    titles_only = "\n".join([f"- {m.title}" for m in top_macros])
+
+    sys_instr = "Te egy stratégiai hírszerkesztő vagy. Az alábbi 100 hírmakróból kell összeállítanod a hírlevél rovatstruktúráját."
+
+    prompt = f"""
+    HÍREK CÍMEI:
+    {titles_only}
+    
+    FELADAT:
+    Alkoss 10-15 specifikus rovatcímet. 
+    
+    SZABÁLYOK:
+    1. Ne használj óriás-kategóriákat (pl. ne legyen egyetlen 'Globális konfliktusok' rovat, ha abban 20+ hír van). 
+    2. Bontsd szét régiók vagy konkrét események szerint (pl. 'Iráni-amerikai eszkaláció', 'Ukrán front és orosz diplomácia', 'Európai gazdasági válságjelek').
+    3. A magyar belpolitikát tartsd szigorúan külön.
+    4. Az űrkutatás és a high-tech (SpaceX, Artemis) legyen önálló kategória.
+    
+    VÁLASZ FORMÁTUMA:
+    Csak a rovatcímeket sorold fel kötőjellel, mindegyik alá írj egy 1 mondatos magyarázatot, hogy mit válogatnál bele!
+    """
+
+    print("🛰️ Első lépés: Rovatstruktúra tervezése...")
+    taxonomy_suggestion = gemini_core.generate(sys_instr = sys_instr, contents=prompt)
+    
+    return taxonomy_suggestion
+
+# Használat:
+# taxonomy = service.get_taxonomy_suggestion(top_macros)
+# print(taxonomy)

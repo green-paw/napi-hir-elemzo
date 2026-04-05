@@ -2,12 +2,27 @@ import time
 import random
 from typing import Any, Callable, List, Dict, Optional, Union
 from google.genai import types, Client
+from google import genai
+import os
 
 import config
 from token_logger import TokenLogger # Feltételezem, a korábbi kód bekerült ide
 from concurrent.futures import ThreadPoolExecutor
 
-client = Client(api_key=config.GOOGLE_API_KEY)
+#client = Client(api_key=config.GOOGLE_API_KEY)
+
+def get_gemini_client() -> genai.Client:
+    """Inicializálja a Vertex AI klienst."""
+    project_id: str = os.getenv("GCP_PROJECT_ID", "your-project-id")
+    location: str = "us-central1"
+
+    return genai.Client(
+        vertexai=True,
+        project=project_id,
+        location=location
+    )
+client = get_gemini_client()
+
 logger = TokenLogger()
 
 def execute_with_retry(func: Callable, *args, max_retries: int = 5, **kwargs) -> Any:
@@ -46,7 +61,7 @@ def generate(
         system_instruction=sys_instr,
         response_mime_type=response_mime_type,
         response_schema=response_schema,
-        temperature=0.1,
+        temperature=0.0,
         max_output_tokens=max_output_tokens
     )
     

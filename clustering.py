@@ -17,7 +17,7 @@ import gemini_core # A te belső hívód
 @dataclass
 class MacroCluster:
     id: int = 0
-    micro_clusters: List[List[NewsItem]] = []
+    micro_clusters: List[List[NewsItem]] = field(default_factory=list)
     profile: Dict[str, float] = field(default_factory=dict)
     title: str = ""
     embedding: Optional[List[float]] = None

@@ -1,31 +1,23 @@
-from typing import TypedDict, List
+from typing import List
 from google import genai
 from clustering import MacroCluster
 import gemini_core
 from google.genai import types
 from source import NewsItem
 
-class AnalysisResult(TypedDict):
-    reconstruction: str
-    narrative_games: str
-    manipulation_log: str
-    objectivity_score: int
+from pydantic import BaseModel, Field
+
+class AnalysisResult(BaseModel):
+    reconstruction: str = Field(description="A hír 6-10 mondatos tényszerű összefoglalója.")
+    narrative_games: str = Field(description="A források közötti tálalásbeli és kontextusbeli különbségek.")
+    manipulation_log: str = Field(description="Hergelés, logikai hibák és érzelmi manipulációk listája.")
+    objectivity_score: int = Field(description="1-10 skálán az összesített tárgyilagosság.")
 
 def analyze_macro_cluster(macro: MacroCluster) -> AnalysisResult:
-    """
-    Vak elemzést végez egy MacroCluster tartalmán.
-    A bemenet a makróban lévő összes egyedi NewsItem tartalma.
-    """
-    client = genai.Client(api_key="YOUR_API_KEY")
-
-    # Az összes NewsItem kigyűjtése a mikrókból (flattening)
-    # A mikrókban lévő 90%-os hasonlóság miatt itt érdemes lehet 
-    # mikrónként csak az első 1-2 hírt bevenni, ha túl sok a token.
     all_news_items: List[NewsItem] = [
         item for micro in macro.micro_clusters for item in micro
     ]
 
-    # Szöveges kontextus építése: Cím + Tartalom + ID
     formatted_articles = []
     for item in all_news_items:
         formatted_articles.append(item.short_text_for_prompt(300))

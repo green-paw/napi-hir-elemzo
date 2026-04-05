@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 from typing import Any, List, Dict
 
-from main import AnalysisResult
+from analyzer import AnalysisResult, MacroAnalysisPair
 
 class HtmlReporter:
     """HTML jelentés generálása a validált eseményekből."""
@@ -206,7 +206,7 @@ class DebugReporter:
 
 
 
-def generate_analysis_html(macros: List[MacroCluster], output_file: str = "analysis.html"):
+def generate_analysis_html(results: List[MacroAnalysisPair], output_file: str = "analysis.html"):
     html_content = """
     <!DOCTYPE html>
     <html lang="hu">
@@ -228,9 +228,8 @@ def generate_analysis_html(macros: List[MacroCluster], output_file: str = "analy
         <h1>Napi Hírelemzés</h1>
     """
 
-    for macro in macros:
-        if not macro.analysis: continue
-        a: AnalysisResult = macro.analysis
+    for item in results:
+        macro, analysis = item 
         p = macro.profile
         net_rel = p.get('NET_RELEVANCE', 0.0)
         pol = p.get('POLITICS', 0.0)
@@ -238,7 +237,7 @@ def generate_analysis_html(macros: List[MacroCluster], output_file: str = "analy
         tech = p.get('TECH', 0.0)
         trash = p.get('TRASH', 0.0)
         profile_str = f"SCORE: {macro.score:.1f} | IMP {macro.impact} NET {net_rel:.1f} | P {pol:.1f} E {eco:.1f} T {tech:.1f} N {trash:.1f}"
-        score = a.objectivity_score if a.objectivity_score is not None else "N/A"
+        score = analysis.objectivity_score if analysis.objectivity_score is not None else "N/A"
         
         html_content += f"""
         <div class="analysis-card">
@@ -247,15 +246,15 @@ def generate_analysis_html(macros: List[MacroCluster], output_file: str = "analy
             <h3>{macro.title}</h3>
             <p>{profile_str}</p>
             <div class="reconstruction">
-                {a.reconstruction}
+                {analysis.reconstruction}
             </div>
 
             <div class="meta-section">
                 <span class="section-title">Narratív keretezés</span>
-                <p>{a.narrative_games}</p>
+                <p>{analysis.narrative_games}</p>
                 
                 <span class="section-title">Manipulációs jegyzőkönyv</span>
-                <p>{a.manipulation_log}</p>
+                <p>{analysis.manipulation_log}</p>
             </div>
         </div>
         """

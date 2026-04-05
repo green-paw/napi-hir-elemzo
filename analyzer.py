@@ -1,14 +1,22 @@
-from typing import List
+from typing import List, Tuple
 from google import genai
 from clustering import MacroCluster
 import gemini_core
 from google.genai import types
-from main import AnalysisResult
 from source import NewsItem
 
 from pydantic import BaseModel, Field
 
-def analyze_macro_cluster(macro: MacroCluster) -> AnalysisResult:
+class AnalysisResult(BaseModel):
+    macro_id: str = Field(description="A makró csoport ID-ja")
+    reconstruction: str = Field(description="A hír 6-10 mondatos tényszerű összefoglalója.")
+    narrative_games: str = Field(description="A források közötti tálalásbeli és kontextusbeli különbségek.")
+    manipulation_log: str = Field(description="Hergelés, logikai hibák és érzelmi manipulációk listája.")
+    objectivity_score: int = Field(description="1-10 skálán az összesített tárgyilagosság.")
+
+MacroAnalysisPair = Tuple[MacroCluster, AnalysisResult]
+
+def analyze_macro_cluster(macro: MacroCluster) -> Tuple[MacroCluster, AnalysisResult]:
     all_news_items: List[NewsItem] = [
         item for micro in macro.micro_clusters for item in micro
     ]
@@ -34,6 +42,5 @@ def analyze_macro_cluster(macro: MacroCluster) -> AnalysisResult:
         "4. OBJECTIVITY_SCORE (1-10): 10=tökéletesen tárgyilagos, 1=propaganda."
     )
 
-    response = gemini_core.generate(sys_instr=system_instruction, contents=full_context, max_output_tokens=2048, schema=AnalysisResult)
-    macro.analysis = response
-    return response
+    response: AnalysisResult = gemini_core.generate(sys_instr=system_instruction, contents=full_context, max_output_tokens=2048, schema=AnalysisResult)
+    return (macro, response)

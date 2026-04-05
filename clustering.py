@@ -1,4 +1,3 @@
-from main import AnalysisResult
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics.pairwise import cosine_similarity
@@ -17,12 +16,12 @@ import gemini_core # A te belső hívód
 
 @dataclass
 class MacroCluster:
-    micro_clusters: List[List[NewsItem]]
+    id: int = 0
+    micro_clusters: List[List[NewsItem]] = []
     profile: Dict[str, float] = field(default_factory=dict)
     title: str = ""
     embedding: Optional[List[float]] = None
     impact: int = 0
-    analysis: Optional[AnalysisResult] = None
 
     @property
     def score(self, weight: float = 0.3) -> float:

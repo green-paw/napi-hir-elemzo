@@ -4,15 +4,27 @@ from google import genai
 from google.genai import types
 import time
 from typing import Any, Dict, List
+import os
 
 from models import Article, MultiClusterIdResponse, MultiClusterResponse
 from models import StructuredEventSummary
 import llm_core
 
-
 # 1. Globális kliens létrehozása itt, a handlerben
-client_main = genai.Client(api_key=config.GOOGLE_API_KEY)
-client_free = genai.Client(api_key=config.GOOGLE_API_KEY_FREE)
+#client_main = genai.Client(api_key=config.GOOGLE_API_KEY)
+#client_free = genai.Client(api_key=config.GOOGLE_API_KEY_FREE)
+
+def get_gemini_client() -> genai.Client:
+    """Inicializálja a Vertex AI klienst."""
+    project_id: str = os.getenv("GCP_PROJECT_ID", "your-project-id")
+    location: str = "us-central1"
+
+    return genai.Client(
+        vertexai=True,
+        project=project_id,
+        location=location
+    )
+client_main = get_gemini_client()
 
 def get_strategic_topics(titles_sample):
     sys_instr = f"""

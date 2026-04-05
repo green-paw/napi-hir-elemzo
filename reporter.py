@@ -232,8 +232,7 @@ def generate_analysis_html(results: List[AnalysisResult], output_file: str = "an
     """
 
     for res in results:
-        # Az objectivity_score alapján adjunk egy gyors vizuális jelzést (opcionális)
-        score = res.get('objectivity_score', 'N/A')
+        score = res.objectivity_score if res.objectivity_score is not None else "N/A"
         
         html_content += f"""
         <div class="analysis-card">
@@ -241,15 +240,15 @@ def generate_analysis_html(results: List[AnalysisResult], output_file: str = "an
             
             <h3>Rekonstrukció (A tények)</h3>
             <div class="reconstruction">
-                {res['reconstruction']}
+                {res.reconstruction}
             </div>
 
             <div class="meta-section">
                 <span class="section-title">Narratív keretezés</span>
-                <p>{res['narrative_games']}</p>
+                <p>{res.narrative_games}</p>
                 
                 <span class="section-title">Manipulációs jegyzőkönyv</span>
-                <p>{res['manipulation_log']}</p>
+                <p>{res.manipulation_log}</p>
             </div>
         </div>
         """

@@ -14,6 +14,8 @@ from clustering import (
     get_taxonomy_suggestion
 )
 
+from concurrent.futures import ThreadPoolExecutor
+
 from datetime import datetime
 import builtins
 
@@ -76,8 +78,8 @@ def main():
     #print(tax)
 
     results: List[AnalysisResult] = []
-    for m in top_macros:
-        results.append(analyze_macro_cluster(m))
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        results = list(executor.map(analyze_macro_cluster, top_macros))
 
     reporter.generate_analysis_html(results, "index.html")
 

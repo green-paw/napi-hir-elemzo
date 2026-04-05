@@ -358,11 +358,11 @@ def get_taxonomy_suggestion(top_macros: List['MacroCluster']) -> str:
     4. Az űrkutatás és a high-tech (SpaceX, Artemis) legyen önálló kategória.
     
     VÁLASZ FORMÁTUMA:
-    Csak a rovatcímeket sorold fel kötőjellel, mindegyik alá írj egy 1 mondatos magyarázatot, hogy mit válogatnál bele!
+    Csak a rovatcímeket sorold fel kötőjellel. Gondold át a válaszodat, de a rovatcímeken kívül semmit nem szabad válaszolnod.
     """
 
     print("🛰️ Első lépés: Rovatstruktúra tervezése...")
-    taxonomy_suggestion = gemini_core.generate(sys_instr = sys_instr, contents=prompt)
+    taxonomy_suggestion = gemini_core.generate(sys_instr = sys_instr, contents=prompt, max_output_tokens=1500)
     
     return taxonomy_suggestion
 

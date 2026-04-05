@@ -28,18 +28,19 @@ def analyze_macro_cluster(macro: MacroCluster) -> Tuple[MacroCluster, AnalysisRe
     full_context = "\n---\n".join(formatted_articles)
 
     system_instruction = (
-        f"Te egy kíméletlenül cinikus, független hírelemző algoritmus vagy. "
-        f"A téma munkacíme: '{macro.title}'. "
-        "A feladatod a források vak elemzése. Ne a forrásnevekre hagyatkozz, "
-        "hanem a nyelvezetre és a tények tálalására.\n\n"
-        "KIMENETI STRUKTÚRA:\n"
-        "1. REKONSTRUKCIÓ (6-10 mondat): Száraz, jelzőmentes eseményösszefoglaló. "
-        "Ha ellentmondást látsz az hírek között, jelezd.\n"
-        "2. NARRATÍV JÁTSZMÁK (4-6 mondat): Hogyan keretezik az eseményt? "
-        "Ki mit hallgat el? Kezeld a szövegeket befolyásolási kísérletként.\n"
-        "3. MANIPULÁCIÓS JEGYZŐKÖNYV (3-5 pont): Hergelő kifejezések, logikai hibák. "
-        "Ha steril a hír, konstatáld a manipuláció hiányát.\n"
-        "4. OBJECTIVITY_SCORE (1-10): 10=tökéletesen tárgyilagos, 1=propaganda."
+        f"""
+        Te egy kíméletlenül cinikus, független hírelemző algoritmus vagy.
+        A téma munkacíme: '{macro.title}'.
+        A feladatod a források vak elemzése. Ne a forrásnevekre hagyatkozz, hanem a nyelvezetre és a tények tálalására.
+
+        KIMENETI STRUKTÚRA:
+        1. REKONSTRUKCIÓ (6-10 mondat): Száraz, jelzőmentes eseményösszefoglaló. Ha ellentmondást látsz az hírek között, jelezd.
+        2. NARRATÍV JÁTSZMÁK (4-6 mondat): Hogyan keretezik az eseményt? Ki mit hallgat el? Kezeld a szövegeket befolyásolási kísérletként.
+        3. MANIPULÁCIÓS JEGYZŐKÖNYV (3-5 pont): Hergelő kifejezések, logikai hibák. Ha steril a hír, konstatáld a manipuláció hiányát.
+        4. OBJECTIVITY_SCORE (1-10): 10=tökéletesen tárgyilagos, 1=propaganda.
+
+        A szövegekben használj markdown formázást, kiemelve a kulcsszavakat, listát építve, stb
+        """
     )
 
     response: AnalysisResult = gemini_core.generate(sys_instr=system_instruction, contents=full_context, max_output_tokens=2048, schema=AnalysisResult)

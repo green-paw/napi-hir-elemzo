@@ -1,3 +1,4 @@
+import markdown
 import os
 from datetime import datetime
 from typing import Any, List, Dict
@@ -207,6 +208,8 @@ class DebugReporter:
 
 
 def generate_analysis_html(results: List[MacroAnalysisPair], output_file: str = "analysis.html"):
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+
     html_content = """
     <!DOCTYPE html>
     <html lang="hu">
@@ -220,16 +223,19 @@ def generate_analysis_html(results: List[MacroAnalysisPair], output_file: str = 
             .meta-section { background-color: #f9f9f9; padding: 15px; border-left: 4px solid #333; margin-top: 15px; }
             .section-title { font-variant: all-small-caps; letter-spacing: 1px; font-weight: bold; margin-top: 10px; display: block; }
             .score { float: right; font-weight: bold; border: 1px solid #000; padding: 2px 8px; }
+            .meta { color: #666; font-size: 0.8em; }
             ul { margin: 5px 0; padding-left: 20px; }
             hr { border: 0; border-top: 1px dashed #ccc; margin: 20px 0; }
         </style>
     </head>
     <body>
         <h1>Napi Hírelemzés</h1>
-    """
+        """
+    
+    html_content += f"<p class='meta'>Generálva: {now}</p>"
+    
 
-    for item in results:
-        macro, analysis = item 
+    for macro, analysis in results:
         p = macro.profile
         net_rel = p.get('NET_RELEVANCE', 0.0)
         pol = p.get('POLITICS', 0.0)
@@ -244,18 +250,16 @@ def generate_analysis_html(results: List[MacroAnalysisPair], output_file: str = 
             <div class="score">Objektivitás: {score}/10</div>
             
             <h3>{macro.title}</h3>
-            <p>{profile_str}</p>
-            <div class="reconstruction">
-                {analysis.reconstruction}
-            </div>
-
-            <div class="meta-section">
+            <p class='meta'>{profile_str}</p>
+            <p>
+                <p>{markdown.markdown(analysis.reconstruction)}</p>
+                
                 <span class="section-title">Narratív keretezés</span>
-                <p>{analysis.narrative_games}</p>
+                <p>{markdown.markdown(analysis.narrative_games)}</p>
                 
                 <span class="section-title">Manipulációs jegyzőkönyv</span>
-                <p>{analysis.manipulation_log}</p>
-            </div>
+                <p>{markdown.markdown(analysis.manipulation_log)}</p>
+            </p>
         </div>
         """
 

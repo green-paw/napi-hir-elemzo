@@ -68,6 +68,7 @@ jobs:
           CACHE_SETTINGS: ${{ vars.CACHE_SETTINGS }}
           CURRENT_BRANCH: ${{ github.ref_name }}
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          SAFE_BRANCH: SAFE_BRANCH
         run: python -u main.py
 
       - name: Save Checkpoints Cache

@@ -1,3 +1,4 @@
+import os
 from typing import List
 from analyzer import AnalysisResult, MacroAnalysisPair, analyze_macro_cluster
 import editor
@@ -53,7 +54,7 @@ def main():
     print(f"Szűrés: {before} hírből maradt {len(news_items)}")
 
     # 4. Makró klaszterek építése
-    service = ClusteringService(expansion_ratio=1.2, micro_threshold=0.35)
+    service = ClusteringService(expansion_ratio=1.3, micro_threshold=0.35)
     macros, lone_wolves = service.build_macros(news_items)
 
     # 5. LLM Cím és Impact Score generálása
@@ -84,8 +85,10 @@ def main():
     with ThreadPoolExecutor(max_workers=10) as executor:
         results = list(executor.map(analyze_macro_cluster, top_macros))
 
-    reporter.generate_analysis_html(results, "index.html")
-    return
+    fileName = os.getenv("CURRENT_BRANCH", "main")
+    if fileName == "main":
+        fileName = "index"
+    reporter.generate_analysis_html(results, f"{fileName}.html")
 
     # 8. Csak a top makrókból építünk mega klasztereket (Témaköröket)
     mega_clusters = service.build_megas_with_llm(top_macros)

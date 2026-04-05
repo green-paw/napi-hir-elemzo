@@ -54,7 +54,7 @@ def main():
     print(f"Szűrés: {before} hírből maradt {len(news_items)}")
 
     # 4. Makró klaszterek építése
-    service = ClusteringService(expansion_ratio=1.3, micro_threshold=0.35)
+    service = ClusteringService(expansion_ratio=1.5, micro_threshold=0.35)
     macros, lone_wolves = service.build_macros(news_items)
 
     # 5. LLM Cím és Impact Score generálása

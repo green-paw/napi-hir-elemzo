@@ -40,4 +40,5 @@ def analyze_macro_cluster(macro: MacroCluster) -> AnalysisResult:
     )
 
     response = gemini_core.generate(sys_instr=system_instruction, contents=full_context, max_output_tokens=2048, schema=AnalysisResult)
+    macro.analysis = response
     return response

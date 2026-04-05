@@ -77,6 +77,7 @@ def main():
     #tax = get_taxonomy_suggestion(top_macros)
     #print(tax)
 
+    print(f"Analízis indul {len(top_macros)} makróra")
     results: List[AnalysisResult] = []
     with ThreadPoolExecutor(max_workers=10) as executor:
         results = list(executor.map(analyze_macro_cluster, top_macros))

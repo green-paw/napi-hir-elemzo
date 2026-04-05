@@ -206,10 +206,7 @@ class DebugReporter:
 
 
 
-def generate_analysis_html(results: List[AnalysisResult], output_file: str = "analysis.html"):
-    """
-    Generál egy egyszerű, letisztult HTML fájlt az elemzésekből.
-    """
+def generate_analysis_html(macros: List[MacroCluster], output_file: str = "analysis.html"):
     html_content = """
     <!DOCTYPE html>
     <html lang="hu">
@@ -231,24 +228,33 @@ def generate_analysis_html(results: List[AnalysisResult], output_file: str = "an
         <h1>Napi Hírelemzés</h1>
     """
 
-    for res in results:
-        score = res.objectivity_score if res.objectivity_score is not None else "N/A"
+    for macro in macros:
+        a: AnalysisResult = macro.analysis
+        p = macro.profile
+        net_rel = p.get('NET_RELEVANCE', 0.0)
+        pol = p.get('POLITICS', 0.0)
+        eco = p.get('ECONOMY', 0.0)
+        tech = p.get('TECH', 0.0)
+        trash = p.get('TRASH', 0.0)
+        profile_str = f"SCORE: {macro.score:.1f} | IMP {macro.impact} NET {net_rel:.1f} | P {pol:.1f} E {eco:.1f} T {tech:.1f} N {trash:.1f}"
+        score = a.objectivity_score if a.objectivity_score is not None else "N/A"
         
         html_content += f"""
         <div class="analysis-card">
             <div class="score">Objektivitás: {score}/10</div>
             
-            <h3>Rekonstrukció (A tények)</h3>
+            <h3>{macro.title}</h3>
+            <p>{profile_str}</p>
             <div class="reconstruction">
-                {res.reconstruction}
+                {a.reconstruction}
             </div>
 
             <div class="meta-section">
                 <span class="section-title">Narratív keretezés</span>
-                <p>{res.narrative_games}</p>
+                <p>{a.narrative_games}</p>
                 
                 <span class="section-title">Manipulációs jegyzőkönyv</span>
-                <p>{res.manipulation_log}</p>
+                <p>{a.manipulation_log}</p>
             </div>
         </div>
         """

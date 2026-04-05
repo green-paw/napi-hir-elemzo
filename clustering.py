@@ -1,3 +1,4 @@
+from analyzer import AnalysisResult
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics.pairwise import cosine_similarity
@@ -21,6 +22,7 @@ class MacroCluster:
     title: str = ""
     embedding: Optional[List[float]] = None
     impact: int = 0
+    analysis: AnalysisResult = AnalysisResult()
 
     @property
     def score(self, weight: float = 0.3) -> float:

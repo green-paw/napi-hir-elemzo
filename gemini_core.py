@@ -6,10 +6,8 @@ from google import genai
 import os
 
 import config
-from token_logger import TokenLogger # Feltételezem, a korábbi kód bekerült ide
+from token_logger import TokenLogger
 from concurrent.futures import ThreadPoolExecutor
-
-#client = Client(api_key=config.GOOGLE_API_KEY)
 
 def get_gemini_client() -> genai.Client:
     """Inicializálja a Vertex AI klienst."""

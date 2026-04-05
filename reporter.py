@@ -2,6 +2,8 @@ import os
 from datetime import datetime
 from typing import Any, List, Dict
 
+from analyzer import AnalysisResult
+
 class HtmlReporter:
     """HTML jelentés generálása a validált eseményekből."""
     
@@ -199,3 +201,65 @@ class DebugReporter:
         with open(self.output_path, "w", encoding="utf-8") as f:
             f.write("\n".join(html))
         print(f"🔬 Debug HTML kész: {self.output_path}")
+
+
+
+
+
+def generate_analysis_html(results: List[AnalysisResult], output_file: str = "analysis.html"):
+    """
+    Generál egy egyszerű, letisztult HTML fájlt az elemzésekből.
+    """
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="hu">
+    <head>
+        <meta charset="UTF-8">
+        <title>Hírelemzési Jelentés</title>
+        <style>
+            body { font-family: sans-serif; line-height: 1.6; color: #000; max-width: 800px; margin: 40px auto; padding: 20px; }
+            .analysis-card { border-bottom: 2px solid #eee; margin-bottom: 40px; padding-bottom: 20px; }
+            .reconstruction { font-weight: 500; margin-bottom: 20px; }
+            .meta-section { background-color: #f9f9f9; padding: 15px; border-left: 4px solid #333; margin-top: 15px; }
+            .section-title { font-variant: all-small-caps; letter-spacing: 1px; font-weight: bold; margin-top: 10px; display: block; }
+            .score { float: right; font-weight: bold; border: 1px solid #000; padding: 2px 8px; }
+            ul { margin: 5px 0; padding-left: 20px; }
+            hr { border: 0; border-top: 1px dashed #ccc; margin: 20px 0; }
+        </style>
+    </head>
+    <body>
+        <h1>Napi Hírelemzés</h1>
+    """
+
+    for res in results:
+        # Az objectivity_score alapján adjunk egy gyors vizuális jelzést (opcionális)
+        score = res.get('objectivity_score', 'N/A')
+        
+        html_content += f"""
+        <div class="analysis-card">
+            <div class="score">Objektivitás: {score}/10</div>
+            
+            <h3>Rekonstrukció (A tények)</h3>
+            <div class="reconstruction">
+                {res['reconstruction']}
+            </div>
+
+            <div class="meta-section">
+                <span class="section-title">Narratív keretezés</span>
+                <p>{res['narrative_games']}</p>
+                
+                <span class="section-title">Manipulációs jegyzőkönyv</span>
+                <p>{res['manipulation_log']}</p>
+            </div>
+        </div>
+        """
+
+    html_content += """
+    </body>
+    </html>
+    """
+
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write(html_content)
+    
+    print(f"Jelentés generálva: {output_file}")

@@ -1,4 +1,5 @@
 from typing import List
+from analyzer import AnalysisResult, analyze_macro_cluster
 import editor
 import gemini_core
 import reporter
@@ -50,7 +51,7 @@ def main():
     print(f"Szűrés: {before} hírből maradt {len(news_items)}")
 
     # 4. Makró klaszterek építése
-    service = ClusteringService(expansion_ratio=1.3, micro_threshold=0.35)
+    service = ClusteringService(expansion_ratio=1.2, micro_threshold=0.35)
     macros, lone_wolves = service.build_macros(news_items)
 
     # 5. LLM Cím és Impact Score generálása
@@ -71,19 +72,23 @@ def main():
 
     secondary_macros = [m for m in macros if m not in top_macros]
 
-    tax = get_taxonomy_suggestion(top_macros)
-    print(tax)
+    #tax = get_taxonomy_suggestion(top_macros)
+    #print(tax)
 
-    return
+    results: List[AnalysisResult] = []
+    for m in top_macros:
+        results.append(analyze_macro_cluster(m))
 
+    reporter.generate_analysis_html(results, "index.html")
 
     # 8. Csak a top makrókból építünk mega klasztereket (Témaköröket)
     mega_clusters = service.build_megas_with_llm(top_macros)
 
     # 9. Debug HTML generálása
-    debug = reporter.DebugReporter("index.html")
+    debug = reporter.DebugReporter("debug.html")
     debug.generate(mega_clusters, secondary_macros, lone_wolves)
 
+    return
 
     """
     

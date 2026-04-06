@@ -4,7 +4,29 @@ from datetime import datetime
 from typing import Any, List, Dict
 
 from analyzer import AnalysisResult, MacroAnalysisPair
-from output_handler import format_sources_html, generate_ai_search_url
+from source import NewsItem
+
+def generate_ai_search_url(topic_title: str, service: str = "perplexity") -> str:
+    import urllib.parse
+    query = f"Nézz utána ennek a friss eseménynek és foglald össze a részleteket: {topic_title}"
+    encoded_query = urllib.parse.quote(query)
+    url = f"https://www.perplexity.ai/search?q={encoded_query}"
+    return url
+
+def format_sources_html(news: List[NewsItem]) -> str:
+    from collections import defaultdict
+    source_map = defaultdict(list)
+    for s in news:
+        source_map[s.source_id].append(s.link)
+    
+    formatted = []
+    for name, urls in source_map.items():
+        if len(urls) == 1:
+            formatted.append(f'<a href="{urls[0]}" target="_blank">{name}</a>')
+        else:
+            links = ", ".join([f'<a href="{url}" target="_blank">{i+1}</a>' for i, url in enumerate(urls)])
+            formatted.append(f'{name} ({links})')
+    return " | ".join(formatted)
 
 class HtmlReporter:
     """HTML jelentés generálása a validált eseményekből."""

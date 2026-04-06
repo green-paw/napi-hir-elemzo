@@ -60,7 +60,8 @@ def generate(
         response_mime_type=response_mime_type,
         response_schema=response_schema,
         temperature=0.0,
-        max_output_tokens=max_output_tokens
+        max_output_tokens=max_output_tokens,
+        labels={"branch": os.getenv("CURRENT_BRANCH", "main")}
     )
     
     response = execute_with_retry(
@@ -69,13 +70,9 @@ def generate(
         contents=contents, 
         config=gen_config
     )
-    
-    logger.add(model, response)
 
-    # Logging a konzolra (ahogy te írtad, nagyon hasznos debuggoláshoz)
     try:
-        if response is not None and hasattr(response, 'usage_metadata'):
-            print(logger.add(model, response))
+        print(logger.add(model, response))
     except Exception as e:
         print(f"⚠️ Logger hiba a konzolos kiírásnál: {e}")
     

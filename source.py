@@ -118,11 +118,6 @@ def process_single_source(args: Tuple[str, config.RssSource, datetime, timedelta
 # --- FŐ FÜGGVÉNY ---
 
 def fetch_news() -> List[NewsItem]:
-    news_pool: List[NewsItem] = [] # load_checkpoint...
-    if news_pool:
-        print("📦 Hírek betöltve a checkpointból.")
-        return news_pool
-
     now: datetime = datetime.now()
     limit: timedelta = timedelta(hours=24)
     
@@ -161,5 +156,4 @@ def fetch_news() -> List[NewsItem]:
         item.id = f"C{idx + 1}"
 
     print(f"✅ Begyűjtés kész: {len(unique_news)} egyedi hír.")
-    save_checkpoint("news_pool.json", unique_news, List[NewsItem])
     return unique_news

@@ -227,7 +227,68 @@ class DebugReporter:
         print(f"🔬 Debug HTML kész: {self.output_path}")
 
 
+def generate_html_summary() -> str:
+    from gemini_core import logger
+    stats = logger.get_aggregated_stats()
+    
+    html_output: List[str] = []
+    
+    # CSS stílusok a tiszta megjelenéshez
+    html_output.append("""
+    <style>
+        .api-stats-container { font-family: sans-serif; max-width: 800px; margin: 20px auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+        .api-stats-header { background: #f8f9fa; padding: 15px; border-bottom: 2px solid #dee2e6; text-align: center; }
+        .model-card { padding: 15px; border-bottom: 1px solid #eee; }
+        .model-card:last-child { border-bottom: none; }
+        .model-name { color: #2c3e50; font-weight: bold; font-size: 1.1em; margin-bottom: 10px; display: flex; align-items: center; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; font-size: 0.9em; }
+        .stat-item { background: #fcfcfc; padding: 8px; border-radius: 4px; border: 1px solid #f0f0f0; }
+        .stat-label { color: #666; display: block; font-size: 0.8em; }
+        .stat-value { font-weight: bold; color: #333; }
+        .cache-badge { background: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+        .status-tag { display: inline-block; background: #fff3e0; color: #ef6c00; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin-right: 5px; }
+    </style>
+    <div class="api-stats-container">
+        <div class="api-stats-header">
+            <h2 style="margin:0;">📊 API Használati és Cache Statisztika</h2>
+        </div>
+    """)
 
+    for model, data in stats.items():
+        savings: float = (data['cached'] / data['in'] * 100) if data['in'] > 0 else 0
+        reasons_list: List[str] = [f'<span class="status-tag">{k}: {v}</span>' for k, v in data['finish_reasons'].items()]
+        
+        html_output.append(f"""
+        <div class="model-card">
+            <div class="model-name">🤖 Modell: {model}</div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">Hívások</span>
+                    <span class="stat-value">{data['calls']}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Input / Cache</span>
+                    <span class="stat-value">{data['in']:,}</span> 
+                    <span class="cache-badge">({data['cached']:,})</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Cache Arány</span>
+                    <span class="stat-value" style="color: #2e7d32;">{savings:.1f}%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Output Tokenek</span>
+                    <span class="stat-value">{data['out']:,}</span>
+                </div>
+            </div>
+            <div style="margin-top: 12px;">
+                <span class="stat-label" style="margin-bottom: 4px;">🛑 Befejezési státuszok:</span>
+                {"".join(reasons_list)}
+            </div>
+        </div>
+        """)
+
+    html_output.append("</div>")
+    return "\n".join(html_output)
 
 
 def generate_analysis_html(results: List[MacroAnalysisPair], output_file: str = "analysis.html"):
@@ -254,9 +315,8 @@ def generate_analysis_html(results: List[MacroAnalysisPair], output_file: str = 
     <body>
         <h1>Napi Hírelemzés</h1>
         """
-    
     html_content += f"<p class='meta'>Generálva: {now}</p>"
-    
+    html_content += generate_html_summary()
 
     for macro, analysis in results:
         p = macro.profile
@@ -275,24 +335,21 @@ def generate_analysis_html(results: List[MacroAnalysisPair], output_file: str = 
         
         html_content += f"""
         <div class="analysis-card">
-            <div class="score">Objektivitás: {score}/10</div>
-            
             <h3>{macro.title}</h3>
-            <p class='meta'>{profile_str}</p>
+            <p class='meta'>OBJ: {score}/10 | {profile_str}</p>
             <p>
                 <p>{markdown.markdown(analysis.reconstruction)}</p>
                 
-                <span class="section-title">Narratív keretezés</span>
+                <span class="section-title"><b>Narratív keretezés</b></span>
                 <p>{markdown.markdown(analysis.narrative_games)}</p>
                 
-                <span class="section-title">Manipulációs jegyzőkönyv</span>
+                <span class="section-title"><b>Manipulációs jegyzőkönyv</b></span>
                 <p>{markdown.markdown(analysis.manipulation_log)}</p>
             </p>
-            <p class='meta'>{ sources_html }</p>
+            <p class='meta'><i>Források: { sources_html }</i></p>
             <p class='meta'><a href='{ generate_ai_search_url(macro.title) }' target=_BLANK>Perplexity keresés</a></p>
         </div>
         """
-
     html_content += """
     </body>
     </html>

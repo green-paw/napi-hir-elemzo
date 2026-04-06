@@ -4,7 +4,7 @@ class TokenLogger:
     def __init__(self) -> None:
         self.log: List[Dict[str, Any]] = []
 
-    def add(self, model_name: str, response: Any) -> None:
+    def add(self, model_name: str, response: Any) -> str:
         entry = {
             "model": model_name,
             "input": 0,
@@ -13,22 +13,23 @@ class TokenLogger:
             "finish_reason": "UNKNOWN"
         }
 
-        # 1. Költség és token adatok kinyerése (or 0 védi ki a NoneType hibát)
-        if hasattr(response, 'usage_metadata') and response.usage_metadata:
-            usage = response.usage_metadata
-            entry["input"] = getattr(usage, 'prompt_token_count', 0) or 0
-            entry["output"] = getattr(usage, 'candidates_token_count', 0) or 0
-            entry["cached"] = getattr(usage, 'cached_content_token_count', 0) or 0
+        if response:
+            if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                usage = response.usage_metadata
+                entry["input"] = getattr(usage, 'prompt_token_count', 0) or 0
+                entry["output"] = getattr(usage, 'candidates_token_count', 0) or 0
+                entry["cached"] = getattr(usage, 'cached_content_token_count', 0) or 0
 
-        # 2. Befejezési ok kinyerése
-        if hasattr(response, 'candidates') and response.candidates:
-            try:
-                fr = response.candidates[0].finish_reason
-                entry["finish_reason"] = str(fr).replace('FinishReason.', '') if fr else "UNKNOWN"
-            except:
-                pass
+            # 2. Befejezési ok kinyerése
+            if hasattr(response, 'candidates') and response.candidates:
+                try:
+                    fr = response.candidates[0].finish_reason
+                    entry["finish_reason"] = str(fr).replace('FinishReason.', '') if fr else "UNKNOWN"
+                except:
+                    pass
 
-        self.log.append(entry)
+            self.log.append(entry)
+        return f"📊 {model_name} | In: {entry['input']} | Out: {entry['output']} | Cache: {entry['cached']} | Reason: {entry['finish_reason']}"
 
     def get_aggregated_stats(self) -> Dict[str, Any]:
         stats = {}

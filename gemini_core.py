@@ -75,18 +75,7 @@ def generate(
     # Logging a konzolra (ahogy te írtad, nagyon hasznos debuggoláshoz)
     try:
         if response is not None and hasattr(response, 'usage_metadata'):
-            logger.add(model, response)
-
-            usage = response.usage_metadata
-            input_tokens = getattr(usage, 'prompt_token_count', 0) or 0
-            cached_tokens = getattr(usage, 'cached_content_token_count', 0) or 0
-            output_tokens = getattr(usage, 'candidates_token_count', 0) or 0
-            
-            finish_reason = 'N/A'
-            if hasattr(response, 'candidates') and response.candidates:
-                finish_reason = response.candidates[0].finish_reason
-                
-            print(f"📊 {model} | In: {input_tokens} | Out: {output_tokens} | Cache: {cached_tokens} | Reason: {finish_reason}")
+            print(logger.add(model, response))
     except Exception as e:
         print(f"⚠️ Logger hiba a konzolos kiírásnál: {e}")
     

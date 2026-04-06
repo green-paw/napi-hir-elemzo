@@ -268,11 +268,10 @@ def generate_analysis_html(results: List[MacroAnalysisPair], output_file: str = 
         profile_str = f"SCORE: {macro.score:.1f} | IMP {macro.impact} NET {net_rel:.1f} | P {pol:.1f} E {eco:.1f} T {tech:.1f} N {trash:.1f}"
         score = analysis.objectivity_score if analysis.objectivity_score is not None else "N/A"
 
-        links = []
+        newsItems: List[NewsItem] = []
         for micro in macro.micro_clusters:
-            for item in micro:
-                links.append(item.link)
-        sources_html = format_sources_html(links)
+            newsItems.extend(micro)
+        sources_html = format_sources_html(newsItems)
         
         html_content += f"""
         <div class="analysis-card">

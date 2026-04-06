@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, List, Dict
 
 from analyzer import AnalysisResult, MacroAnalysisPair
+from output_handler import format_sources_html, generate_ai_search_url
 
 class HtmlReporter:
     """HTML jelentés generálása a validált eseményekből."""
@@ -244,6 +245,12 @@ def generate_analysis_html(results: List[MacroAnalysisPair], output_file: str = 
         trash = p.get('TRASH', 0.0)
         profile_str = f"SCORE: {macro.score:.1f} | IMP {macro.impact} NET {net_rel:.1f} | P {pol:.1f} E {eco:.1f} T {tech:.1f} N {trash:.1f}"
         score = analysis.objectivity_score if analysis.objectivity_score is not None else "N/A"
+
+        links = []
+        for micro in macro.micro_clusters:
+            for item in micro:
+                links.append(item.link)
+        sources_html = format_sources_html(links)
         
         html_content += f"""
         <div class="analysis-card">
@@ -260,6 +267,8 @@ def generate_analysis_html(results: List[MacroAnalysisPair], output_file: str = 
                 <span class="section-title">Manipulációs jegyzőkönyv</span>
                 <p>{markdown.markdown(analysis.manipulation_log)}</p>
             </p>
+            <p class='meta'>{ sources_html }</p>
+            <p class='meta'><a href='{ generate_ai_search_url(macro.title) }' target=_BLANK>Perplexity keresés</a></p>
         </div>
         """
 

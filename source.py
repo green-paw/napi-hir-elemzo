@@ -1,3 +1,5 @@
+from checkpoint_manager import NewsCache, load_checkpoint, save_checkpoint
+import gemini_core
 from pydantic import BaseModel, Field, field_validator, model_validator
 import requests
 from dataclasses import field
@@ -12,6 +14,7 @@ from typing import Dict, List, Optional, Set, Tuple
 
 import config 
 import hashlib
+
 
 # --- SEGÉDFÜGGVÉNYEK ---
 
@@ -56,7 +59,8 @@ class NewsItem(BaseModel):
     title: str
     content: str
     embedding: Optional[List[float]] = None
-    profile: Dict[str, float] = Field(default_factory=dict) # Javítva: Field kell a pydantic-ba
+    clean_content: Optional[str] = Field(default=None, exclude=True) # Ezt ellenőrizd!
+    profile: Dict[str, float] = Field(default_factory=dict)
 
     @field_validator('title', 'content')
     @classmethod
@@ -173,3 +177,62 @@ def fetch_news() -> List[NewsItem]:
 
     print(f"✅ Begyűjtés kész: {len(unique_news)} egyedi hír.")
     return unique_news
+
+
+def handle_news_feed_and_cache(incoming_news: List[NewsItem], run_id: str) -> Tuple[List[NewsItem], NewsCache]:
+    cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
+    full_blacklist: Set[str] = set().union(*cache.trash_bin.values())
+    existing_hashes: Set[str] = set().union(*(batch.keys() for batch in cache.batches.values()))
+    new_items_to_process: List[NewsItem] = []
+
+    if run_id not in cache.batches:
+        cache.batches[run_id] = {}
+
+    for item in incoming_news:
+        if item.hash in full_blacklist:
+            continue
+        
+        if item.hash in existing_hashes:
+            continue
+        cache.batches[run_id][item.hash] = item
+        new_items_to_process.append(item)
+
+    # Takarítás: töröljük a 24 óránál régebbi batcheket és trasht
+    limit = datetime.now() - timedelta(hours=24)
+    cache.batches = {ts: b for ts, b in cache.batches.items() if datetime.fromisoformat(ts) > limit}
+    cache.trash_bin = {ts: t for ts, t in cache.trash_bin.items() if datetime.fromisoformat(ts) > limit}
+
+    save_checkpoint("news_feed.json", cache, NewsCache)
+    all_live_news = []
+    for batch in cache.batches.values():
+        all_live_news.extend(batch.values())
+        
+    return all_live_news, cache
+
+def update_current_batch(items: List[NewsItem], cache: NewsCache, run_id: str):
+    if run_id not in cache.batches:
+        cache.batches[run_id] = {}
+    for item in items:
+        cache.batches[run_id][item.hash] = item
+    save_checkpoint("news_feed.json", cache, NewsCache)
+
+def add_to_trash(item_hash: str, cache: NewsCache, run_id: str):
+    if run_id not in cache.trash_bin:
+        cache.trash_bin[run_id] = set()
+    cache.trash_bin[run_id].add(item_hash)
+
+    for tid in list(cache.batches.keys()):
+        cache.batches[tid].pop(item_hash, None)
+        if not cache.batches[tid]:
+            del cache.batches[tid]
+
+def embed_news(all_live_news: List[NewsItem], cache: NewsCache, RUN_ID: str) -> None:
+    news_to_embed = [item for item in all_live_news if item.embedding is None]
+
+    if news_to_embed:
+        print(f"🧬 {len(news_to_embed)} hír embeddingjének lekérése...")
+        texts_to_embed = [item.clean_content for item in news_to_embed if item.clean_content]
+        new_vectors = gemini_core.embed(texts_to_embed, task_type="RETRIEVAL_DOCUMENT")
+        for item, vector in zip(news_to_embed, new_vectors):
+            item.embedding = vector
+        update_current_batch(all_live_news, cache, RUN_ID)

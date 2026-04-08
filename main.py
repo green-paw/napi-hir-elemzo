@@ -2,10 +2,13 @@ import os
 from typing import Dict, List, Set, TypeVar
 from analyzer import AnalysisResult, MacroAnalysisPair, analyze_macro_cluster
 from checkpoint_manager import CacheWrapper, NewsCache, load_checkpoint, save_checkpoint
+import clustering
 import editor
 import reporter
 import source
 from source import NewsItem
+import source
+
 from clustering import (
     ClusteringService, 
     get_multi_anchor_vectors, 
@@ -22,6 +25,7 @@ import builtins
 from gemini_core import logger        
 from pydantic import BaseModel
 import numpy as np
+from text_cleaner import TextCleaner
 
 RUN_ID = datetime.now().isoformat()
 
@@ -33,21 +37,32 @@ def timestamped_print(*args, **kwargs):
 builtins.print = timestamped_print
 
 def main():
-    print("🚀 Hírfeldolgozó pipeline indítása...")
+    # 1. Friss hírek letöltése
+    incoming_news: List[NewsItem] = source.fetch_news()
 
-    # --- 1. FÁZIS: Adatgyűjtés ---
-    print("📥 Hírek letöltése az RSS feedekből...")
-    news_items: List[NewsItem] = source.fetch_news()
+    # 2. Cache-elés és összefésülés (visszakapjuk a teljes listát: régi + új)
+    # A handle_news_feed_and_cache már kezeli a duplikációt és a trash szűrést
+    all_live_news, current_cache = source.handle_news_feed_and_cache(incoming_news, RUN_ID)
 
-    if not news_items:
+    if not all_live_news:
         print("❌ Nincsenek feldolgozandó hírek. Leállás.")
         return
 
-    # régi és új itemek egy listában
-    news_items = handle_news_feed_and_cache(news_items, RUN_ID)
+    # 3. Szövegtisztítás (Csak azokon fut le, ahol nincs embedding)
+    # Ez feltölti a .clean_content mezőt az objektumokban (referencia szerint)
+    TextCleaner.process(all_live_news)
+
+    first_item = all_live_news[0]
+    clean_txt = first_item.clean_content if first_item.clean_content else "Nincs tiszta szöveg"
+
+    print(f"DEBUG: {first_item.id} tiszta szövege: {clean_txt[:50]}...")
 
     # 1. Horgonyok betöltése
-    anchors: Dict[str, np.ndarray] = get_multi_anchor_vectors()
+    anchors: Dict[str, np.ndarray] = clustering.get_anchor_embeddings()
+
+    source.embed_news(all_live_news, current_cache, RUN_ID)
+
+
 
     # 2. Hírek vektorizálása és profilozása
     ensure_item_embeddings(news_items)
@@ -158,44 +173,3 @@ def main():
 if __name__ == "__main__":
     main()
 
-def handle_news_feed_and_cache(incoming_news: List[NewsItem], run_id: str) -> List[NewsItem]:
-    cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
-    full_blacklist: Set[str] = set().union(*cache.trash_bin.values())
-    existing_hashes: Set[str] = set().union(*(batch.keys() for batch in cache.batches.values()))
-    new_items_to_process: List[NewsItem] = []
-
-    if run_id not in cache.batches:
-        cache.batches[run_id] = {}
-
-    for item in incoming_news:
-        if item.hash in full_blacklist:
-            continue
-        
-        if item.hash in existing_hashes:
-            continue
-        cache.batches[run_id][item.hash] = item
-        new_items_to_process.append(item)
-
-    save_checkpoint("news_feed.json", cache, NewsCache)
-    all_live_news = []
-    for batch in cache.batches.values():
-        all_live_news.extend(batch.values())
-        
-    return all_live_news
-
-def update_current_batch(items: List[NewsItem], cache: NewsCache, run_id: str):
-    if run_id not in cache.batches:
-        cache.batches[run_id] = {}
-    for item in items:
-        cache.batches[run_id][item.hash] = item
-    save_checkpoint("news_feed.json", cache, NewsCache)
-
-def add_to_trash(item_hash: str, cache: NewsCache, run_id: str):
-    if run_id not in cache.trash_bin:
-        cache.trash_bin[run_id] = set()
-    cache.trash_bin[run_id].add(item_hash)
-
-    for tid in list(cache.batches.keys()):
-        cache.batches[tid].pop(item_hash, None)
-        if not cache.batches[tid]:
-            del cache.batches[tid]

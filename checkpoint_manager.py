@@ -24,9 +24,7 @@ class NewsCache(BaseModel):
     batches: Dict[str, Dict[str, NewsItem]] = Field(default_factory=dict)
     trash_bin: Dict[str, Set[str]] = Field(default_factory=dict)
 
-class CacheWrapper(BaseModel, Generic[T]):
-    # A kulcs az időbélyeg string (ISO format), az érték a tetszőleges adat (pl. List[NewsItem])
-    batches: Dict[str, T] = Field(default_factory=dict)
+
 
 def load_checkpoint(filename: str, expected_type: Any) -> Optional[Any]:
     # 1. Beolvassuk a környezeti változókat

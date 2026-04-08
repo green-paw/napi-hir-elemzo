@@ -1,3 +1,7 @@
+import numpy as np
+from sklearn.cluster import AgglomerativeClustering
+from sklearn.metrics.pairwise import cosine_similarity
+
 from checkpoint_manager import NewsCache, load_checkpoint, save_checkpoint
 import gemini_core
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -180,34 +184,32 @@ def fetch_news() -> List[NewsItem]:
 
 
 def handle_news_feed_and_cache(incoming_news: List[NewsItem], run_id: str) -> Tuple[List[NewsItem], NewsCache]:
-    cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
-    full_blacklist: Set[str] = set().union(*cache.trash_bin.values())
-    existing_hashes: Set[str] = set().union(*(batch.keys() for batch in cache.batches.values()))
-    new_items_to_process: List[NewsItem] = []
-
-    if run_id not in cache.batches:
-        cache.batches[run_id] = {}
+    cache_obj = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
+    
+    full_blacklist: Set[str] = set().union(*cache_obj.trash_bin.values())
+    existing_hashes: Set[str] = set().union(*(batch.keys() for batch in cache_obj.batches.values()))
+    
+    if run_id not in cache_obj.batches:
+        cache_obj.batches[run_id] = {}
 
     for item in incoming_news:
-        if item.hash in full_blacklist:
+        if item.hash in full_blacklist or item.hash in existing_hashes:
             continue
-        
-        if item.hash in existing_hashes:
-            continue
-        cache.batches[run_id][item.hash] = item
-        new_items_to_process.append(item)
+        cache_obj.batches[run_id][item.hash] = item
 
-    # Takarítás: töröljük a 24 óránál régebbi batcheket és trasht
+    # Takarítás
     limit = datetime.now() - timedelta(hours=24)
-    cache.batches = {ts: b for ts, b in cache.batches.items() if datetime.fromisoformat(ts) > limit}
-    cache.trash_bin = {ts: t for ts, t in cache.trash_bin.items() if datetime.fromisoformat(ts) > limit}
+    cache_obj.batches = {ts: b for ts, b in cache_obj.batches.items() if datetime.fromisoformat(ts) > limit}
+    cache_obj.trash_bin = {ts: t for ts, t in cache_obj.trash_bin.items() if datetime.fromisoformat(ts) > limit}
 
-    save_checkpoint("news_feed.json", cache, NewsCache)
+    # Első mentés (új hírek hash-ei megvannak)
+    save_checkpoint("news_feed.json", cache_obj, NewsCache)
+    
     all_live_news = []
-    for batch in cache.batches.values():
+    for batch in cache_obj.batches.values():
         all_live_news.extend(batch.values())
         
-    return all_live_news, cache
+    return all_live_news, cache_obj
 
 def update_current_batch(items: List[NewsItem], cache: NewsCache, run_id: str):
     if run_id not in cache.batches:
@@ -226,13 +228,60 @@ def add_to_trash(item_hash: str, cache: NewsCache, run_id: str):
         if not cache.batches[tid]:
             del cache.batches[tid]
 
-def embed_news(all_live_news: List[NewsItem], cache: NewsCache, RUN_ID: str) -> None:
-    news_to_embed = [item for item in all_live_news if item.embedding is None]
+def embed_news(all_live_news: List[NewsItem], cache_obj: NewsCache, RUN_ID: str) -> None:
+    news_to_embed = [
+        item for item in all_live_news 
+        if item.embedding is None and item.clean_content is not None
+    ]
 
     if news_to_embed:
         print(f"🧬 {len(news_to_embed)} hír embeddingjének lekérése...")
-        texts_to_embed = [item.clean_content for item in news_to_embed if item.clean_content]
-        new_vectors = gemini_core.embed(texts_to_embed, task_type="RETRIEVAL_DOCUMENT")
+        texts = [str(item.clean_content) for item in news_to_embed]
+        new_vectors = gemini_core.embed(texts, task_type="RETRIEVAL_DOCUMENT")
         for item, vector in zip(news_to_embed, new_vectors):
             item.embedding = vector
-        update_current_batch(all_live_news, cache, RUN_ID)
+        update_current_batch(all_live_news, cache_obj, RUN_ID)
+
+def score_items(items: List[NewsItem], anchor_vectors: Dict[str, np.ndarray]):
+    """Kitölti az item.profile-t az ANCHORS alapján."""
+    if not items:
+        return
+
+    # Kigyűjtjük az embeddingeket egy nagy mátrixba (N hír x D dimenzió)
+    news_embeddings = np.array([item.embedding for item in items if item.embedding is not None])
+    
+    # Kigyűjtjük a horgonyokat (M horgony x D dimenzió)
+    anchor_names = list(anchor_vectors.keys())
+    # anchor_vectors[name] nálad (1, -1) alakú, ezért flatten() vagy reshape kell
+    anchor_matrix = np.vstack([anchor_vectors[name] for name in anchor_names])
+
+    # Kiszámoljuk a hasonlóságot minden hír és minden horgony között
+    # Eredmény: (N hír x M horgony) mátrix
+    similarities = cosine_similarity(news_embeddings, anchor_matrix)
+
+    # Visszaírjuk a profilokba
+    for i, item in enumerate(items):
+        for j, name in enumerate(anchor_names):
+            item.profile[name] = float(similarities[i, j])
+
+def cluster_news(items: List[NewsItem], threshold: float = 0.3):
+    """Csoportosítja a híreket hasonlóság alapján."""
+    embeddings = np.array([item.embedding for item in items if item.embedding is not None])
+    
+    if len(embeddings) < 2:
+        return
+
+    # AgglomerativeClustering koszinusz távolsággal
+    # Megjegyzés: A koszinusz távolság = 1 - koszinusz hasonlóság
+    model = AgglomerativeClustering(
+        n_clusters=None, 
+        metric='cosine', 
+        linkage='average',
+        distance_threshold=threshold 
+    )
+    
+    labels = model.fit_predict(embeddings)
+    
+    # Labels hozzárendelése (pl. item.cluster_id mezőbe)
+    for i, item in enumerate(items):
+        item.profile["cluster_id"] = int(labels[i])

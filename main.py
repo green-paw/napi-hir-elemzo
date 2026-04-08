@@ -37,19 +37,13 @@ def timestamped_print(*args, **kwargs):
 builtins.print = timestamped_print
 
 def main():
-    # 1. Friss hírek letöltése
     incoming_news: List[NewsItem] = source.fetch_news()
-
-    # 2. Cache-elés és összefésülés (visszakapjuk a teljes listát: régi + új)
-    # A handle_news_feed_and_cache már kezeli a duplikációt és a trash szűrést
     all_live_news, current_cache = source.handle_news_feed_and_cache(incoming_news, RUN_ID)
 
     if not all_live_news:
         print("❌ Nincsenek feldolgozandó hírek. Leállás.")
         return
 
-    # 3. Szövegtisztítás (Csak azokon fut le, ahol nincs embedding)
-    # Ez feltölti a .clean_content mezőt az objektumokban (referencia szerint)
     TextCleaner.process(all_live_news)
 
     first_item = all_live_news[0]
@@ -57,11 +51,17 @@ def main():
 
     print(f"DEBUG: {first_item.id} tiszta szövege: {clean_txt[:50]}...")
 
-    # 1. Horgonyok betöltése
     anchors: Dict[str, np.ndarray] = clustering.get_anchor_embeddings()
 
     source.embed_news(all_live_news, current_cache, RUN_ID)
+    source.score_items(all_live_news, anchors)
+    source.cluster_news(all_live_news)
 
+    trash_count = sum(1 for item in all_live_news if item.profile.get("TRASH", 0) > 0.8)
+    if trash_count > 0:
+        print(f"🗑️  A futás során {trash_count} hír került gyanús (trash) kategóriába.")
+
+    source.update_current_batch(all_live_news, current_cache, RUN_ID)
 
 
     # 2. Hírek vektorizálása és profilozása

@@ -35,6 +35,10 @@ class TextCleaner:
             entity_str = " ".join(list(entities))
             content_str = " ".join(meaningful_words)
             combined_text = f"{item.title} | {entity_str} | {content_str}"
+
+            if not combined_text or len(combined_text) < 50:
+                combined_text = f"{item.title} {item.content}"
+
             item.clean_content = " ".join(combined_text.split())[:max_chars]
 
         print(f"✨ Szövegtisztítás kész: {len(items)} hír feldolgozva.")

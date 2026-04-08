@@ -156,20 +156,41 @@ def main():
 if __name__ == "__main__":
     main()
 
-def handle_news_feed_and_cache(news_items: List[NewsItem]) -> List[NewsItem]:
+def handle_news_feed_and_cache(incoming_news: List[NewsItem]) -> List[NewsItem]:
+    # 1. Betöltés (vagy üres lista)
     cached_wrapper = load_checkpoint("news_feed.json", CacheWrapper[List[NewsItem]])
-    old_news = cached_wrapper.data if cached_wrapper else []
-    seen_hashes = {item.hash for item in news_items}
-    unique_old_news = [item for item in old_news if item.hash not in seen_hashes]
-    combined_news = news_items + unique_old_news
+    old_news: List[NewsItem] = cached_wrapper.data if cached_wrapper else []
+    
+    # 2. Gyors keresőtábla a már feldolgozott hírekhez
+    processed_map = {item.hash: item for item in old_news}
+    
+    # 3. Válogatás: Mi az, amit tényleg le kell futtatni?
+    to_process: List[NewsItem] = []
+    for item in incoming_news:
+        if item.hash not in processed_map:
+            # Ez egy teljesen új hír, mehet a feldolgozó sorba
+            to_process.append(item)
+            # Ideiglenesen bekerül a map-be is, hogy a mentésnél ott legyen
+            processed_map[item.hash] = item
+        else:
+            # Már megvan, nem adjuk hozzá a to_process listához
+            # Így nem költünk rá újra embedding/LLM tokent
+            pass
+
+    # 4. 24 órás takarítás a teljes állományon
     limit = datetime.now() - timedelta(hours=24)
-    final_news = [
-        item for item in combined_news 
+    final_cache = [
+        item for item in processed_map.values() 
         if item.published > limit
     ]
+    
+    # 5. Állapotmentés (Checkpoint)
+    # Ezt a függvényt akár többször is hívhatod a fázisok között!
     new_wrapper = CacheWrapper[List[NewsItem]](
         timestamp=datetime.now(),
-        data=final_news
+        data=final_cache
     )
     save_checkpoint("news_feed.json", new_wrapper, CacheWrapper[List[NewsItem]])
-    return final_news
+    
+    # 6. Csak a tiszta "munkalistát" adjuk vissza
+    return final_cache

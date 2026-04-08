@@ -1,8 +1,8 @@
 import os
-from typing import List
+from typing import List, TypeVar
 from analyzer import AnalysisResult, MacroAnalysisPair, analyze_macro_cluster
+from checkpoint_manager import CacheWrapper, load_checkpoint, save_checkpoint
 import editor
-import gemini_core
 import reporter
 import source
 from source import NewsItem
@@ -17,8 +17,9 @@ from clustering import (
 
 from concurrent.futures import ThreadPoolExecutor
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import builtins
+from gemini_core import logger        
 
 _original_print = builtins.print
 def timestamped_print(*args, **kwargs):
@@ -26,18 +27,21 @@ def timestamped_print(*args, **kwargs):
     _original_print(f"{timestamp} ", *args, **kwargs)
 
 builtins.print = timestamped_print
-from typing import List
+
+T = TypeVar('T')
 
 def main():
     print("🚀 Hírfeldolgozó pipeline indítása...")
 
     # --- 1. FÁZIS: Adatgyűjtés ---
     print("📥 Hírek letöltése az RSS feedekből...")
-    news_items = source.fetch_news()
+    news_items: List[NewsItem] = source.fetch_news()
 
     if not news_items:
         print("❌ Nincsenek feldolgozandó hírek. Leállás.")
         return
+
+    news_items = handle_news_feed_and_cache(news_items)
 
     # 1. Horgonyok betöltése
     anchors = get_multi_anchor_vectors()
@@ -144,10 +148,27 @@ def main():
 
     # Statisztika
     try:
-        from gemini_core import logger        
         logger.print_summary()
     except:
         pass
 
 if __name__ == "__main__":
     main()
+
+def handle_news_feed_and_cache(news_items: List[NewsItem]) -> List[NewsItem]:
+    cached_wrapper = load_checkpoint("news_feed.json", CacheWrapper[List[NewsItem]])
+    old_news = cached_wrapper.data if cached_wrapper else []
+    seen_hashes = {item.hash for item in news_items}
+    unique_old_news = [item for item in old_news if item.hash not in seen_hashes]
+    combined_news = news_items + unique_old_news
+    limit = datetime.now() - timedelta(hours=24)
+    final_news = [
+        item for item in combined_news 
+        if item.published > limit
+    ]
+    new_wrapper = CacheWrapper[List[NewsItem]](
+        timestamp=datetime.now(),
+        data=final_news
+    )
+    save_checkpoint("news_feed.json", new_wrapper, CacheWrapper[List[NewsItem]])
+    return final_news

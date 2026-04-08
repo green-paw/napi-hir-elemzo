@@ -1,3 +1,4 @@
+from pydantic import BaseModel, Field, field_validator, model_validator
 import requests
 from dataclasses import field
 import time
@@ -9,8 +10,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set, Tuple
 
-from pydantic import BaseModel, Field, field_validator
 import config 
+import hashlib
 
 # --- SEGÉDFÜGGVÉNYEK ---
 
@@ -32,26 +33,44 @@ def extract_safe_text(entry, field: str) -> str:
     
     return entry.get(f"{field}_detail", {}).get('value', entry.get(field, ''))
 
+def generate_news_hash(title: str, link: str) -> str:
+    """Stabil SHA-256 hasht generál a cím és a tisztított link alapján."""
+    # Link tisztítása (query paraméterek nélkül a stabilitásért)
+    clean_link = link.split('?')[0].split('#')[0].strip().lower()
+    # Cím normalizálása
+    clean_title = title.strip().lower()
+    
+    hash_base = f"{clean_title}|{clean_link}"
+    return hashlib.sha256(hash_base.encode('utf-8')).hexdigest()
+
 # --- MODELLEK ---
+
 
 class NewsItem(BaseModel):
     id: str = Field(description="LLM-barát azonosító (pl. C1)")
+    hash: str = "" # Alapértelmezésben üres, a validator tölti ki
     source_id: str
-    source_meta: config.RssSource # A config-ban definiált dataclass
+    source_meta: config.RssSource 
     link: str
     published: datetime
     title: str
     content: str
     embedding: Optional[List[float]] = None
-    profile: Dict[str, float] = field(default_factory=dict)
+    profile: Dict[str, float] = Field(default_factory=dict) # Javítva: Field kell a pydantic-ba
 
     @field_validator('title', 'content')
     @classmethod
     def validate_cleantext(cls, v: str) -> str:
         return cleantext(v)
 
+    @model_validator(mode='after')
+    def compute_hash(self) -> 'NewsItem':
+        """Inicializálás után legenerálja a hash-t, ha még nincs."""
+        if not self.hash:
+            self.hash = generate_news_hash(self.title, self.link)
+        return self
+
     def short_text_for_prompt(self, width: int = 500) -> str:
-        """Költséghatékony szöveg az LLM-nek."""
         combined = f"{self.title} - {self.content}"
         return textwrap.shorten(combined, width=width, placeholder="...")
 

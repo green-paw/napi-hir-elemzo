@@ -1,7 +1,7 @@
 import os
 import json
 import argparse
-from typing import Any, Type, TypeVar, Optional
+from typing import Any, Type, TypeVar, Optional, Generic
 from pydantic import TypeAdapter, BaseModel
 
 T = TypeVar('T', bound=BaseModel)
@@ -13,6 +13,11 @@ args, unknown = parser.parse_known_args()
 
 CHECKPOINT_DIR = "checkpoints"
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+
+# Ez egy generikus tároló, ami bármilyen 'T' típust elnyel
+class CacheWrapper(BaseModel, Generic[T]):
+    timestamp: datetime
+    data: T
 
 def load_checkpoint(filename: str, expected_type: Any) -> Optional[Any]:
     # 1. Beolvassuk a környezeti változókat

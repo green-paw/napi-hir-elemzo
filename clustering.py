@@ -42,8 +42,6 @@ class MegaCluster:
         return sum(m.score for m in self.macros) / len(self.macros)
 
 
-import json
-
 def rescue_truncated_json(broken_str: str) -> dict:
     broken_str = broken_str.strip()
     

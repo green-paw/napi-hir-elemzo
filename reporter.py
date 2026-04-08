@@ -5,16 +5,19 @@ from typing import Any, List, Dict
 
 from analyzer import AnalysisResult, MacroAnalysisPair
 from source import NewsItem
+import urllib.parse
+from collections import defaultdict
+
+from clustering import MacroCluster, MegaCluster
+from gemini_core import logger
 
 def generate_ai_search_url(topic_title: str, service: str = "perplexity") -> str:
-    import urllib.parse
     query = f"Nézz utána ennek a friss eseménynek és foglald össze a részleteket: {topic_title}"
     encoded_query = urllib.parse.quote(query)
     url = f"https://www.perplexity.ai/search?q={encoded_query}"
     return url
 
 def format_sources_html(news: List[NewsItem]) -> str:
-    from collections import defaultdict
     source_map = defaultdict(list)
     for s in news:
         source_map[s.source_id].append(s.link)
@@ -122,17 +125,6 @@ class HtmlReporter:
             li_elements.append(li)
         return "\n".join(li_elements)
     
-
-import os
-from datetime import datetime
-from typing import List
-
-from clustering import MacroCluster, MegaCluster
-from source import NewsItem
-
-from datetime import datetime
-from typing import List
-
 class DebugReporter:
     def __init__(self, output_path: str = "cluster_debug.html"):
         self.output_path = output_path
@@ -228,7 +220,6 @@ class DebugReporter:
 
 
 def generate_html_summary() -> str:
-    from gemini_core import logger
     stats = logger.get_aggregated_stats()
     
     html_output: List[str] = []

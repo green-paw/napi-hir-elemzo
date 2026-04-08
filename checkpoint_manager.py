@@ -1,10 +1,9 @@
+from datetime import datetime
 import os
 import json
 import argparse
 from typing import Any, Type, TypeVar, Optional, Generic
 from pydantic import TypeAdapter, BaseModel
-
-T = TypeVar('T', bound=BaseModel)
 
 # CLI paraméterek beolvasása (pl. python main.py --force)
 parser = argparse.ArgumentParser()

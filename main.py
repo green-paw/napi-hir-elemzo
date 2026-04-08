@@ -20,6 +20,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 import builtins
 from gemini_core import logger        
+from pydantic import BaseModel
 
 _original_print = builtins.print
 def timestamped_print(*args, **kwargs):
@@ -28,7 +29,7 @@ def timestamped_print(*args, **kwargs):
 
 builtins.print = timestamped_print
 
-T = TypeVar('T')
+T = TypeVar('T', bound=BaseModel)
 
 def main():
     print("🚀 Hírfeldolgozó pipeline indítása...")

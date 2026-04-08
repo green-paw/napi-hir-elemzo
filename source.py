@@ -5,14 +5,12 @@ import html
 import re
 import feedparser
 import textwrap
-import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set, Tuple
 
 from pydantic import BaseModel, Field, field_validator
 import config 
-from checkpoint_manager import load_checkpoint, save_checkpoint
 
 # --- SEGÉDFÜGGVÉNYEK ---
 
@@ -85,8 +83,7 @@ def process_single_source(args: Tuple[str, config.RssSource, datetime, timedelta
             # 2. Kategória szűrés
             tags: List[str] = [t.term.lower() for t in entry.get('tags', []) if hasattr(t, 'term')]
             title_lower: str = entry.title.lower()
-            if any(bad in tags for bad in BLACKLIST) or any(f"[{bad}]" in title_lower for bad in BLACKLIST):
-                continue
+            if any(bad in tags for bad in BLACKLIST) or any(f"[{bad}]" in title_lower for bad in BLACKLIST): continue
 
             # 3. Adatkinyerés
             raw_title: str = extract_safe_text(entry, 'title')

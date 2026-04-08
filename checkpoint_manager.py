@@ -15,7 +15,6 @@ CHECKPOINT_DIR = "checkpoints"
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
 def load_checkpoint(filename: str, expected_type: Any) -> Optional[Any]:
-    return []
     # 1. Beolvassuk a környezeti változókat
     current_branch = os.getenv("CURRENT_BRANCH", "main")
     settings_str = os.getenv("CACHE_SETTINGS", "{}")

@@ -1,8 +1,6 @@
 from typing import List, Tuple
-from google import genai
 from clustering import MacroCluster
 import gemini_core
-from google.genai import types
 from source import NewsItem
 
 from pydantic import BaseModel, Field

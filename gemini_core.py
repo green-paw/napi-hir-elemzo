@@ -113,14 +113,10 @@ def embed(texts: List[str], task_type: str = "CLUSTERING") -> List[List[float]]:
 
     all_embeddings: List[List[float]] = []
     
-    # Max workers: érdemes korlátozni, hogy ne fussunk bele azonnal Quota limitbe (pl. 5 szál)
     with ThreadPoolExecutor(max_workers=5) as executor:
         # Az executor.map megőrzi a beküldött sorrendet a válaszoknál
         results = executor.map(process_batch, batches)
         
         for result_list in results:
             all_embeddings.extend(result_list)
-            # Mivel a szálak párhuzamosan futnak, a belső sleep-et kivettem, 
-            # az execute_with_retry-nek kell kezelnie a sebességkorlátot.
-
     return all_embeddings

@@ -1,7 +1,7 @@
 import os
-from typing import List, TypeVar
+from typing import Dict, List, Set, TypeVar
 from analyzer import AnalysisResult, MacroAnalysisPair, analyze_macro_cluster
-from checkpoint_manager import CacheWrapper, load_checkpoint, save_checkpoint
+from checkpoint_manager import CacheWrapper, NewsCache, load_checkpoint, save_checkpoint
 import editor
 import reporter
 import source
@@ -21,6 +21,9 @@ from datetime import datetime, timedelta
 import builtins
 from gemini_core import logger        
 from pydantic import BaseModel
+import numpy as np
+
+RUN_ID = datetime.now().isoformat()
 
 _original_print = builtins.print
 def timestamped_print(*args, **kwargs):
@@ -28,8 +31,6 @@ def timestamped_print(*args, **kwargs):
     _original_print(f"{timestamp} ", *args, **kwargs)
 
 builtins.print = timestamped_print
-
-T = TypeVar('T', bound=BaseModel)
 
 def main():
     print("🚀 Hírfeldolgozó pipeline indítása...")
@@ -42,10 +43,11 @@ def main():
         print("❌ Nincsenek feldolgozandó hírek. Leállás.")
         return
 
-    news_items = handle_news_feed_and_cache(news_items)
+    # régi és új itemek egy listában
+    news_items = handle_news_feed_and_cache(news_items, RUN_ID)
 
     # 1. Horgonyok betöltése
-    anchors = get_multi_anchor_vectors()
+    anchors: Dict[str, np.ndarray] = get_multi_anchor_vectors()
 
     # 2. Hírek vektorizálása és profilozása
     ensure_item_embeddings(news_items)
@@ -156,41 +158,44 @@ def main():
 if __name__ == "__main__":
     main()
 
-def handle_news_feed_and_cache(incoming_news: List[NewsItem]) -> List[NewsItem]:
-    # 1. Betöltés (vagy üres lista)
-    cached_wrapper = load_checkpoint("news_feed.json", CacheWrapper[List[NewsItem]])
-    old_news: List[NewsItem] = cached_wrapper.data if cached_wrapper else []
-    
-    # 2. Gyors keresőtábla a már feldolgozott hírekhez
-    processed_map = {item.hash: item for item in old_news}
-    
-    # 3. Válogatás: Mi az, amit tényleg le kell futtatni?
-    to_process: List[NewsItem] = []
-    for item in incoming_news:
-        if item.hash not in processed_map:
-            # Ez egy teljesen új hír, mehet a feldolgozó sorba
-            to_process.append(item)
-            # Ideiglenesen bekerül a map-be is, hogy a mentésnél ott legyen
-            processed_map[item.hash] = item
-        else:
-            # Már megvan, nem adjuk hozzá a to_process listához
-            # Így nem költünk rá újra embedding/LLM tokent
-            pass
+def handle_news_feed_and_cache(incoming_news: List[NewsItem], run_id: str) -> List[NewsItem]:
+    cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
+    full_blacklist: Set[str] = set().union(*cache.trash_bin.values())
+    existing_hashes: Set[str] = set().union(*(batch.keys() for batch in cache.batches.values()))
+    new_items_to_process: List[NewsItem] = []
 
-    # 4. 24 órás takarítás a teljes állományon
-    limit = datetime.now() - timedelta(hours=24)
-    final_cache = [
-        item for item in processed_map.values() 
-        if item.published > limit
-    ]
-    
-    # 5. Állapotmentés (Checkpoint)
-    # Ezt a függvényt akár többször is hívhatod a fázisok között!
-    new_wrapper = CacheWrapper[List[NewsItem]](
-        timestamp=datetime.now(),
-        data=final_cache
-    )
-    save_checkpoint("news_feed.json", new_wrapper, CacheWrapper[List[NewsItem]])
-    
-    # 6. Csak a tiszta "munkalistát" adjuk vissza
-    return final_cache
+    if run_id not in cache.batches:
+        cache.batches[run_id] = {}
+
+    for item in incoming_news:
+        if item.hash in full_blacklist:
+            continue
+        
+        if item.hash in existing_hashes:
+            continue
+        cache.batches[run_id][item.hash] = item
+        new_items_to_process.append(item)
+
+    save_checkpoint("news_feed.json", cache, NewsCache)
+    all_live_news = []
+    for batch in cache.batches.values():
+        all_live_news.extend(batch.values())
+        
+    return all_live_news
+
+def update_current_batch(items: List[NewsItem], cache: NewsCache, run_id: str):
+    if run_id not in cache.batches:
+        cache.batches[run_id] = {}
+    for item in items:
+        cache.batches[run_id][item.hash] = item
+    save_checkpoint("news_feed.json", cache, NewsCache)
+
+def add_to_trash(item_hash: str, cache: NewsCache, run_id: str):
+    if run_id not in cache.trash_bin:
+        cache.trash_bin[run_id] = set()
+    cache.trash_bin[run_id].add(item_hash)
+
+    for tid in list(cache.batches.keys()):
+        cache.batches[tid].pop(item_hash, None)
+        if not cache.batches[tid]:
+            del cache.batches[tid]

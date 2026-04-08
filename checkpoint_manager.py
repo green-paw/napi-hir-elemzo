@@ -1,9 +1,11 @@
-from datetime import datetime
 import os
 import json
 import argparse
-from typing import Any, Type, TypeVar, Optional, Generic
-from pydantic import TypeAdapter, BaseModel
+from typing import Any, List, TypeVar, Optional, Generic, Dict
+from pydantic import TypeAdapter, BaseModel, Field
+from datetime import datetime
+
+from source import NewsItem
 
 # CLI paraméterek beolvasása (pl. python main.py --force)
 parser = argparse.ArgumentParser()
@@ -13,10 +15,18 @@ args, unknown = parser.parse_known_args()
 CHECKPOINT_DIR = "checkpoints"
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
-# Ez egy generikus tároló, ami bármilyen 'T' típust elnyel
+T = TypeVar('T')
+
+from pydantic import BaseModel, Field
+from typing import Dict, List, Set
+
+class NewsCache(BaseModel):
+    batches: Dict[str, Dict[str, NewsItem]] = Field(default_factory=dict)
+    trash_bin: Dict[str, Set[str]] = Field(default_factory=dict)
+
 class CacheWrapper(BaseModel, Generic[T]):
-    timestamp: datetime
-    data: T
+    # A kulcs az időbélyeg string (ISO format), az érték a tetszőleges adat (pl. List[NewsItem])
+    batches: Dict[str, T] = Field(default_factory=dict)
 
 def load_checkpoint(filename: str, expected_type: Any) -> Optional[Any]:
     # 1. Beolvassuk a környezeti változókat

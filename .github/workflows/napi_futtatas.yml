@@ -39,7 +39,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          python -m huspacy download hu_core_news_sm
+
+      - name: Spacy model
+        run: |
+          python -c "import huspacy; huspacy.download('hu_core_news_sm')"
 
       - name: Cache spaCy model
         id: cache-spacy

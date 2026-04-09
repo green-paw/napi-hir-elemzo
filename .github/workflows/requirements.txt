@@ -1,0 +1,7 @@
+google-genai
+feedparser
+requests
+pytz
+scikit-learn
+markdown
+spacy

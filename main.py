@@ -22,6 +22,8 @@ def main():
     incoming_news: List[NewsItem] = source.fetch_news()
     all_live_news, current_cache = source.handle_news_feed_and_cache(incoming_news, RUN_ID)
 
+    current_cache = source.deduplicate_to_chronological_batches(current_cache)
+
     if not all_live_news:
         print("❌ Nincsenek feldolgozandó hírek. Leállás.")
         return

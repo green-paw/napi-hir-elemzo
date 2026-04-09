@@ -123,10 +123,19 @@ def fetch_news() -> List[NewsItem]:
         item.id = f"C{idx + 1}"
 
     print(f"✅ Begyűjtés kész: {len(unique_news)} egyedi hír.")
+
+    for item in unique_news:
+        if not item.hash:
+            item.compute_hash()
+
     return unique_news
 
 
 def handle_news_feed_and_cache(incoming_news: List[NewsItem], run_id: str) -> Tuple[List[NewsItem], NewsCache]:
+    for item in incoming_news:
+        if not item.hash:
+            item.compute_hash()
+
     cache_obj = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
     
     full_blacklist: Set[str] = set().union(*cache_obj.trash_bin.values())
@@ -137,6 +146,8 @@ def handle_news_feed_and_cache(incoming_news: List[NewsItem], run_id: str) -> Tu
 
     for item in incoming_news:
         if item.hash in full_blacklist or item.hash in existing_hashes:
+            continue
+        if any(item.hash in batch for batch in cache_obj.batches.values()):
             continue
         cache_obj.batches[run_id][item.hash] = item
 
@@ -274,3 +285,68 @@ def get_anchor_embeddings() -> Dict[str, np.ndarray]:
     anchor_dict = {keys[i]: vectors[i] for i in range(len(keys))}
     save_checkpoint(anchor_cache_file, anchor_dict, Dict[str, List[float]])
     return {k: np.array(v).reshape(1, -1) for k, v in anchor_dict.items()}
+
+
+
+
+
+from datetime import datetime
+
+def deduplicate_to_chronological_batches(cache_obj: NewsCache) -> NewsCache:
+    """
+    Deduplikálja a híreket, majd a publikálási időpontjuk alapján 
+    besorolja őket a legmegfelelőbb időrendi batch-be.
+    """
+    # 1. Összes elem kigyűjtése és alap-deduplikáció (legkorábbi publikálás tartunk meg)
+    all_items = []
+    for batch in cache_obj.batches.values():
+        all_items.extend(batch.values())
+    
+    if not all_items:
+        return cache_obj
+
+    # Rendszerezés: hash szerint csak a legelsőt tartjuk meg
+    # (Előtte sorbarendezzük, hogy biztosan a legkorábbi példány legyen az első)
+    all_items.sort(key=lambda x: x.published)
+    unique_items: Dict[str, NewsItem] = {}
+    for item in all_items:
+        if item.hash not in unique_items:
+            unique_items[item.hash] = item
+
+    # 2. Batch kulcsok (időbélyegek) előkészítése
+    # ISO formátumú stringeket datetime-má alakítjuk a hasonlításhoz
+    sorted_batch_times = []
+    for ts_str in cache_obj.batches.keys():
+        try:
+            sorted_batch_times.append((datetime.fromisoformat(ts_str), ts_str))
+        except ValueError:
+            continue
+    
+    # Időrendbe rakjuk a batch-időpontokat
+    sorted_batch_times.sort() 
+
+    # 3. Új struktúra felépítése
+    new_batches: Dict[str, Dict[str, NewsItem]] = {ts_str: {} for _, ts_str in sorted_batch_times}
+    
+    # Ha van olyan hír, ami régebbi, mint a legelső batch-ünk, 
+    # azt is bele kell tennünk valahova (pl. a legelsőbe)
+    fallback_batch_str = sorted_batch_times[0][1] if sorted_batch_times else None
+
+    for item in unique_items.values():
+        assigned = False
+        # Megkeressük az első olyan batch-et, ami a hír publikálása UTÁN jött létre
+        for batch_dt, batch_str in sorted_batch_times:
+            if item.published <= batch_dt:
+                new_batches[batch_str][item.hash] = item
+                assigned = True
+                break
+        
+        # Ha a hír újabb, mint az eddigi összes batch, megy a legutolsóba
+        if not assigned and fallback_batch_str:
+            last_batch_str = sorted_batch_times[-1][1]
+            new_batches[last_batch_str][item.hash] = item
+
+    # 4. Üresen maradt batchek takarítása (opcionális)
+    cache_obj.batches = {k: v for k, v in new_batches.items() if v}
+    
+    return cache_obj

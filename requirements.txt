@@ -4,4 +4,5 @@ requests
 pytz
 scikit-learn
 markdown
-spacy==3.7.5
+spacy
+huspacy

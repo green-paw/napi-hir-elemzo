@@ -285,3 +285,32 @@ def cluster_news(items: List[NewsItem], threshold: float = 0.3):
     # Labels hozzárendelése (pl. item.cluster_id mezőbe)
     for i, item in enumerate(items):
         item.profile["cluster_id"] = int(labels[i])
+
+
+ANCHORS = {
+    "POL": 
+    "Kormányzati döntések, törvényhozás és parlamenti események. Belpolitikai csatározások, pártpolitikai nyilatkozatok és választási kampányok. Nemzetközi diplomácia, külpolitikai kapcsolatok, államközi szerződések és geopolitikai konfliktusok. Közpolitikai elemzések, állami intézmények működése és hivatalos kormányzati közlemények.",
+    "ECO":
+    "Makrogazdasági mutatók, infláció, GDP és jegybanki kamatdöntések. Tőzsdei hírek, árfolyamváltozások, vállalati gyorsjelentések és piaci elemzések. Költségvetési politika, adózás, államadósság és bankrendszeri szabályozás. Nemzetközi kereskedelem, iparági trendek és a világgazdaság aktuális folyamatai.",
+    "TEC":
+    "Informatikai fejlesztések, szoftverek, hardverek és fogyasztói elektronikai eszközök. Mesterséges intelligencia, kiberbiztonság, digitalizáció és az űrkutatás vívmányai. Tudományos áttörések, mérnöki innovációk és a technológiai startupok világa. Programozás, felhőalapú szolgáltatások és a modern technika társadalmi hatásai.",
+    "HUN":
+    "Magyarországi helyi események, belföldi társadalmi kérdések és a magyar lakosságot érintő aktuális történések. Hazai közintézmények, magyar kultúra, oktatás és egészségügy. Budapest és a vidék hírei, magyarországi infrastrukturális fejlesztések és a helyi közösségek mindennapjai. Tisza, Fidesz, Orbán, Magyar Péter, titkosszolgálat",
+    "TRASH":
+    "Dating profiles. Bulvárhírek, celebek magánélete, sztárpletykák és szenzációhajhász szalagcímek. Horoszkóp, ezotéria, spirituális tanácsok és életmód-tippek. Kattintásvadász, érzelmekre ható vagy felszínes szórakoztató tartalom. Divat, szépségápolás, reality műsorok összefoglalói és egyéb alacsony információtartalmú, figyelemfelkeltő írások."
+}
+
+def get_anchor_embeddings() -> Dict[str, np.ndarray]:
+    anchor_cache_file = "anchors.json"
+    cached = load_checkpoint(anchor_cache_file, Dict[str, List[float]])
+    if cached:
+        return {k: np.array(v).reshape(1, -1) for k, v in cached.items()}
+
+    print("⚓ Többirányú horgony-vektorok generálása...")
+    keys = list(ANCHORS.keys())
+    texts = list(ANCHORS.values())
+    vectors = gemini_core.embed(texts, task_type="RETRIEVAL_QUERY")
+    
+    anchor_dict = {keys[i]: vectors[i] for i in range(len(keys))}
+    save_checkpoint(anchor_cache_file, anchor_dict, Dict[str, List[float]])
+    return {k: np.array(v).reshape(1, -1) for k, v in anchor_dict.items()}

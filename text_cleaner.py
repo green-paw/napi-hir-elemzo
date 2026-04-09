@@ -1,44 +1,52 @@
 from source import NewsItem
-import spacy
 import re
 from typing import List, Set, Dict
 
-# A modellt a workflow-ban töltjük le, itt csak betöltjük
-try:
-    nlp = spacy.load("hu_core_news_md")
-except OSError:
-    import os
-    os.system("python -m spacy download hu_core_news_md")
-    nlp = spacy.load("hu_core_news_md")
-
 class TextCleaner:
+    # Kombinált stopword lista (magyar + angol)
+    STOPWORDS = {
+        # Magyar
+        'a', 'az', 'egy', 'és', 'vagy', 'hogy', 'nem', 'is', 'be', 'ki', 'le', 'fel', 
+        'meg', 'el', 'át', 'volna', 'lett', 'volt', 'még', 'már', 'csak', 'mert', 
+        'mint', 'után', 'alatt', 'között', 'amikor', 'vagyis', 'tehát', 'hiszen',
+        'vagyok', 'vagy', 'vagyunk', 'vagytok', 'vannak', 'lesz', 'lett',
+        
+        # Angol (leggyakoribbak)
+        'the', 'a', 'an', 'and', 'or', 'but', 'if', 'because', 'as', 'until', 'while',
+        'of', 'at', 'by', 'for', 'with', 'about', 'against', 'between', 'into', 'through',
+        'during', 'before', 'after', 'above', 'below', 'to', 'from', 'up', 'down', 'in',
+        'out', 'on', 'off', 'over', 'under', 'again', 'further', 'then', 'once', 'here',
+        'there', 'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few',
+        'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own',
+        'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will', 'just', 'don',
+        'should', 'now', 'i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves',
+        'you', 'your', 'yours', 'he', 'him', 'his', 'she', 'her', 'it', 'its', 'they'
+    }
+
     @staticmethod
-    def process(items: List[NewsItem], max_chars: int = 800) -> None:
+    def process(items: List['NewsItem'], max_chars: int = 800) -> None:
         for item in items:
             if item.embedding is not None:
                 continue
 
-            text = re.sub(r'http\S+', '', item.content)
-            text = " ".join(text.split())
-            doc = nlp(text)
-            entities: Set[str] = {
-                ent.text.strip() for ent in doc.ents 
-                if ent.label_ in ["PER", "ORG", "GPE"]
-            }
-            meaningful_words: List[str] = [
-                token.text for token in doc 
-                if not token.is_stop 
-                and not token.is_punct 
-                and not token.is_space 
-                and len(token.text) > 2
-            ]
-            entity_str = " ".join(list(entities))
-            content_str = " ".join(meaningful_words)
-            combined_text = f"{item.title} | {entity_str} | {content_str}"
+            # Cím és tartalom összefűzése
+            raw_text = f"{item.title} {item.content}"
+            
+            # 1. Tisztítás: URL-ek, HTML és speciális karakterek
+            text = re.sub(r'http\S+|www\S+|https\S+', '', raw_text, flags=re.MULTILINE)
+            text = re.sub(r'<.*?>', '', text)
+            
+            # 2. Csak betűk megtartása (a Gemini jobban szereti a tiszta szavakat)
+            # A [^\w\s] eltávolítja az írásjeleket, de megtartja a betűket (ékezeteseket is)
+            text = re.sub(r'[^\w\s]', ' ', text)
+            
+            # 3. Tokenizálás és szűrés
+            words = text.lower().split()
+            
+            # Szűrünk: ne legyen stopword ÉS legyen legalább 3 karakter hosszú
+            filtered_words = [w for w in words if w not in TextCleaner.STOPWORDS and len(w) > 2]
 
-            if not combined_text or len(combined_text) < 50:
-                combined_text = f"{item.title} {item.content}"
-
-            item.clean_content = " ".join(combined_text.split())[:max_chars]
+            # 4. Eredmény mentése
+            item.clean_content = " ".join(filtered_words)[:max_chars]
 
         print(f"✨ Szövegtisztítás kész: {len(items)} hír feldolgozva.")

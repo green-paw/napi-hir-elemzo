@@ -4,5 +4,3 @@ requests
 pytz
 scikit-learn
 markdown
-spacy
-huspacy

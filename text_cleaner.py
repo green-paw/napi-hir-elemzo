@@ -5,11 +5,11 @@ from typing import List, Set, Dict
 
 # A modellt a workflow-ban töltjük le, itt csak betöltjük
 try:
-    nlp = spacy.load("hu_core_news_sm")
+    nlp = spacy.load("hu_core_news_md")
 except OSError:
     import os
-    os.system("python -m spacy download hu_core_news_sm")
-    nlp = spacy.load("hu_core_news_sm")
+    os.system("python -m spacy download hu_core_news_md")
+    nlp = spacy.load("hu_core_news_md")
 
 class TextCleaner:
     @staticmethod

@@ -109,7 +109,7 @@ def _render_card(it: NewsItem, css_class: str) -> str:
     return f"""
     <div class="news-card {css_class}">
         <div class="title">{it.title}</div>
-        <div class="meta">ID: {it.id} | Hash: {it.hash[:10]}...</div>
+        <div class="meta">ID: {it.id} | Hash: {it.hash}...</div>
         <div class="scores">{scores_html}</div>
     </div>
     """

@@ -1,8 +1,7 @@
 from typing import Dict, List
 import reporter
 import source
-from source import NewsItem
-import source
+from models import NewsItem
 
 from datetime import datetime
 import builtins

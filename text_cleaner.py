@@ -1,4 +1,4 @@
-from source import NewsItem
+from models import NewsItem
 import re
 from typing import List, Set, Dict
 

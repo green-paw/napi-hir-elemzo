@@ -3,8 +3,7 @@ import os
 from datetime import datetime
 from typing import Any, List, Dict
 
-from checkpoint_manager import NewsCache
-from source import NewsItem
+from models import NewsCache, NewsItem
 import urllib.parse
 from collections import defaultdict
 

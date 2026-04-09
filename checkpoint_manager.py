@@ -5,7 +5,7 @@ from typing import Any, List, TypeVar, Optional, Generic, Dict
 from pydantic import TypeAdapter, BaseModel, Field
 from datetime import datetime
 
-from source import NewsItem
+from models import NewsItem
 
 # CLI paraméterek beolvasása (pl. python main.py --force)
 parser = argparse.ArgumentParser()
@@ -15,14 +15,7 @@ args, unknown = parser.parse_known_args()
 CHECKPOINT_DIR = "checkpoints"
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
-T = TypeVar('T')
 
-from pydantic import BaseModel, Field
-from typing import Dict, List, Set
-
-class NewsCache(BaseModel):
-    batches: Dict[str, Dict[str, NewsItem]] = Field(default_factory=dict)
-    trash_bin: Dict[str, Set[str]] = Field(default_factory=dict)
 
 
 

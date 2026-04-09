@@ -39,6 +39,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install https://huggingface.co/huspacy/hu_core_news_sm/resolve/main/hu_core_news_sm-any-py3-none-any.whl
 
       - name: Cache spaCy model
         id: cache-spacy
@@ -46,11 +47,6 @@ jobs:
         with:
           path: ~/.cache/pip # A pip letöltési gyorsítótára
           key: ${{ runner.os }}-spacy-hu-sm-${{ hashFiles('requirements.txt') }}
-
-      - name: Install huspacy and model
-        run: |
-          pip install huspacy==0.12.0  # Vagy a legfrissebb
-          python -c "import huspacy; huspacy.download('hu_core_news_sm')"
 
       - name: Create checkpoints directory
         run: mkdir -p checkpoints

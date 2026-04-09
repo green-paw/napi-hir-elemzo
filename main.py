@@ -63,6 +63,13 @@ def main():
 
     source.update_current_batch(all_live_news, current_cache, RUN_ID)
 
+    reporter.generate_html_report(current_cache, RUN_ID, "index.html")
+    try:
+        logger.print_summary()
+    except:
+        pass
+    
+    return
 
     # 2. Hírek vektorizálása és profilozása
     ensure_item_embeddings(news_items)

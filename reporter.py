@@ -65,6 +65,7 @@ def generate_html_report(cache_obj: NewsCache, current_run_id: str, filename: st
     </head>
     <body>
         <h1>📰 News Intelligence Report</h1>
+        <p class="meta">{current_run_id}</p>
         <div class="stats">
             <div class="stat-box">Új hírek: <span class="stat-num">{len(new_items)}</span></div>
             <div class="stat-box">Cache-ből: <span class="stat-num">{len(cached_items)}</span></div>

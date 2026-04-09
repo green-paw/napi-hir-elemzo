@@ -127,7 +127,7 @@ def fetch_news() -> List[NewsItem]:
 
 
 def handle_news_feed_and_cache(incoming_news: List[NewsItem], run_id: str) -> Tuple[List[NewsItem], NewsCache]:
-    cache_obj = NewsCache() #load_checkpoint("news_feed.json", NewsCache) or NewsCache()
+    cache_obj = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
     
     full_blacklist: Set[str] = set().union(*cache_obj.trash_bin.values())
     existing_hashes: Set[str] = set().union(*(batch.keys() for batch in cache_obj.batches.values()))
@@ -262,7 +262,7 @@ ANCHORS = {
 
 def get_anchor_embeddings() -> Dict[str, np.ndarray]:
     anchor_cache_file = "anchors.json"
-    cached = [] #load_checkpoint(anchor_cache_file, Dict[str, List[float]])
+    cached = load_checkpoint(anchor_cache_file, Dict[str, List[float]])
     if cached:
         return {k: np.array(v).reshape(1, -1) for k, v in cached.items()}
 

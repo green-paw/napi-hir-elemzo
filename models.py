@@ -23,8 +23,9 @@ class NewsItem(BaseModel):
     title: str
     content: str
     embedding: Optional[List[float]] = None
-    clean_content: Optional[str] = Field(default=None, exclude=True) # Ezt ellenőrizd!
     profile: Dict[str, float] = Field(default_factory=dict)
+    clean_content: Optional[str] = Field(default=None, exclude=True) # Ezt ellenőrizd!
+    downloaded: Optional[str] = Field(default=None, exclude=True) # Ezt ellenőrizd!
 
     @field_validator('title', 'content')
     @classmethod

@@ -33,9 +33,7 @@ class NewsItem(BaseModel):
 
     @model_validator(mode='after')
     def compute_hash(self) -> 'NewsItem':
-        """Inicializálás után legenerálja a hash-t, ha még nincs."""
-        if not self.hash:
-            self.hash = generate_news_hash(self.title, self.link)
+        self.hash = generate_news_hash(self.title, self.link)
         return self
 
     def short_text_for_prompt(self, width: int = 500) -> str:

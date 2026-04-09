@@ -229,23 +229,40 @@ def cluster_news(items: List[NewsItem], threshold: float = 0.3):
     for i, item in enumerate(items):
         item.profile["cluster_id"] = int(labels[i])
 
-
 ANCHORS = {
-    "POL": 
-    "Kormányzati döntések, törvényhozás és parlamenti események. Belpolitikai csatározások, pártpolitikai nyilatkozatok és választási kampányok. Nemzetközi diplomácia, külpolitikai kapcsolatok, államközi szerződések és geopolitikai konfliktusok. Közpolitikai elemzések, állami intézmények működése és hivatalos kormányzati közlemények.",
-    "ECO":
-    "Makrogazdasági mutatók, infláció, GDP és jegybanki kamatdöntések. Tőzsdei hírek, árfolyamváltozások, vállalati gyorsjelentések és piaci elemzések. Költségvetési politika, adózás, államadósság és bankrendszeri szabályozás. Nemzetközi kereskedelem, iparági trendek és a világgazdaság aktuális folyamatai.",
-    "TEC":
-    "Informatikai fejlesztések, szoftverek, hardverek és fogyasztói elektronikai eszközök. Mesterséges intelligencia, kiberbiztonság, digitalizáció és az űrkutatás vívmányai. Tudományos áttörések, mérnöki innovációk és a technológiai startupok világa. Programozás, felhőalapú szolgáltatások és a modern technika társadalmi hatásai.",
-    "HUN":
-    "Magyarországi helyi események, belföldi társadalmi kérdések és a magyar lakosságot érintő aktuális történések. Hazai közintézmények, magyar kultúra, oktatás és egészségügy. Budapest és a vidék hírei, magyarországi infrastrukturális fejlesztések és a helyi közösségek mindennapjai. Tisza, Fidesz, Orbán, Magyar Péter, titkosszolgálat",
-    "TRASH":
-    "Dating profiles. Bulvárhírek, celebek magánélete, sztárpletykák és szenzációhajhász szalagcímek. Horoszkóp, ezotéria, spirituális tanácsok és életmód-tippek. Kattintásvadász, érzelmekre ható vagy felszínes szórakoztató tartalom. Divat, szépségápolás, reality műsorok összefoglalói és egyéb alacsony információtartalmú, figyelemfelkeltő írások."
+    "POL": (
+        "politika, pártpolitika, kormány, ellenzék, választás, kampány, parlament, "
+        "szavazás, diplomácia, közpolitika, törvényhozás, külpolitika, belpolitika, "
+        "politics, government, elections, parliament, voting, diplomacy, policy, "
+        "legislation, state, political party"
+    ),
+    "ECO": (
+        "gazdaság, pénzügy, tőzsde, infláció, GDP, költségvetés, adózás, bankrendszer, "
+        "befektetés, makrogazdaság, kamatláb, valutapiac, economy, finance, stock market, "
+        "inflation, budget, taxation, banking, investment, macroeconomics, interest rates, currency"
+    ),
+    "TEC": (
+        "számítástechnika, szoftver, hardver, mesterséges intelligencia, MI, AI, "
+        "kiberbiztonság, programozás, félvezető, GPU, felhő alapú, digitalizáció, "
+        "robotika, kódolás, technology, software, hardware, artificial intelligence, "
+        "cybersecurity, programming, semiconductor, robotics, coding, cloud computing"
+    ),
+    "HUN": (
+        "Magyarország, Budapest, magyar, belföld, hazai, forint, tiszapárt, fidesz, "
+        "magyar kormány, magyar hír, Hungary, Hungarian, Budapest, forint, HUF, "
+        "local news Hungary, Hungarian government"
+    ),
+    "TRASH": (
+        "bulvár, pletyka, celeb, horoszkóp, társkereső, profil, társkeresés, szex, "
+        "kattintásvadász, botrány, életmód, wellness, recept, főzés, gossip, "
+        "celebrity, horoscope, dating, profile, dating site, clickbait, scandal, "
+        "lifestyle, recipe, cooking, entertainment"
+    )
 }
 
 def get_anchor_embeddings() -> Dict[str, np.ndarray]:
     anchor_cache_file = "anchors.json"
-    cached = load_checkpoint(anchor_cache_file, Dict[str, List[float]])
+    cached = [] #load_checkpoint(anchor_cache_file, Dict[str, List[float]])
     if cached:
         return {k: np.array(v).reshape(1, -1) for k, v in cached.items()}
 

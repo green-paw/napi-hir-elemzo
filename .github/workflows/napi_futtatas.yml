@@ -47,11 +47,10 @@ jobs:
           path: ~/.cache/pip # A pip letöltési gyorsítótára
           key: ${{ runner.os }}-spacy-hu-sm-${{ hashFiles('requirements.txt') }}
 
-      - name: Install spaCy and Hungarian model
+      - name: Install huspacy and model
         run: |
-          # pip install spacy==3.7.5
-          # Telepítés közvetlenül a release URL-ről
-          pip install https://github.com/huspacy/huspacy/releases/download/v3.7.0/hu_core_news_sm-3.7.0.tar.gz
+          pip install # huspacy==0.6.0  # Vagy a legfrissebb
+          python -c "import huspacy; huspacy.download('hu_core_news_sm')"
 
       - name: Create checkpoints directory
         run: mkdir -p checkpoints

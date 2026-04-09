@@ -169,11 +169,13 @@ def handle_news_feed_and_cache(incoming_news: List[NewsItem], run_id: str) -> Tu
     return all_live_news, cache_obj
 
 def update_current_batch(items: List[NewsItem], cache: NewsCache, run_id: str):
+    print(f"update_current_batch: items {len(items)} -> cache {cache.itemCount}")
     if run_id not in cache.batches:
         cache.batches[run_id] = {}
     for item in items:
         cache.batches[run_id][item.hash] = item
     save_checkpoint("news_feed.json", cache, NewsCache)
+    print(f"after update_current_batch: cache {cache.itemCount}")
 
 def add_to_trash(item_hash: str, cache: NewsCache, run_id: str):
     if run_id not in cache.trash_bin:
@@ -305,6 +307,8 @@ def deduplicate_to_chronological_batches(cache_obj: NewsCache) -> NewsCache:
     for batch in cache_obj.batches.values():
         all_items.extend(batch.values())
     
+    before = len(all_items)
+
     if not all_items:
         return cache_obj
 
@@ -352,4 +356,6 @@ def deduplicate_to_chronological_batches(cache_obj: NewsCache) -> NewsCache:
     # 4. Üresen maradt batchek takarítása (opcionális)
     cache_obj.batches = {k: v for k, v in new_batches.items() if v}
     
+    print(f"Deduplikálás: {before} -> {len(unique_items)}")
+
     return cache_obj

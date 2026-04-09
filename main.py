@@ -32,14 +32,11 @@ def main():
     TextCleaner.process(all_live_news)
     print(f"textCleaner után, {current_cache.itemCount} elem")
 
-    first_item = all_live_news[0]
-    clean_txt = first_item.clean_content if first_item.clean_content else "Nincs tiszta szöveg"
-
-    print(f"DEBUG: {first_item.id} tiszta szövege: {clean_txt[:50]}...")
-
     anchors: Dict[str, np.ndarray] = source.get_anchor_embeddings()
 
+    print(f"embed előtt, {current_cache.itemCount} elem")
     source.embed_news(all_live_news, current_cache, RUN_ID)
+    print(f"embed után, {current_cache.itemCount} elem")
     source.score_items(all_live_news, anchors)
     source.cluster_news(all_live_news)
 

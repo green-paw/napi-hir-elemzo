@@ -6,28 +6,16 @@ from checkpoint_manager import load_checkpoint, save_checkpoint
 import gemini_core
 import requests
 import time
-import html
-import re
 import feedparser
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set, Tuple
 
 import config 
-import hashlib
 
 from models import NewsCache, NewsItem
 
 # --- SEGÉDFÜGGVÉNYEK ---
-
-def cleantext(raw: str) -> str:
-    """HTML mentesítés, entitás dekódolás és whitespace normalizálás."""
-    if not raw:
-        return ""
-    unescaped = html.unescape(raw)
-    # Tagek cseréje szóközre (hogy ne ragadjanak össze a szavak)
-    no_html = re.sub(r'<[^>]+?>', ' ', unescaped)
-    return " ".join(no_html.split()).strip()
 
 def extract_safe_text(entry, field: str) -> str:
     """Biztonságos adatkinyerés feedparser entry-ből."""
@@ -38,20 +26,6 @@ def extract_safe_text(entry, field: str) -> str:
     
     return entry.get(f"{field}_detail", {}).get('value', entry.get(field, ''))
 
-def generate_news_hash(title: str, link: str) -> str:
-    """Stabil SHA-256 hasht generál a cím és a tisztított link alapján."""
-    # Link tisztítása (query paraméterek nélkül a stabilitásért)
-    clean_link = link.split('?')[0].split('#')[0].strip().lower()
-    # Cím normalizálása
-    clean_title = title.strip().lower()
-    
-    hash_base = f"{clean_title}|{clean_link}"
-    return hashlib.sha256(hash_base.encode('utf-8')).hexdigest()
-
-# --- MODELLEK ---
-
-
-# --- FŐ FÜGGVÉNY ---
 
 # --- SZÁLKEZELT MUNKAFÜGGVÉNY ---
 

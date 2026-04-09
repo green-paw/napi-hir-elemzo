@@ -1,3 +1,6 @@
+import hashlib
+import html
+import re
 from typing import Any, List, TypeVar, Optional, Generic,Dict, List, Set
 from datetime import datetime
 
@@ -9,8 +12,6 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set, Tuple
 
 import config 
-
-import source
 
 class NewsItem(BaseModel):
     id: str = Field(description="LLM-barát azonosító (pl. C1)")
@@ -28,13 +29,13 @@ class NewsItem(BaseModel):
     @field_validator('title', 'content')
     @classmethod
     def validate_cleantext(cls, v: str) -> str:
-        return source.cleantext(v)
+        return cleantext(v)
 
     @model_validator(mode='after')
     def compute_hash(self) -> 'NewsItem':
         """Inicializálás után legenerálja a hash-t, ha még nincs."""
         if not self.hash:
-            self.hash = source.generate_news_hash(self.title, self.link)
+            self.hash = generate_news_hash(self.title, self.link)
         return self
 
     def short_text_for_prompt(self, width: int = 500) -> str:
@@ -44,3 +45,25 @@ class NewsItem(BaseModel):
 class NewsCache(BaseModel):
     batches: Dict[str, Dict[str, NewsItem]] = Field(default_factory=dict)
     trash_bin: Dict[str, Set[str]] = Field(default_factory=dict)
+
+
+
+
+def generate_news_hash(title: str, link: str) -> str:
+    """Stabil SHA-256 hasht generál a cím és a tisztított link alapján."""
+    # Link tisztítása (query paraméterek nélkül a stabilitásért)
+    clean_link = link.split('?')[0].split('#')[0].strip().lower()
+    # Cím normalizálása
+    clean_title = title.strip().lower()
+    
+    hash_base = f"{clean_title}|{clean_link}"
+    return hashlib.sha256(hash_base.encode('utf-8')).hexdigest()
+
+def cleantext(raw: str) -> str:
+    """HTML mentesítés, entitás dekódolás és whitespace normalizálás."""
+    if not raw:
+        return ""
+    unescaped = html.unescape(raw)
+    # Tagek cseréje szóközre (hogy ne ragadjanak össze a szavak)
+    no_html = re.sub(r'<[^>]+?>', ' ', unescaped)
+    return " ".join(no_html.split()).strip()

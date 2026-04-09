@@ -136,7 +136,8 @@ def handle_news_feed_and_cache(incoming_news: List[NewsItem], run_id: str) -> Tu
         if not item.hash:
             item.compute_hash()
 
-    cache_obj = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
+    cache_obj = NewsCache()
+    #cache_obj = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
     
     full_blacklist: Set[str] = set().union(*cache_obj.trash_bin.values())
     existing_hashes: Set[str] = set().union(*(batch.keys() for batch in cache_obj.batches.values()))

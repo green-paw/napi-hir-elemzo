@@ -35,21 +35,24 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
+      - name: Cache spaCy model file
+        id: cache-spacy-model
+        uses: actions/cache@v4
+        with:
+          # A letöltött wheel fájlt vagy a telepített csomagot is cache-elhetjük
+          # De a legegyszerűbb a pip letöltési mappáját figyelni
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-spacy-hu-md-v380 # Fix kulcs a modell verziójához
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Spacy model
+      - name: Install Spacy model
+        # Ez a sor már a cache-elt ~/.cache/pip-ből fogja venni a fájlt, ha ott van
         run: |
-          python -c "import huspacy; huspacy.download('hu_core_news_sm')"
-
-      - name: Cache spaCy model
-        id: cache-spacy
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip # A pip letöltési gyorsítótára
-          key: ${{ runner.os }}-spacy-hu-sm-${{ hashFiles('requirements.txt') }}
+          pip install hu_core_news_md@https://huggingface.co/huspacy/hu_core_news_md/resolve/main/hu_core_news_md-any-py3-none-any.whl
 
       - name: Create checkpoints directory
         run: mkdir -p checkpoints

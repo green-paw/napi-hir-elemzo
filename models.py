@@ -51,10 +51,11 @@ class NewsCache(BaseModel):
 
 def generate_news_hash(title: str, link: str) -> str:
     """Stabil SHA-256 hasht generál a cím és a tisztított link alapján."""
-    # Link tisztítása (query paraméterek nélkül a stabilitásért)
-    clean_link = link.split('?')[0].split('#')[0].strip().lower()
-    # Cím normalizálása
-    clean_title = title.strip().lower()
+    # 1. Link drasztikusabb tisztítása (trailing slash eltávolítása is)
+    clean_link = link.split('?')[0].split('#')[0].strip().lower().rstrip('/')
+    
+    # 2. Cím tisztítása (ugyanazt a logikát használva, mint a modell)
+    clean_title = cleantext(title).lower()
     
     hash_base = f"{clean_title}|{clean_link}"
     return hashlib.sha256(hash_base.encode('utf-8')).hexdigest()

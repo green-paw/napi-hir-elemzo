@@ -31,7 +31,14 @@ def format_sources_html(news: List[NewsItem]) -> str:
 
 def generate_html_report(cache_obj: NewsCache, current_run_id: str, filename: str = "report.html"):
     # Az aktuális futás hírei (közvetlenül a batch-ből)
+    all_items = []
+    for rid, batch in cache_obj.batches.items():
+        all_items.extend(batch.values())
+    all_items.sort(key=lambda x: x.hash)
+    
     new_items = list(cache_obj.batches.get(current_run_id, {}).values())
+
+    
     
     # Minden hír, ami NEM a mostani batch-ben van
     cached_items = []
@@ -74,12 +81,12 @@ def generate_html_report(cache_obj: NewsCache, current_run_id: str, filename: st
 
         <div class="section">
             <h2>✨ ÚJ HÍREK</h2>
-            {"".join([_render_card(it, "new") for it in new_items])}
+            {"".join([_render_card(it, "new") for it in all_items])}
         </div>
 
         <div class="section">
             <h2>str_cached 💾 CACHE-BŐL</h2>
-            {"".join([_render_card(it, "cached") for it in cached_items])}
+                "".join([_render_card(it, "cached") for it in cached_items])
         </div>
     </body>
     </html>

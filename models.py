@@ -45,7 +45,12 @@ class NewsCache(BaseModel):
     batches: Dict[str, Dict[str, NewsItem]] = Field(default_factory=dict)
     trash_bin: Dict[str, Set[str]] = Field(default_factory=dict)
 
-
+    @property
+    def itemCount(self) -> int:
+        c = 0
+        for b in self.batches.values():
+            c += len(b.items())
+        return c
 
 
 def generate_news_hash(title: str, link: str) -> str:

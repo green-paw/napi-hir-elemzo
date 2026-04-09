@@ -138,6 +138,7 @@ def handle_news_feed_and_cache(incoming_news: List[NewsItem], run_id: str) -> Tu
 
     #cache_obj = NewsCache()
     cache_obj = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
+    print(f"Cache betöltve, {cache_obj.itemCount} elem")
     
     full_blacklist: Set[str] = set().union(*cache_obj.trash_bin.values())
     existing_hashes: Set[str] = set().union(*(batch.keys() for batch in cache_obj.batches.values()))
@@ -159,6 +160,7 @@ def handle_news_feed_and_cache(incoming_news: List[NewsItem], run_id: str) -> Tu
 
     # Első mentés (új hírek hash-ei megvannak)
     save_checkpoint("news_feed.json", cache_obj, NewsCache)
+    print(f"Cache mentve, {cache_obj.itemCount} elem")
     
     all_live_news = []
     for batch in cache_obj.batches.values():

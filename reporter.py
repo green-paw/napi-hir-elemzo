@@ -30,7 +30,7 @@ def format_sources_html(news: List[NewsItem]) -> str:
     return " | ".join(formatted)
 
 def generate_html_report(cache_obj: NewsCache, current_run_id: str, filename: str = "report.html"):
-    
+    print(f"Reporter indítva {cache_obj.itemCount} elemre")
     for batch_id, items_dict in cache_obj.batches.items():
         for news_item in items_dict.values():
             news_item.downloaded = batch_id

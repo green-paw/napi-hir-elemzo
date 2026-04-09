@@ -28,7 +28,9 @@ def main():
         print("❌ Nincsenek feldolgozandó hírek. Leállás.")
         return
 
+    print(f"textCleaner előtt, {current_cache.itemCount} elem")
     TextCleaner.process(all_live_news)
+    print(f"textCleaner után, {current_cache.itemCount} elem")
 
     first_item = all_live_news[0]
     clean_txt = first_item.clean_content if first_item.clean_content else "Nincs tiszta szöveg"

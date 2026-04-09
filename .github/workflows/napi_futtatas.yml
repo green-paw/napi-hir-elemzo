@@ -49,7 +49,7 @@ jobs:
 
       - name: Install huspacy and model
         run: |
-          pip install # huspacy==0.6.0  # Vagy a legfrissebb
+          pip install huspacy==0.6.0  # Vagy a legfrissebb
           python -c "import huspacy; huspacy.download('hu_core_news_sm')"
 
       - name: Create checkpoints directory

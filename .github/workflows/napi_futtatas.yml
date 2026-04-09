@@ -52,7 +52,7 @@ jobs:
       - name: Install Spacy model
         # Ez a sor már a cache-elt ~/.cache/pip-ből fogja venni a fájlt, ha ott van
         run: |
-          pip install hu_core_news_md@https://huggingface.co/huspacy/hu_core_news_md/resolve/main/hu_core_news_md-any-py3-none-any.whl
+          pip install https://github.com/huspacy/huspacy/releases/download/v3.8.0/hu_core_news_md-3.8.0-py3-none-any.whl
 
       - name: Create checkpoints directory
         run: mkdir -p checkpoints

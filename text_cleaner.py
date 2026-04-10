@@ -28,25 +28,23 @@ class TextCleaner:
         for item in items:
             if item.embedding is not None:
                 continue
-
-            # Cím és tartalom összefűzése
             raw_text = f"{item.title} {item.content}"
-            
-            # 1. Tisztítás: URL-ek, HTML és speciális karakterek
             text = re.sub(r'http\S+|www\S+|https\S+', '', raw_text, flags=re.MULTILINE)
             text = re.sub(r'<.*?>', '', text)
-            
-            # 2. Csak betűk megtartása (a Gemini jobban szereti a tiszta szavakat)
-            # A [^\w\s] eltávolítja az írásjeleket, de megtartja a betűket (ékezeteseket is)
             text = re.sub(r'[^\w\s]', ' ', text)
-            
-            # 3. Tokenizálás és szűrés
             words = text.lower().split()
-            
-            # Szűrünk: ne legyen stopword ÉS legyen legalább 3 karakter hosszú
             filtered_words = [w for w in words if w not in TextCleaner.STOPWORDS and len(w) > 2]
-
-            # 4. Eredmény mentése
             item.clean_content = " ".join(filtered_words)[:max_chars]
-
         print(f"✨ Szövegtisztítás kész: {len(items)} hír feldolgozva.")
+
+    @staticmethod
+    def process_single(item: NewsItem, max_chars: int = 800) -> None:
+        if item.embedding is not None:
+            return
+        raw_text = f"{item.title} {item.content}"
+        text = re.sub(r'http\S+|www\S+|https\S+', '', raw_text, flags=re.MULTILINE)
+        text = re.sub(r'<.*?>', '', text)
+        text = re.sub(r'[^\w\s]', ' ', text)
+        words = text.lower().split()
+        filtered_words = [w for w in words if w not in TextCleaner.STOPWORDS and len(w) > 2]
+        item.clean_content = " ".join(filtered_words)[:max_chars]

@@ -187,39 +187,37 @@ def add_to_trash(item_hash: str, cache: NewsCache, run_id: str):
         if not cache.batches[tid]:
             del cache.batches[tid]
 
-def embed_news(all_live_news: List[NewsItem], cache_obj: NewsCache, RUN_ID: str) -> None:
+def embed_news(active_cache: Dict[str, NewsItem]) -> None:
     news_to_embed = [
-        item for item in all_live_news 
-        if item.embedding is None and item.clean_content is not None
+        item for item in active_cache.values() 
+        if item.embedding is None and item.clean_content
     ]
-
-    if news_to_embed:
-        print(f"🧬 {len(news_to_embed)} hír embeddingjének lekérése...")
-        texts = [str(item.clean_content) for item in news_to_embed]
+    if not news_to_embed:
+        print("✅ Minden hír rendelkezik embeddinggel, nincs szükség API hívásra.")
+        return
+    print(f"🧬 {len(news_to_embed)} új hír embeddingjének lekérése...")
+    texts = [str(item.clean_content) for item in news_to_embed]
+    try:
         new_vectors = gemini_core.embed(texts, task_type="RETRIEVAL_DOCUMENT")
         for item, vector in zip(news_to_embed, new_vectors):
             item.embedding = vector
-        update_current_batch(all_live_news, cache_obj, RUN_ID)
+    except Exception as e:
+        print(f"⚠️ Hiba az embedding során: {e}")
 
 def score_items(items: List[NewsItem], anchor_vectors: Dict[str, np.ndarray]):
-    """Kitölti az item.profile-t az ANCHORS alapján."""
-    if not items:
+    # Csak azokat pontozzuk, amiknek van vektora
+    valid_items = [it for it in items if it.embedding is not None]
+    if not valid_items or not anchor_vectors:
         return
 
-    # Kigyűjtjük az embeddingeket egy nagy mátrixba (N hír x D dimenzió)
-    news_embeddings = np.array([item.embedding for item in items if item.embedding is not None])
-    
-    # Kigyűjtjük a horgonyokat (M horgony x D dimenzió)
+    news_embeddings = np.array([it.embedding for it in valid_items])
     anchor_names = list(anchor_vectors.keys())
-    # anchor_vectors[name] nálad (1, -1) alakú, ezért flatten() vagy reshape kell
     anchor_matrix = np.vstack([anchor_vectors[name] for name in anchor_names])
 
-    # Kiszámoljuk a hasonlóságot minden hír és minden horgony között
-    # Eredmény: (N hír x M horgony) mátrix
     similarities = cosine_similarity(news_embeddings, anchor_matrix)
 
-    # Visszaírjuk a profilokba
-    for i, item in enumerate(items):
+    # Most már az indexek garantáltan stimmelnek
+    for i, item in enumerate(valid_items):
         for j, name in enumerate(anchor_names):
             item.profile[name] = float(similarities[i, j])
 

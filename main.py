@@ -26,8 +26,8 @@ def main():
     active_cache: Dict[str, NewsItem] = {}
     
     # ha törölni akarom a cache-t:
-    loaded_cache = NewsCache()
-    #loaded_cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
+    #loaded_cache = NewsCache()
+    loaded_cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
     trash_bin: Dict[str, Set[str]] = loaded_cache.trash_bin
     full_blacklist = set().union(*trash_bin.values())
 
@@ -44,21 +44,16 @@ def main():
         if item.hash not in active_cache and item.hash not in full_blacklist:
             newly_downloaded.append(item)
 
-    i = 0
-
     if newly_downloaded:
         for item in newly_downloaded:
             TextCleaner.process_single(item)
-            if i < 5:
-                print(f"{item.title} - {item.content[:50]} -> {item.clean_content}")
-                i += 1
             item.downloaded = RUN_ID
             active_cache[item.hash] = item
            
     source.embed_news(active_cache)
     final_cache = save_flat_cache(active_cache, trash_bin)
 
-    clusters = source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.1)
+    clusters = source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.08)
     reporter.generate_html_report(clusters, filename="index.html")
 
     try:

@@ -24,7 +24,8 @@ llm = llm_service.LLMService()
 
 def main():
     active_cache: Dict[str, NewsItem] = {}
-    loaded_cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
+    loaded_cache = NewsCache()
+    #loaded_cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
     trash_bin: Dict[str, Set[str]] = loaded_cache.trash_bin
     
     # 1. Betöltés (a tegnapi, már ellenőrzött hírek)
@@ -42,24 +43,27 @@ def main():
     for item in incoming_news:
         if not item.hash: item.compute_hash()
         if item.hash not in active_cache and item.hash not in full_blacklist:
-            # Csak azokat tesszük a listába, amiket még sosem láttunk
             newly_downloaded.append(item)
 
     if newly_downloaded:
-        llm.classify_news_batch(newly_downloaded, trash_bin)
-        valid_new_news = [it for it in newly_downloaded if it.profile.get("category") != "TRASH"]
+        processed_news = llm.classify_news_batch(newly_downloaded)
+        for item in processed_news:
+            if item.category == "TRASH":
+                trash_bin.setdefault("TRASH", set()).add(item.hash)
+                active_cache.pop(item.hash, None)
+            else:
+                TextCleaner.process_single(item)
+                item.downloaded = RUN_ID
+                active_cache[item.hash] = item
 
-        for item in valid_new_news:
-            TextCleaner.process_single(item)
-            item.downloaded = RUN_ID
-            active_cache[item.hash] = item
-            
-        # 3. Embedding (Már csak a tiszta hírekre!)
-        source.embed_news(active_cache)
+        print(f"✅ Feldolgozás kész. Új: {len(processed_news)} | Szűrve: {len(active_cache)}")
+           
+    # 3. Embedding (Már csak a tiszta hírekre!)
+    #source.embed_news(active_cache)
 
-        # TODO: 4. Klaszterezés (Centroidok alapján)
-        # Ez váltja fel a "használhatatlan pontozást" logikai csoportokkal
-        # source.incremental_clustering(valid_new_news, active_cache)
+    # TODO: 4. Klaszterezés (Centroidok alapján)
+    # Ez váltja fel a "használhatatlan pontozást" logikai csoportokkal
+    # source.incremental_clustering(valid_new_news, active_cache)
 
     # 5. Mentés és Riport
     final_cache = save_flat_cache(active_cache, trash_bin)

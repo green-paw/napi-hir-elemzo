@@ -33,63 +33,67 @@ class LLMService:
         A válasz alapján frissíti a klaszterek címeit és trash státuszát.
         """
         if not clusters:
-            return []
+            return []        
 
-        # 1. Bemenet összeállítása (M1, M2... azonosítókkal)
-        # Csak az első 3-4 hír címét küldjük el klaszterenként, hogy spóroljunk
-        cluster_texts = []
-        for c in clusters:
-            titles = " | ".join([it.title[:100] for it in c.items[:5]])
-            cluster_texts.append(f"{c.id}: [{titles}]")
-        
-        batch_input = "\n".join(cluster_texts)
+        chunks = [clusters[i:i + 20] for i in range(0, len(clusters), 20)]
+        processed: List[NewsCluster] = []
+    
+        for chunk in chunks[:10]:
+            cluster_texts = []
+            for c in chunk:
+                titles = " | ".join([it.title[:100] for it in c.items[:5]])
+                cluster_texts.append(f"{c.id}: [{titles}]")
+            
+            batch_input = "\n".join(cluster_texts)
 
-        # 2. A "Szigorú Szerkesztő" Prompt
-        sys_instr = f"""
-        Feladat: Hírszerkesztő vagy. Előre csoportosított hírekről (hír-klaszterekről) kell eldöntened hogy politikai, gazdasági vagy technológiai szempontból van-e jelentőségük, vagy pedig csak zaj (bulvár, reklám, celebek, stb)
-        Az egyes csoportokat egyenként vizsgáld meg, és amelyek nem minősülnek szemétnek, azoknak egy jó magyar címet kell adnod. A kimenetben elkülöníthetőnek kell lennie ID alapján hogy melyik csoportnak melyik címet adtad.
-        A kimenetbe nem kell semmi bevezető, semmi magyarázat.
-        
-        Szabályok:
-        1. Csak a VALÓDI politikai, gazdasági vagy technológiai súllyal bíró klaszterekről válaszolj.
-        2. Ami bulvár, reklám, sporthír, recept vagy jelentéktelen apróság, azt HAGYD KI a válaszból.
-        3. Formátum: ID: Rövid, ütős cím (max 15 szó) SZIGORÚAN MAGYAR NYELVEN!
-        """
+            # 2. A "Szigorú Szerkesztő" Prompt
+            sys_instr = f"""
+            Feladat: Hírszerkesztő vagy. Előre csoportosított hírekről (hír-klaszterekről) kell eldöntened hogy politikai, gazdasági vagy technológiai szempontból van-e jelentőségük, vagy pedig csak zaj (bulvár, reklám, celebek, stb)
+            Az egyes csoportokat egyenként vizsgáld meg, és amelyek nem minősülnek szemétnek, azoknak egy jó magyar címet kell adnod. A kimenetben elkülöníthetőnek kell lennie ID alapján hogy melyik csoportnak melyik címet adtad.
+            A kimenetbe nem kell semmi bevezető, semmi magyarázat.
+            
+            Szabályok:
+            1. Csak a VALÓDI politikai, gazdasági vagy technológiai súllyal bíró klaszterekről válaszolj.
+            2. Ami bulvár, reklám, sporthír, recept vagy jelentéktelen apróság, azt HAGYD KI a válaszból.
+            3. Formátum: ID: Rövid, ütős cím (max 15 szó) SZIGORÚAN MAGYAR NYELVEN!
+            """
 
-        prompt = f"""
-        Hírek:
-        {batch_input}
-        """
+            prompt = f"""
+            Hírek:
+            {batch_input}
+            """
 
-        # 3. Gemini hívás (Flash Lite ideális erre)
-        response = gemini_core.generate(
-            sys_instr=sys_instr,
-            contents=prompt,
-            max_output_tokens=2048
-        )
+            # 3. Gemini hívás (Flash Lite ideális erre)
+            response = gemini_core.generate(
+                sys_instr=sys_instr,
+                contents=prompt,
+                max_output_tokens=2048
+            )
 
-        print(response)
+            print(response)
 
-        # 4. Válasz feldolgozása
-        valid_map = {}
-        if response and response.text:
-            for line in response.text.split('\n'):
-                if ":" in line:
-                    parts = line.split(":", 1)
-                    mid = parts[0].strip()
-                    title = parts[1].strip()
-                    valid_map[mid] = title
+            # 4. Válasz feldolgozása
+            valid_map = {}
+            if response and response.text:
+                for line in response.text.split('\n'):
+                    if ":" in line:
+                        parts = line.split(":", 1)
+                        mid = parts[0].strip()
+                        title = parts[1].strip()
+                        valid_map[mid] = title
 
-        # 5. Státuszok beállítása az objektumokban
-        for c in clusters:
-            if c.id in valid_map:
-                c.summary_title = valid_map[c.id]
-                c.is_trash = False
-            else:
-                c.summary_title = ""
-                c.is_trash = True
-                
-        return clusters
+            # 5. Státuszok beállítása az objektumokban
+            for c in clusters:
+                if c.id in valid_map:
+                    c.summary_title = valid_map[c.id]
+                    c.is_trash = False
+                else:
+                    c.summary_title = ""
+                    c.is_trash = True
+
+            processed.extend(clusters)    
+
+        return processed
 
     def generate_final_analysis(self, macro_clusters: List[Any]):
         """

@@ -3,70 +3,99 @@
     <html lang="hu">
     <head>
         <meta charset="UTF-8">
-        <title>News Intelligence Report - 2026-04-10 12:26</title>
-        <style>
-            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: #e0e0e0; margin: 40px; }}
-            h1, h2 {{ color: #4facfe; }}
-            .stats {{ background: #2d2d2d; padding: 20px; border-radius: 8px; margin-bottom: 30px; display: flex; gap: 40px; }}
-            .stat-box {{ font-size: 1.2em; }}
-            .stat-num {{ font-weight: bold; color: #00f2fe; font-size: 1.5em; }}
-            .section {{ margin-bottom: 40px; }}
+        <title>News Intelligence Report - 2026-04-10 12:37</title>
+    <style>
+        /* Alapbeállítások - Világos téma */
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            background: #f8f9fa; 
+            color: #212529; 
+            margin: 40px auto; 
+            max-width: 900px; 
+            line-height: 1.5;
+        }
+        
+        h1, h2 { color: #1a1a1a; border-bottom: 2px solid #dee2e6; padding-bottom: 10px; }
+        
+        /* Statisztikai doboz */
+        .stats { 
+            background: #fff; 
+            padding: 15px; 
+            border: 1px solid #dee2e6; 
+            border-radius: 6px; 
+            margin-bottom: 30px; 
+            display: flex; 
+            gap: 30px; 
+        }
+        .stat-num { font-weight: bold; color: #007bff; }
 
-            .news-card {{ background: #252525; padding: 15px; margin-bottom: 10px; border-left: 5px solid #444; border-radius: 4px; }}
-            .news-card.new {{ border-left-color: #00c853; }}
-            .news-card.cached {{ border-left-color: #ffab00; }}
-            .title {{ font-weight: bold; font-size: 1.1em; color: #fff; }}
-            .meta {{ color: #888; font-size: 0.9em; margin: 5px 0; }}
-            .scores {{ display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }}
-            .score-tag {{ background: #3d3d3d; padding: 3px 8px; border-radius: 12px; font-size: 0.8em; border: 1px solid #555; }}
-            .high-score {{ background: #4facfe33; border-color: #4facfe; color: #4facfe; font-weight: bold; }}
-            .trash-score {{ background: #ff525233; border-color: #ff5252; color: #ff5252; }}
+        /* Kártya stílus - Letisztult fehér */
+        .news-card { 
+            background: #ffffff; 
+            padding: 20px; 
+            margin-bottom: 15px; 
+            border: 1px solid #dee2e6; 
+            border-radius: 8px;
+            position: relative;
+        }
+        
+        /* Cím és linkek */
+        .news-title { 
+            font-weight: bold; 
+            font-size: 1.2em; 
+            color: #0056b3; 
+            text-decoration: none; 
+            display: block;
+            margin-bottom: 8px;
+        }
+        .news-title:hover { text-decoration: underline; }
+        .news-excerpt { color: #495057; font-size: 0.95em; margin: 10px 0; }
 
+        /* Badge-ek (Kategória és jelzők) */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: bold;
+            color: #fff;
+            margin-right: 5px;
+            text-transform: uppercase;
+        }
+        
+        /* Kategória színek - Erőteljes, de tiszta */
+        .cat-pol { background-color: #dc3545; } /* Piros */
+        .cat-eco { background-color: #28a745; } /* Zöld */
+        .cat-tec { background-color: #007bff; } /* Kék */
+        .cat-trash { background-color: #6c757d; } /* Szürke */
+        
+        /* Magyar jelző - Nemzeti színek helyett tiszta keretes stílus */
+        .hun-tag { 
+            background: #fff; 
+            color: #28a745; 
+            border: 1px solid #28a745; 
+        }
 
-            /* Alap kártya stílus */
-            .news-card { 
-                background: #252525; 
-                padding: 15px; 
-                margin-bottom: 15px; 
-                border-radius: 8px; 
-                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-                transition: transform 0.2s;
-            }
-            .news-card:hover { transform: translateX(5px); background: #2d2d2d; }
+        /* Meta infók (idő, forrás, debug) */
+        .card-header { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; }
+        .source-name { font-weight: bold; color: #343a40; font-size: 0.9em; }
+        .timestamp { color: #6c757d; font-size: 0.85em; }
+        .debug-info { color: #adb5bd; font-size: 0.7em; margin-top: 10px; border-top: 1px solid #f1f3f5; padding-top: 5px; }
 
-            /* Badge alapstílus */
-            .badge {
-                padding: 3px 10px;
-                border-radius: 4px;
-                font-size: 0.75rem;
-                font-weight: bold;
-                color: white;
-                text-transform: uppercase;
-            }
-
-            /* Kategória specifikus színek */
-            .cat-pol { background-color: #d63031; }
-            .cat-eco { background-color: #00b894; }
-            .cat-tec { background-color: #0984e3; }
-            .cat-trash { background-color: #636e72; }
-
-            /* Színes szegélyek */
-            .cat-pol-border { border-left: 6px solid #d63031; }
-            .cat-eco-border { border-left: 6px solid #00b894; }
-            .cat-tec-border { border-left: 6px solid #0984e3; }
-            .cat-trash-border { border-left: 6px solid #636e72; }
-
-            .hun-tag { background: transparent; border: 1px solid #fab1a0; color: #fab1a0; }
-            .high-relevance { background: #fdcb6e; color: #000; }
-        </style>
+        /* Kategória szerinti szegély a kártya szélén */
+        .cat-pol-border { border-left: 6px solid #dc3545; }
+        .cat-eco-border { border-left: 6px solid #28a745; }
+        .cat-tec-border { border-left: 6px solid #007bff; }
+        .cat-trash-border { border-left: 6px solid #6c757d; }
+    </style>
     </head>
     <body>
         <h1>📰 News Intelligence Report</h1>
-        <p class="meta">2026-04-10T12:26:45.356427</p>
+        <p class="meta">2026-04-10T12:37:33.613130</p>
         <div class="stats">
-            <div class="stat-box">Új hírek: <span class="stat-num">9</span></div>
-            <div class="stat-box">Cache-ből: <span class="stat-num">918</span></div>
-            <div class="stat-box">Összesen: <span class="stat-num">927</span></div>
+            <div class="stat-box">Új hírek: <span class="stat-num">23</span></div>
+            <div class="stat-box">Cache-ből: <span class="stat-num">924</span></div>
+            <div class="stat-box">Összesen: <span class="stat-num">947</span></div>
         </div>
 
         <div class="section">
@@ -79,17 +108,59 @@
             </div>
             <div class="header-right" style="font-size: 0.8em; color: #888;">
                 <span class="source-name" style="font-weight: bold; margin-right: 10px;">mandiner</span>
-                <span class="timestamp">12:24</span>
+                <span class="timestamp">12:37</span>
             </div>
         </div>
         <div class="card-body">
-            <a href="https://mandiner.hu/belfold/2026/04/spanyol-ep-kepviselo-ha-nyer-a-fidesz-von-der-leyenek-ervenytelenithetik-az-eredmenyt-johet-a-romaniai-forgatokonyv" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Spanyol EP-képviselő: Ha nyer a Fidesz, Von der Leyenék érvényteleníthetik az eredményt – jöhet a romániai forgatókönyv?</a>
+            <a href="https://mandiner.hu/belfold/2026/04/botrany-kecskemeten-csalas-miatt-tavozhatott-korabbi-munkahelyerol-magyar-peter-jeloltje" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Botrány Kecskeméten: csalás miatt távozhatott korábbi munkahelyéről Magyar Péter jelöltje</a>
             <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
-                Spanyol EP-képviselő: Ha nyer a Fidesz, Von der Leyenék érvényteleníthetik az eredményt – jöhet a romániai forgatókönyv? - Hermann Tertsch szerint semmitől sem riadnak vissza, ha Orbán Viktor...
+                Botrány Kecskeméten: csalás miatt távozhatott korábbi munkahelyéről Magyar Péter jelöltje - Molnár János önéletrajzában nem bontotta ki az igazság minden részletét.
             </div>
         </div>
         <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
-            <small class="debug-info">ID: C1 | Hash: c9785efe</small>
+            <small class="debug-info">ID: C1 | Hash: e53921f3</small>
+        </div>
+    </div>
+    
+    <div class="news-card new cat-trash-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-trash">TRASH</span> <span class="badge hun-tag">🇭🇺 HUN</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">magyar_nemzet</span>
+                <span class="timestamp">12:36</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://magyarnemzet.hu/igy-irnak-ok/2026/04/igy-irnak-ok-aprilis-10-delutan?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Így írnak ők – Április 10., délután</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                Így írnak ők – Április 10., délután -
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C2 | Hash: 06cf2142</small>
+        </div>
+    </div>
+    
+    <div class="news-card new cat-pol-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-pol">POL</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">444</span>
+                <span class="timestamp">12:36</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://444.hu/2026/04/10/a-meduza-forrasai-szerint-mar-a-kreml-is-orban-veresegere-keszul?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_syndication" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">A Meduza forrásai szerint már a Kreml is Orbán vereségére készül</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                A Meduza forrásai szerint már a Kreml is Orbán vereségére készül - A Kremlben sem tartják már elképzelhetetlennek Orbán Viktor vereségét, és készülnek is arra, hogy hogyan kellene ezt...
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C3 | Hash: 45578ffc</small>
         </div>
     </div>
     
@@ -100,122 +171,101 @@
             </div>
             <div class="header-right" style="font-size: 0.8em; color: #888;">
                 <span class="source-name" style="font-weight: bold; margin-right: 10px;">magyar_nemzet</span>
-                <span class="timestamp">12:23</span>
+                <span class="timestamp">12:31</span>
             </div>
         </div>
         <div class="card-body">
-            <a href="https://magyarnemzet.hu/belfold/2026/04/orban-viktor-nezopontja-nemzeti-osszefogasra-van-szukseg-a-valasztas-utan-is-video?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Orbán Viktor nézőpontja: Nemzeti összefogásra van szükség a választás után is + videó</a>
+            <a href="https://magyarnemzet.hu/belfold/2026/04/a-tiszas-valasztasi-csalasok-megakadalyozasara-demokracia-kozpontot-hoznak-letre?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">A tiszás választási csalások megakadályozására Demokrácia Központot hoznak létre</a>
             <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
-                Orbán Viktor nézőpontja: Nemzeti összefogásra van szükség a választás után is + videó - Rövid videóval jelentkezett a közösségi médiában Orbán Viktor miniszterelnök péntek reggel, amiben sok...
+                A tiszás választási csalások megakadályozására Demokrácia Központot hoznak létre - Ha bármilyen szabálytalanságot észlelnek, jelezzék a Demokrácia Központnak – üzente Dömötör Csaba.
             </div>
         </div>
         <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
-            <small class="debug-info">ID: C2 | Hash: b8cd3e11</small>
+            <small class="debug-info">ID: C4 | Hash: c5167891</small>
+        </div>
+    </div>
+    
+    <div class="news-card new cat-eco-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-eco">ECO</span> <span class="badge hun-tag">🇭🇺 HUN</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">magyar_nemzet</span>
+                <span class="timestamp">12:30</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://magyarnemzet.hu/gazdasag/2026/04/agglomeracio-olcso-vagy-luxus?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Ingatlanvásárlás előtt - ezek a legolcsóbb települések a budapesti agglomerációban</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                Ingatlanvásárlás előtt - ezek a legolcsóbb települések a budapesti agglomerációban - Itt a toplista.
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C5 | Hash: cea09719</small>
         </div>
     </div>
     
     <div class="news-card new cat-pol-border">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <div class="header-left">
-                <span class="badge cat-pol">POL</span> <span class="badge hun-tag">🇭🇺 HUN</span>
+                <span class="badge cat-pol">POL</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">mandiner</span>
+                <span class="timestamp">12:29</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://mandiner.hu/kulfold/2026/04/zelenszkij-dramai-bejelentest-tett-aprilis-vegeig-osszeomolhat-ukrajna-keleti-resze" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Zelenszkij drámai bejelentést tett: április végéig összeomolhat Ukrajna keleti része</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                Zelenszkij drámai bejelentést tett: április végéig összeomolhat Ukrajna keleti része - Pokrovszk külvárosában és testvérvárosa, Mirnohrad közelében továbbra is heves harcok folynak.
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C6 | Hash: ddb4229f</small>
+        </div>
+    </div>
+    
+    <div class="news-card new cat-eco-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-eco">ECO</span> <span class="badge hun-tag">🇭🇺 HUN</span>
             </div>
             <div class="header-right" style="font-size: 0.8em; color: #888;">
                 <span class="source-name" style="font-weight: bold; margin-right: 10px;">444</span>
-                <span class="timestamp">12:22</span>
+                <span class="timestamp">12:28</span>
             </div>
         </div>
         <div class="card-body">
-            <a href="https://444.hu/2026/04/10/megmutatjuk-kikbol-valaszthatsz-vasarnap?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_syndication" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Megmutatjuk, kikből választhatsz vasárnap</a>
+            <a href="https://444.hu/2026/04/10/a-valasztas-elott-egy-nappal-25-forinttal-csokken-a-dizel-ara?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_syndication" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">A választás előtt egy nappal 25 forinttal csökken a dízel ára</a>
             <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
-                Megmutatjuk, kikből választhatsz vasárnap - Miután csütörtök délután 4 órakor lejárt a visszalépések határideje, véglegessé vált az egyéni jelöltek száma és személye az egyéni választókerületekben....
+                A választás előtt egy nappal 25 forinttal csökken a dízel ára - Noha a magyar rendszámú autókba továbbra is védett áron, a benzint literenként 595 forintért, a gázolajat 615 forintért tankolhatjuk,...
             </div>
         </div>
         <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
-            <small class="debug-info">ID: C3 | Hash: e204648d</small>
+            <small class="debug-info">ID: C7 | Hash: 0202e1b4</small>
         </div>
     </div>
     
-    <div class="news-card new cat-tec-border">
+    <div class="news-card new cat-pol-border">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <div class="header-left">
-                <span class="badge cat-tec">TEC</span>
+                <span class="badge cat-pol">POL</span>
             </div>
             <div class="header-right" style="font-size: 0.8em; color: #888;">
-                <span class="source-name" style="font-weight: bold; margin-right: 10px;">cnn</span>
-                <span class="timestamp">11:00</span>
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">guardian</span>
+                <span class="timestamp">12:28</span>
             </div>
         </div>
         <div class="card-body">
-            <a href="https://news.google.com/rss/articles/CBMingFBVV95cUxPUFppTFhxNV9SRVo0b2ZTaGN6V3IwT29DXzVTQnVpS0E5OFRLUFcyNWl2ZjRZeVA0cnU2akoyalRLY0NhVUxKZFJibVE4QnhQdTdCNnNPUVZwUGxXTTZtMWxsZS00bFctODVtQjJNYXpBY1FFNmpsdDhRRGZDaEJyRi1Ga1RzTUxCVmQ0REh3MjNUQnFUcDNaX1laYmxadw?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">The hottest Apple product right now isn’t what you think - CNN</a>
+            <a href="https://www.theguardian.com/world/2026/apr/10/peru-election-polls-instability" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Peruvians go to the polls hoping to break cycle of instability</a>
             <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
-                The hottest Apple product right now isn’t what you think - CNN - The hottest Apple product right now isn’t what you think CNN
+                Peruvians go to the polls hoping to break cycle of instability - Soaring crime and corruption top voter concerns in highly unpredictable election with record 35 candidates for president Peruvians...
             </div>
         </div>
         <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
-            <small class="debug-info">ID: C91 | Hash: 23024350</small>
-        </div>
-    </div>
-    
-    <div class="news-card new cat-eco-border">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <div class="header-left">
-                <span class="badge cat-eco">ECO</span>
-            </div>
-            <div class="header-right" style="font-size: 0.8em; color: #888;">
-                <span class="source-name" style="font-weight: bold; margin-right: 10px;">reuters</span>
-                <span class="timestamp">10:54</span>
-            </div>
-        </div>
-        <div class="card-body">
-            <a href="https://news.google.com/rss/articles/CBMiggFBVV95cUxOZWNnY2Q5TWdNN3JlTW45Vm9DcC1aZ3pRWXY2MjBnN09Idk5XMXgzQWtQWHdpanQ1NDZVelpiSnZXZlpDS3BKeVVFU2Juc2RtNTZic2VBSmtwZTBLODFjWGotcldrZm9GYkhRYkdXUk1GRDluTFFqbnlyd2l5ZXRTeVhB?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Morning Bid: Back from the brink? - Reuters</a>
-            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
-                Morning Bid: Back from the brink? - Reuters - Morning Bid: Back from the brink? Reuters
-            </div>
-        </div>
-        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
-            <small class="debug-info">ID: C105 | Hash: d5a40a62</small>
-        </div>
-    </div>
-    
-    <div class="news-card new cat-trash-border">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <div class="header-left">
-                <span class="badge cat-trash">TRASH</span>
-            </div>
-            <div class="header-right" style="font-size: 0.8em; color: #888;">
-                <span class="source-name" style="font-weight: bold; margin-right: 10px;">cnn</span>
-                <span class="timestamp">10:37</span>
-            </div>
-        </div>
-        <div class="card-body">
-            <a href="https://news.google.com/rss/articles/CBMihgFBVV95cUxPbnZoY3lQNGU2N1BVSllKOFZkT2VlX2lDVHBEV0pZTnZyaGZsWnhRRzc1WGcxZFNJY0Z6R0ZBY2xoeDFJcTk0S3h1b2NsVTJ3dlNVX2lJSk5LQU9HTWdSSXVYV1N0MnZhUXJhODZIN1BlU2E2c0ZHZ1c3MEdCdzA1a3BQelpzUQ?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">5 Things Weekly News Quiz - CNN</a>
-            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
-                5 Things Weekly News Quiz - CNN - 5 Things Weekly News Quiz CNN
-            </div>
-        </div>
-        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
-            <small class="debug-info">ID: C122 | Hash: 87c243b7</small>
-        </div>
-    </div>
-    
-    <div class="news-card new cat-eco-border">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <div class="header-left">
-                <span class="badge cat-eco">ECO</span>
-            </div>
-            <div class="header-right" style="font-size: 0.8em; color: #888;">
-                <span class="source-name" style="font-weight: bold; margin-right: 10px;">financial_times</span>
-                <span class="timestamp">23:32</span>
-            </div>
-        </div>
-        <div class="card-body">
-            <a href="https://news.google.com/rss/articles/CBMimAFBVV95cUxOeVdIaVJyelhYYWdINTBoUFZJZ2J5dllnOG5WWEpyMFFnbGw1R2FkN0FRaWcwS1hvbThIdFF0bWs3bm1QRjhsYjcyZVozTmVWWDVTVFFQZFVQcF8tM2VSS3BkdUJBRm92SXlxY3lHT3Nna3c4ZTZRY1JDUXNMYnVuS3hMUlJTc1Z3cGR0dHFHQlR1U1l6RHNVbQ?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Give your money real clout with impact investing - Financial Times</a>
-            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
-                Give your money real clout with impact investing - Financial Times - Give your money real clout with impact investing Financial Times
-            </div>
-        </div>
-        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
-            <small class="debug-info">ID: C482 | Hash: 7b18d3e2</small>
+            <small class="debug-info">ID: C8 | Hash: dd70e185</small>
         </div>
     </div>
     
@@ -226,17 +276,17 @@
             </div>
             <div class="header-right" style="font-size: 0.8em; color: #888;">
                 <span class="source-name" style="font-weight: bold; margin-right: 10px;">fox_news</span>
-                <span class="timestamp">19:23</span>
+                <span class="timestamp">12:06</span>
             </div>
         </div>
         <div class="card-body">
-            <a href="https://news.google.com/rss/articles/CBMiuAFBVV95cUxQMXlSbUUzWG9KbFNNOS1TOGEyaTZRR2V6XzNLZTdXb19HZE5aNmhrUXotWFI4ZkhXNVZTNTE5dlB2VV8wa093UG5fMkZDcHdKRDVGa0o4dXRDd3dIcnk0cFcyazQ3Nl9IMGpjSElXMGJkTVZoNGgyWWFzNlNUWWlsbnRLRWViQUZZMEJVYi1RN29pX1F5RkNTMFhaaVBnVVdhX0Q4RDFRdkR2M0UwRTRVejNWaHpRLTNZ0gG-AUFVX3lxTE9iSHFiaWJqbUEwMTBrRzctV2Rmbzh2Mm52QWZKRjdMVVVqWXE2T0dmUWg4LVNCNzFxWXhiRm9YWGQ0TFdmQUxwWkVzbTlmX3VKRWxWVGxRS3VEZG1SN3NnSlkzaEVOSXplSzB5amZlZEJhQ2Z5V2FsVkswdzI3NnZubDNLZDJqZWxwQkhpWnJmc0pPT3lKX0w2TWZKbl9fenlRTGR0T2RfNHc5dk14Qkx0ZE9QY1ZRMWwtdjdubGc?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Plane door opens in midair moments after takeoff, leaving flight passengers stunned and social media buzzing - Fox News</a>
+            <a href="https://news.google.com/rss/articles/CBMikwFBVV95cUxPd2pwTEhsTnd4VFIxbmV1NVcwcExXeGRGNmFRUWFaRHpBbW0xbXJGZjFPZURXM1U0aUstNlpUX2x5eTdLUnJWSHB0OEhocTBFRmV0Smt6cG1tbU5zejg3OXNkTURUaEVDMUJQNkJtMWl0b2h2SVNOQzZ4Z3BxN0NXMlVmLTBzU01haDJic1dKaWo5dWPSAZgBQVVfeXFMT00xajlqNTZYa0lZTW96QkwtRDFFa1hxc1dnRlM3dFVMWTJiRVR0em5jQzdHME9ObTBELVZTQlM4SUsyUGdwNTA2MlFQc3hkeEg1UE91aS1ZdU84Rmh5d3M1ZkFjZjJSTG10cnpmazFMZS1ydHZwVUlGd2tUc1FOZkdxR2FtWUxXX2FTSXV4Z2I3ejd4Tzl5NWM?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Former Baylor women's basketball star Melissa Jones dead at 36 - Fox News</a>
             <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
-                Plane door opens in midair moments after takeoff, leaving flight passengers stunned and social media buzzing - Fox News - Plane door opens in midair moments after takeoff, leaving flight passengers...
+                Former Baylor women's basketball star Melissa Jones dead at 36 - Fox News - Former Baylor women's basketball star Melissa Jones dead at 36 Fox News
             </div>
         </div>
         <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
-            <small class="debug-info">ID: C599 | Hash: 1afd70d9</small>
+            <small class="debug-info">ID: C26 | Hash: 542e6638</small>
         </div>
     </div>
     
@@ -246,18 +296,291 @@
                 <span class="badge cat-eco">ECO</span>
             </div>
             <div class="header-right" style="font-size: 0.8em; color: #888;">
-                <span class="source-name" style="font-weight: bold; margin-right: 10px;">financial_times</span>
-                <span class="timestamp">12:45</span>
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">bloomberg</span>
+                <span class="timestamp">11:28</span>
             </div>
         </div>
         <div class="card-body">
-            <a href="https://news.google.com/rss/articles/CBMidkFVX3lxTE1LVkc0RUVCZ3ZHX2wwQmo3OW5xMHRmQ3FveDB0UVhpTkRQMWZ3c2g4SnZXazRac1BFSHVFR0pYZHFHUnpqVmdnOGp6QjNDT3lvSm9Cd3NoNnRYbmZ3eWU5NE1UWHhvUzdkaUQ2RzNjak9pMGphbHc?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Votum SA, 31J:FRA financials - Financial Times</a>
+            <a href="https://www.bloomberg.com/news/live-blog/2026-04-10/us-cpi-report-for-march" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">US Consumer Price Gain Matches Most Forecasts</a>
             <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
-                Votum SA, 31J:FRA financials - Financial Times - Votum SA, 31J:FRA financials Financial Times
+                US Consumer Price Gain Matches Most Forecasts - Shoppers in the SoHo neighborhood of New York. Photographer: Michael Nagle/Bloomberg
             </div>
         </div>
         <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
-            <small class="debug-info">ID: C824 | Hash: ed4a8bde</small>
+            <small class="debug-info">ID: C71 | Hash: 417f031a</small>
+        </div>
+    </div>
+    
+    <div class="news-card new cat-tec-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-tec">TEC</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">financial_times</span>
+                <span class="timestamp">10:58</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://news.google.com/rss/articles/CBMicEFVX3lxTE5pbW80WGk4eFVsb0ROMHNIZTdoWmczV0RnR19CZXNzcFdLSi1OcUVxSlNwUUVHN1RLTkhhX0c4OHkxalN1c0pORlJ6ZG5PY0E2WVJIbHlkNnNEQXpFNHhUSjlGeVNZcGotNi1nRWdtQU0?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">School sociology class: Meta and Google liable for social media harm to children’s mental health in landmark US case - Financial Times</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                School sociology class: Meta and Google liable for social media harm to children’s mental health in landmark US case - Financial Times - School sociology class: Meta and Google liable for social...
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C109 | Hash: c26f93d8</small>
+        </div>
+    </div>
+    
+    <div class="news-card new cat-eco-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-eco">ECO</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">bloomberg</span>
+                <span class="timestamp">10:40</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://www.bloomberg.com/news/articles/2026-04-10/sp-group-renews-push-for-tata-sons-listing-in-open-letter-to-rbi" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">SP Group Renews Push for Tata Sons Listing in Open Letter to RBI</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                SP Group Renews Push for Tata Sons Listing in Open Letter to RBI - Tata branding.
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C128 | Hash: 242464bf</small>
+        </div>
+    </div>
+    
+    <div class="news-card new cat-trash-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-trash">TRASH</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">guardian</span>
+                <span class="timestamp">10:36</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://www.theguardian.com/uk-news/2026/apr/10/lee-milne-domestic-abuser-jailed-killing-wife-kimberly-scotland" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Domestic abuser jailed in Scotland for killing wife who took her own life</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                Domestic abuser jailed in Scotland for killing wife who took her own life - Lee Milne sentenced to eight years in landmark case after being found guilty of culpable homicide of Kimberly Milne A man...
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C134 | Hash: 4e42bf28</small>
+        </div>
+    </div>
+    
+    <div class="news-card new cat-trash-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-trash">TRASH</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">fox_news</span>
+                <span class="timestamp">09:27</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://news.google.com/rss/articles/CBMiTEFVX3lxTE00dnZkU2hVUl96RkpCb0VBWkdNenVMTGsyYzJKZlM0VmttMldHZ2dTeEZkNzhlV3gtRGdZeU1QeE5yMkg0SXRjbjhWR2E?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Faith & Values - Fox News</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                Faith & Values - Fox News - Faith & Values Fox News
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C200 | Hash: 61ec8d8c</small>
+        </div>
+    </div>
+    
+    <div class="news-card new cat-tec-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-tec">TEC</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">politico_eu</span>
+                <span class="timestamp">09:09</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://www.politico.eu/article/8-in-10-europeans-dont-trust-us-chinese-firms-with-data/?utm_source=RSS_Feed&utm_medium=RSS&utm_campaign=RSS_Syndication" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">8 in 10 Europeans don’t trust US, Chinese firms with data</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                8 in 10 Europeans don’t trust US, Chinese firms with data - Tune in to follow the European Pulse Forum live from Barcelona. More than 8 in 10 Europeans don’t trust American or Chinese technology...
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C214 | Hash: a7d45870</small>
+        </div>
+    </div>
+    
+    <div class="news-card new cat-eco-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-eco">ECO</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">fox_news</span>
+                <span class="timestamp">09:00</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://news.google.com/rss/articles/CBMiogFBVV95cUxNZDhzX21jTU9WZzl4bTg2SXh3aUhidjRiVXdYTkxqcTdqblcxTHBwdTQ0dVJMMGt6ZEdieml3QUE3NWlTLWlZTGZQZnZ5X0VLSDAwdngtT29ZUlNTZElGZXplU24wZkdHVUlNcGRCQjJEMzI5YzAtTjdqaXRnejk2NEVMbVAwZnNiMzJ3UFQxWmZFVWxGemt0ZVk0ZlQ4N0ExcmfSAacBQVVfeXFMTThBbURMX1JKVXRpeU05OHVXV24xSXBBaDZRREE3dTFFSGZvWFlJOWo4cHhiMHM2NzRMODVVZGMxTHpzU0JiWGU3dFgtdmx5RTc1MFZYbXExUFRjbEstblI4V3M1T0lFTDdsZVR0YjhSWFFLRl90MXc2U2h5Rkc2SVBka1JmLUlneUF6eFk0d0JsRU5xb09LOEZQbEl2WFNRanhZcjdfYUk?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">DoorDash data offers snapshot of economy voters are feeling ahead of midterms - Fox News</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                DoorDash data offers snapshot of economy voters are feeling ahead of midterms - Fox News - DoorDash data offers snapshot of economy voters are feeling ahead of midterms Fox News
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C228 | Hash: a0be55ca</small>
+        </div>
+    </div>
+    
+    <div class="news-card new cat-pol-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-pol">POL</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">telegraph</span>
+                <span class="timestamp">07:00</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://news.google.com/rss/articles/CBMikwFBVV95cUxQLU9tWUNGVG9IU2UybkhZOHZCVlczbURpbVUzX1JZWG1HNDBvb3hBWUd4QVFWemZCMUNFUHgyV19zZUJGYXNJSXF5T0VxQ1VZUU9sdHpkMU9zVXhzeEVBNHVRLTlOUEtoMWx0b1daSFVPTjZtX1Eyb1Qxd2VGNjFYOEVVdEtOZ3ZxbTllLWJQX0Zyc1U?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Why the ‘Tehran tollbooth’ will never work - The Telegraph</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                Why the ‘Tehran tollbooth’ will never work - The Telegraph - Why the ‘Tehran tollbooth’ will never work The Telegraph
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C327 | Hash: 85d00386</small>
+        </div>
+    </div>
+    
+    <div class="news-card new cat-pol-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-pol">POL</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">fox_news</span>
+                <span class="timestamp">01:58</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://news.google.com/rss/articles/CBMiVkFVX3lxTFAxT1pSU0duNHNTUEhoYmVPMERxM0xjaHppNjF1QS1FQWVsc1BYRmNZZmRoS05WNG9zbHpOak1nQTREdC1aS1hzRGJza2V6NTVjR2xwR0ZR?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">President Trump’s threat remains very operative: Sen Ted Cruz - Fox News</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                President Trump’s threat remains very operative: Sen Ted Cruz - Fox News - President Trump’s threat remains very operative: Sen Ted Cruz Fox News
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C456 | Hash: 4a2a15ae</small>
+        </div>
+    </div>
+    
+    <div class="news-card new cat-pol-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-pol">POL</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">fox_news</span>
+                <span class="timestamp">00:27</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://news.google.com/rss/articles/CBMiVkFVX3lxTE9vWVk3amY2MFBMUUp5TlpFcFpWYnpycTAwU3dISW5aRjE2U3dBX0p5SnUwSUZmS3A0eWFYaG5rLUxCaFhFSlFNWnB6dU5vZGNfNEp0Q0dB?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Laura: Democrats aren't offering any attractive policy alternatives - Fox News</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                Laura: Democrats aren't offering any attractive policy alternatives - Fox News - Laura: Democrats aren't offering any attractive policy alternatives Fox News
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C479 | Hash: 3d68330b</small>
+        </div>
+    </div>
+    
+    <div class="news-card new cat-trash-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-trash">TRASH</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">fox_news</span>
+                <span class="timestamp">23:03</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://news.google.com/rss/articles/CBMisgFBVV95cUxNMnpoTkZlazhnNDBmd0FzRmNRX2RGQ0dWbWZsQkJYeWl0UkRjYldxLURWc1c4SEVsdUVuemVLQXE4dGdjcENGWGtEQjJmSUxrQS1WZ0RMQTZJbk90eGRhOTNSNE9kdVA2ZkdiT3ZfZF9KLXJ5R2hwU20zZVB6TVBrWFp3czZteDg1NXcyUWNrQzF1X2tRcjBEcHZyaVM1OGFHaC1XYmt1bndidC03MktjSFdn0gG3AUFVX3lxTE10TXFCMmhFTXE1TmJzampKT0o5NzFJYmRnajBFN3NSdG9fZzQyR1Vtb3FvUjd0c2V0c29OVVFsTU9mSzhYUWVudmtOdTNVbGZhakRNTUhnei1XbmxpVGxycHQ5bWFuZmFOTm1ZTFdYaDlub2lOeW8wZjRKalR1OEFERTRUZzFHa2tQQ1RQdGwwTmt2aUdEdHRvUFB6UFpqdHpJZUxnZ1dHckRyc1I4anpNd1J2cUdWYw?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Fever's Lexie Hull speaks out against attacks on players as team's popularity grows during Caitlin Clark era - Fox News</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                Fever's Lexie Hull speaks out against attacks on players as team's popularity grows during Caitlin Clark era - Fox News - Fever's Lexie Hull speaks out against attacks on players as team's...
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C502 | Hash: 5058e9bb</small>
+        </div>
+    </div>
+    
+    <div class="news-card new cat-eco-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-eco">ECO</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">cnn</span>
+                <span class="timestamp">19:00</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://news.google.com/rss/articles/CBMieEFVX3lxTE0tREEzazdmT2UtUFNxcmNZTkgyRlpsUGp0YWFmVTdOTk81cnM2bFFIY3hRNVY0d0JoUVNIVUhqUzQzLWdMWkpFaUNfVy0zSnJlZDJmYVFMRzhuaGs3NUcxTmNnTFNzeUhMNnBueDcxeXptaVNsVTB6OQ?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Levi’s annual spring sale takes up to 30% off editor-loved jeans and denim shorts - CNN</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                Levi’s annual spring sale takes up to 30% off editor-loved jeans and denim shorts - CNN - Levi’s annual spring sale takes up to 30% off editor-loved jeans and denim shorts CNN
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C620 | Hash: f59db2a4</small>
+        </div>
+    </div>
+    
+    <div class="news-card new cat-pol-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-pol">POL</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">fox_news</span>
+                <span class="timestamp">17:50</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://news.google.com/rss/articles/CBMitgFBVV95cUxONDNYX2o1TDhqMnpYLWdhVDdFcHQ0dGExdEQ0STZLOXpFVWZVWERDTnNmZTliRGV3TGx2bEdRYXFHT3FzRTR2blVza2FwNWpaR1U1WlpIY0t3UGpDdWlDOHBlb05PRUhIeFJwMElXNlRnc0FjQWlNT3I5M19MTi1iVkRyY1lHaTNBMFh6cElnNmhDWGNwYVN3ZVhLUVVqNnNLbkRwYUp1eVZyRkQ4bms0TlRVWVhLUdIBuwFBVV95cUxNUWRkNnlUR21tSEM4WVdvcWlUMmFJcWxadXBGSy14VmtIcW1IQktBbDlRSkU3Y09CZmdLeld5bXdsOTlvVE9QaGhhR2hUSm5ESWhzcllOanFSY3B0aWxjR3paUzE4MGtwN3VlMXdkU1E0Vm0wVlVMdm40UklpU3NyVlVMM3RVRmh5RDYzQmVuc1RXTDFwNDVxZVgzYU9WaHR5dHBzR2sxbkx3Rld3b2hzYWMwMHptYjZVcy1r?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">House Dem leaders open door to 25th Amendment after rank-and-file push for Trump's removal - Fox News</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                House Dem leaders open door to 25th Amendment after rank-and-file push for Trump's removal - Fox News - House Dem leaders open door to 25th Amendment after rank-and-file push for Trump's removal...
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C670 | Hash: ccb27eb2</small>
+        </div>
+    </div>
+    
+    <div class="news-card new cat-pol-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-pol">POL</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">fox_news</span>
+                <span class="timestamp">15:14</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://news.google.com/rss/articles/CBMiqwFBVV95cUxNVHFMMXRWc19wb01rdTBSN0UtR05lZUszMlNTSzA3UWthUW42NjVzSVNyNkhpR0dKNmFTSkRNREtsSGNfUk1OcnFLQTJsNC10dmpNWno5bWlYYWxyNHdqakEyTUVoaWxQVlBwSjh0cHNCbk9NTGFJZTAwS1YwRWVCcGlyb29IR2RmYjhFX3BvQThOWElrV2EzVWFKaU9TcnhQVkZYT3hrRGdaS1XSAbABQVVfeXFMTllpVUJPWlpPQjlZY1VITGxZTXl5QmR5Ym5ZTDF1VUFqWFptcjRmcmxQMS1kNm9rSVpvWUpPOUpzN3ZocXI2eWJPb1YyeGFJQ2ppLUVhSm1JNU1kaXZ4dzRDUVItRjZLTl9zdUhoa29SVUtlX282LVJHQ3hPUUpZM05YSzNWUEFKWlZXTE16eVZpM0Z3SWtnQlZqMmllQ3RVWXVNQk5Cb1FVTnQ4OWhyX1I?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Fetterman breaks with Democrats, says Trump's military strikes on Iran have 'made the world safer' - Fox News</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                Fetterman breaks with Democrats, says Trump's military strikes on Iran have 'made the world safer' - Fox News - Fetterman breaks with Democrats, says Trump's military strikes on Iran have 'made the...
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C748 | Hash: 87431438</small>
         </div>
     </div>
     
@@ -16982,69 +17305,6 @@
         </div>
     </div>
     
-    <div class="news-card cached cat--border">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <div class="header-left">
-                <span class="badge cat-"></span>
-            </div>
-            <div class="header-right" style="font-size: 0.8em; color: #888;">
-                <span class="source-name" style="font-weight: bold; margin-right: 10px;">telegraph</span>
-                <span class="timestamp">12:33</span>
-            </div>
-        </div>
-        <div class="card-body">
-            <a href="https://news.google.com/rss/articles/CBMirwFBVV95cUxPYy04Z3pIVFM4Y1NUUVotZDBCUDBHbjlMTjJJZkpQVktDZ0hzbl8xV2JiYVBKOUY3OFJoWVU1R2RaQS1meFNPdWY1VUdrczM2cDVORWd3Uzl4UVQwTlNlVm9EUEFZcTJ3TU0yb2ZaSFFHZWhfTEJYLXo2c1hIa2ZQVi1qalpuOFAyN0FoalRhVTdOU0JjeEc3d3FQOFFSRkdZSWQydXlOZHNaYTJ3N2Mw?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Israeli ‘terrorism’ in West Bank is putting country at risk, warn ex-IDF chiefs - The Telegraph</a>
-            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
-                Israeli ‘terrorism’ in West Bank is putting country at risk, warn ex-IDF chiefs - The Telegraph - Israeli ‘terrorism’ in West Bank is putting country at risk, warn ex-IDF chiefs The Telegraph
-            </div>
-        </div>
-        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
-            <small class="debug-info">ID: C797 | Hash: 0ed11879</small>
-        </div>
-    </div>
-    
-    <div class="news-card cached cat--border">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <div class="header-left">
-                <span class="badge cat-"></span>
-            </div>
-            <div class="header-right" style="font-size: 0.8em; color: #888;">
-                <span class="source-name" style="font-weight: bold; margin-right: 10px;">telegraph</span>
-                <span class="timestamp">12:31</span>
-            </div>
-        </div>
-        <div class="card-body">
-            <a href="https://news.google.com/rss/articles/CBMirwFBVV95cUxNaTBsQkhlRUE3LWNIcVU3QzliOUpTQXZOODRsYm5ETWpCcUtvdWN3ejFCcjJhMmxoN253bE93cjNEQjlRb0xsRmNYWjZOWkpFOEZIeFdVdWJJMTVIVEJ4RUlNRk12Ni1JcXotOUpENkY2MjRyYThFYmNlRENab3Y5MkVMOENZRWNVV2dRU1ozSFB0aUZ5WVl6QThBMF9HamtBSHZaOGxLSkVLTm82VE9n?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Women’s Six Nations: Meg Jones calls on Red Roses to be ‘entertainers’ in new attacking era - The Telegraph</a>
-            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
-                Women’s Six Nations: Meg Jones calls on Red Roses to be ‘entertainers’ in new attacking era - The Telegraph - Women’s Six Nations: Meg Jones calls on Red Roses to be ‘entertainers’ in new attacking...
-            </div>
-        </div>
-        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
-            <small class="debug-info">ID: C798 | Hash: 17bc301e</small>
-        </div>
-    </div>
-    
-    <div class="news-card cached cat--border">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <div class="header-left">
-                <span class="badge cat-"></span>
-            </div>
-            <div class="header-right" style="font-size: 0.8em; color: #888;">
-                <span class="source-name" style="font-weight: bold; margin-right: 10px;">financial_times</span>
-                <span class="timestamp">12:28</span>
-            </div>
-        </div>
-        <div class="card-body">
-            <a href="https://news.google.com/rss/articles/CBMilAFBVV95cUxOX2dzSURMbjNveVpEczRyd0VEbVFMUTdFVHdtSjNaT2VtRmZTV3hmdUdKb2ZtY2ZTSmc4eXprMkYwbi05b1p5SmF4UVpQaHRoV0VFZDl1eFRZbWZrR3p0X0JVMU85M2tVMXQwSXlrQTRGUzJOVnpfSkhubWY3QzZyQ0h3blBZTGZTN0JOTUpTYjNuQmt6?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Strategic Equity Capital Plc - Net Asset Value(s) – Company Announcement - Financial Times</a>
-            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
-                Strategic Equity Capital Plc - Net Asset Value(s) – Company Announcement - Financial Times - Strategic Equity Capital Plc - Net Asset Value(s) – Company Announcement Financial Times
-            </div>
-        </div>
-        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
-            <small class="debug-info">ID: C799 | Hash: 8ae54d90</small>
-        </div>
-    </div>
-    
     <div class="news-card cached cat-pol-border">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <div class="header-left">
@@ -19541,6 +19801,195 @@
         </div>
         <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
             <small class="debug-info">ID: C832 | Hash: 731e2626</small>
+        </div>
+    </div>
+    
+    <div class="news-card cached cat-pol-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-pol">POL</span> <span class="badge hun-tag">🇭🇺 HUN</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">mandiner</span>
+                <span class="timestamp">12:24</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://mandiner.hu/belfold/2026/04/spanyol-ep-kepviselo-ha-nyer-a-fidesz-von-der-leyenek-ervenytelenithetik-az-eredmenyt-johet-a-romaniai-forgatokonyv" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Spanyol EP-képviselő: Ha nyer a Fidesz, Von der Leyenék érvényteleníthetik az eredményt – jöhet a romániai forgatókönyv?</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                Spanyol EP-képviselő: Ha nyer a Fidesz, Von der Leyenék érvényteleníthetik az eredményt – jöhet a romániai forgatókönyv? - Hermann Tertsch szerint semmitől sem riadnak vissza, ha Orbán Viktor...
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C1 | Hash: c9785efe</small>
+        </div>
+    </div>
+    
+    <div class="news-card cached cat-pol-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-pol">POL</span> <span class="badge hun-tag">🇭🇺 HUN</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">magyar_nemzet</span>
+                <span class="timestamp">12:23</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://magyarnemzet.hu/belfold/2026/04/orban-viktor-nezopontja-nemzeti-osszefogasra-van-szukseg-a-valasztas-utan-is-video?utm_source=hirstart&utm_medium=referral&utm_campaign=hiraggregator" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Orbán Viktor nézőpontja: Nemzeti összefogásra van szükség a választás után is + videó</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                Orbán Viktor nézőpontja: Nemzeti összefogásra van szükség a választás után is + videó - Rövid videóval jelentkezett a közösségi médiában Orbán Viktor miniszterelnök péntek reggel, amiben sok...
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C2 | Hash: b8cd3e11</small>
+        </div>
+    </div>
+    
+    <div class="news-card cached cat-pol-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-pol">POL</span> <span class="badge hun-tag">🇭🇺 HUN</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">444</span>
+                <span class="timestamp">12:22</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://444.hu/2026/04/10/megmutatjuk-kikbol-valaszthatsz-vasarnap?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_syndication" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Megmutatjuk, kikből választhatsz vasárnap</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                Megmutatjuk, kikből választhatsz vasárnap - Miután csütörtök délután 4 órakor lejárt a visszalépések határideje, véglegessé vált az egyéni jelöltek száma és személye az egyéni választókerületekben....
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C3 | Hash: e204648d</small>
+        </div>
+    </div>
+    
+    <div class="news-card cached cat-tec-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-tec">TEC</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">cnn</span>
+                <span class="timestamp">11:00</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://news.google.com/rss/articles/CBMingFBVV95cUxPUFppTFhxNV9SRVo0b2ZTaGN6V3IwT29DXzVTQnVpS0E5OFRLUFcyNWl2ZjRZeVA0cnU2akoyalRLY0NhVUxKZFJibVE4QnhQdTdCNnNPUVZwUGxXTTZtMWxsZS00bFctODVtQjJNYXpBY1FFNmpsdDhRRGZDaEJyRi1Ga1RzTUxCVmQ0REh3MjNUQnFUcDNaX1laYmxadw?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">The hottest Apple product right now isn’t what you think - CNN</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                The hottest Apple product right now isn’t what you think - CNN - The hottest Apple product right now isn’t what you think CNN
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C91 | Hash: 23024350</small>
+        </div>
+    </div>
+    
+    <div class="news-card cached cat-eco-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-eco">ECO</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">reuters</span>
+                <span class="timestamp">10:54</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://news.google.com/rss/articles/CBMiggFBVV95cUxOZWNnY2Q5TWdNN3JlTW45Vm9DcC1aZ3pRWXY2MjBnN09Idk5XMXgzQWtQWHdpanQ1NDZVelpiSnZXZlpDS3BKeVVFU2Juc2RtNTZic2VBSmtwZTBLODFjWGotcldrZm9GYkhRYkdXUk1GRDluTFFqbnlyd2l5ZXRTeVhB?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Morning Bid: Back from the brink? - Reuters</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                Morning Bid: Back from the brink? - Reuters - Morning Bid: Back from the brink? Reuters
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C105 | Hash: d5a40a62</small>
+        </div>
+    </div>
+    
+    <div class="news-card cached cat-trash-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-trash">TRASH</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">cnn</span>
+                <span class="timestamp">10:37</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://news.google.com/rss/articles/CBMihgFBVV95cUxPbnZoY3lQNGU2N1BVSllKOFZkT2VlX2lDVHBEV0pZTnZyaGZsWnhRRzc1WGcxZFNJY0Z6R0ZBY2xoeDFJcTk0S3h1b2NsVTJ3dlNVX2lJSk5LQU9HTWdSSXVYV1N0MnZhUXJhODZIN1BlU2E2c0ZHZ1c3MEdCdzA1a3BQelpzUQ?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">5 Things Weekly News Quiz - CNN</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                5 Things Weekly News Quiz - CNN - 5 Things Weekly News Quiz CNN
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C122 | Hash: 87c243b7</small>
+        </div>
+    </div>
+    
+    <div class="news-card cached cat-eco-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-eco">ECO</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">financial_times</span>
+                <span class="timestamp">23:32</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://news.google.com/rss/articles/CBMimAFBVV95cUxOeVdIaVJyelhYYWdINTBoUFZJZ2J5dllnOG5WWEpyMFFnbGw1R2FkN0FRaWcwS1hvbThIdFF0bWs3bm1QRjhsYjcyZVozTmVWWDVTVFFQZFVQcF8tM2VSS3BkdUJBRm92SXlxY3lHT3Nna3c4ZTZRY1JDUXNMYnVuS3hMUlJTc1Z3cGR0dHFHQlR1U1l6RHNVbQ?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Give your money real clout with impact investing - Financial Times</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                Give your money real clout with impact investing - Financial Times - Give your money real clout with impact investing Financial Times
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C482 | Hash: 7b18d3e2</small>
+        </div>
+    </div>
+    
+    <div class="news-card cached cat-trash-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-trash">TRASH</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">fox_news</span>
+                <span class="timestamp">19:23</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://news.google.com/rss/articles/CBMiuAFBVV95cUxQMXlSbUUzWG9KbFNNOS1TOGEyaTZRR2V6XzNLZTdXb19HZE5aNmhrUXotWFI4ZkhXNVZTNTE5dlB2VV8wa093UG5fMkZDcHdKRDVGa0o4dXRDd3dIcnk0cFcyazQ3Nl9IMGpjSElXMGJkTVZoNGgyWWFzNlNUWWlsbnRLRWViQUZZMEJVYi1RN29pX1F5RkNTMFhaaVBnVVdhX0Q4RDFRdkR2M0UwRTRVejNWaHpRLTNZ0gG-AUFVX3lxTE9iSHFiaWJqbUEwMTBrRzctV2Rmbzh2Mm52QWZKRjdMVVVqWXE2T0dmUWg4LVNCNzFxWXhiRm9YWGQ0TFdmQUxwWkVzbTlmX3VKRWxWVGxRS3VEZG1SN3NnSlkzaEVOSXplSzB5amZlZEJhQ2Z5V2FsVkswdzI3NnZubDNLZDJqZWxwQkhpWnJmc0pPT3lKX0w2TWZKbl9fenlRTGR0T2RfNHc5dk14Qkx0ZE9QY1ZRMWwtdjdubGc?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Plane door opens in midair moments after takeoff, leaving flight passengers stunned and social media buzzing - Fox News</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                Plane door opens in midair moments after takeoff, leaving flight passengers stunned and social media buzzing - Fox News - Plane door opens in midair moments after takeoff, leaving flight passengers...
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C599 | Hash: 1afd70d9</small>
+        </div>
+    </div>
+    
+    <div class="news-card cached cat-eco-border">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="header-left">
+                <span class="badge cat-eco">ECO</span>
+            </div>
+            <div class="header-right" style="font-size: 0.8em; color: #888;">
+                <span class="source-name" style="font-weight: bold; margin-right: 10px;">financial_times</span>
+                <span class="timestamp">12:45</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <a href="https://news.google.com/rss/articles/CBMidkFVX3lxTE1LVkc0RUVCZ3ZHX2wwQmo3OW5xMHRmQ3FveDB0UVhpTkRQMWZ3c2g4SnZXazRac1BFSHVFR0pYZHFHUnpqVmdnOGp6QjNDT3lvSm9Cd3NoNnRYbmZ3eWU5NE1UWHhvUzdkaUQ2RzNjak9pMGphbHc?oc=5" target="_blank" class="title" style="text-decoration: none; display: block; margin-bottom: 5px;">Votum SA, 31J:FRA financials - Financial Times</a>
+            <div style="font-size: 0.9em; color: #bbb; line-height: 1.4;">
+                Votum SA, 31J:FRA financials - Financial Times - Votum SA, 31J:FRA financials Financial Times
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+            <small class="debug-info">ID: C824 | Hash: ed4a8bde</small>
         </div>
     </div>
     

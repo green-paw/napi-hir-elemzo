@@ -22,7 +22,9 @@ class NewsItem(BaseModel):
     title: str
     content: str
     embedding: Optional[List[float]] = None
-    profile: Dict[str, float] = Field(default_factory=dict)
+    category: str = ""  # Ide kerüljön a "POL", "ECO" stb.
+    is_hun: float = 0.0 # Ez maradhat float
+    profile: Dict[str, float] = Field(default_factory=dict) # Ebbe NE kerüljön a kategória stringje
     clean_content: Optional[str] = Field(default=None, exclude=True) # Ezt ellenőrizd!
     downloaded: Optional[str] = Field(default=None, exclude=True) # Ezt ellenőrizd!
 
@@ -64,7 +66,7 @@ class NewsCache(BaseModel):
         for batch_id, items in self.batches.items():
             for item in items.values():
                 if not item.downloaded:
-                    item.download = batch_id
+                    item.downloaded = batch_id
         return self
     
     def cleanup(self, max_age_hours: int = 24):
@@ -78,9 +80,9 @@ class NewsCache(BaseModel):
         return sum(len(batch) for batch in self.batches.values())
 
 class NewsClassification(BaseModel):
-    id: str = Field(description="A hír egyedi azonosítója a batch-ből (pl. C0)")
-    category: str = Field(description="POL (politika), ECO (gazdaság), TEC (tech) vagy TRASH (szemét)")
-    location: str = Field(description="HUN ha magyar vonatkozású, egyébként INT")
+    id: str = Field(description="C0, C1...")
+    cat: str = Field(description="POL, ECO, TEC, TRASH")
+    hun: str = Field(description="HUN or INT")
 
 class BatchClassificationResponse(BaseModel):
     results: List[NewsClassification] = Field(description="A hírek osztályozott listája")

@@ -37,6 +37,8 @@ class LLMService:
         item_ids = list(id_map.keys())
         chunks = [item_ids[i:i + 30] for i in range(0, len(item_ids), 30)]
 
+        j = 0
+
         def _process_chunk(chunk_ids: List[str]):
             news_block = "\n".join([f"{bid}: {id_map[bid].title}" for bid in chunk_ids])
             
@@ -52,11 +54,9 @@ class LLMService:
             for res in parsed_response.results:
                 if res.id in id_map:
                     item = id_map[res.id]
-                    item.profile.update({
-                        "category": res.category,
-                        "is_hun": 1.0 if res.location == "HUN" else 0.0,
-                        "is_checked": 1.0
-                    })
+                    item.category = res.cat # A hír saját mezőjébe megy a string
+                    item.profile["is_hun"] = 1.0 if res.hun == "HUN" else 0.0
+                    item.profile["is_checked"] = 1.0
                     
                     if res.category == "TRASH":
                         trash_bin.setdefault("TRASH", set()).add(item.hash)

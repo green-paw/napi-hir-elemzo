@@ -31,7 +31,6 @@ def main():
     for batch_id in sorted(loaded_cache.batches.keys()):
         for h, item in loaded_cache.batches[batch_id].items():
             if h not in active_cache:
-                item.downloaded = batch_id
                 active_cache[h] = item
 
     full_blacklist = set().union(*trash_bin.values())

@@ -140,9 +140,9 @@ def _render_cluster(cluster: NewsCluster) -> str:
     return f"""
     <div class="cluster-box">
         <div class="cluster-header">
-            <div class="cluster-id">{cluster.id}</div>
+            <div class="cluster-id">{cluster.id} {cluster.summary_title if not cluster.is_trash else 'TRASH'}</div>
             <div class="cluster-meta">
-                {len(cluster.items)} hír | Representative: {cluster.items[0].hash[:8]}...
+                {len(cluster.items)} hír | Representative: {cluster.items[0].hash[:10]}...
             </div>
         </div>
         <div class="cluster-body">

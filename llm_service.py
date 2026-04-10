@@ -3,7 +3,7 @@ import gemini_core
 import config
 from typing import Any, List, Dict, Set
 from concurrent.futures import ThreadPoolExecutor
-from models import BatchClassificationResponse, NewsItem
+from models import BatchClassificationResponse, NewsCluster, NewsItem
 
 # Itt gyűjtheted a különböző feladatokhoz tartozó promptokat
 PROMPTS = {
@@ -27,43 +27,69 @@ class LLMService:
     A gemini_core réteget használja az alacsony szintű műveletekhez.
     """
 
-    def classify_news_batch(self, items: List[NewsItem]) -> List[NewsItem]:
-        if not items:
+    def process_clusters_with_llm(self, clusters: List[NewsCluster]) -> List[NewsCluster]:
+        """
+        Batchelve küldi el a klasztereket az LLM-nek. 
+        A válasz alapján frissíti a klaszterek címeit és trash státuszát.
+        """
+        if not clusters:
             return []
 
-        id_map = {f"C{i}": item for i, item in enumerate(items)}
-        item_ids = list(id_map.keys())
-        chunks = [item_ids[i:i + 30] for i in range(0, len(item_ids), 30)]
+        # 1. Bemenet összeállítása (M1, M2... azonosítókkal)
+        # Csak az első 3-4 hír címét küldjük el klaszterenként, hogy spóroljunk
+        cluster_texts = []
+        for c in clusters:
+            titles = " | ".join([it.title[:100] for it in c.items[:5]])
+            cluster_texts.append(f"{c.id}: [{titles}]")
+        
+        batch_input = "\n".join(cluster_texts)
 
-        first_run_logged = False
+        # 2. A "Szigorú Szerkesztő" Prompt
+        sys_instr = f"""
+        Feladat: Hírszerkesztő vagy. Előre csoportosított hírekről (hír-klaszterekről) kell eldöntened hogy politikai, gazdasági vagy technológiai szempontból van-e jelentőségük, vagy pedig csak zaj (bulvár, reklám, celebek, stb)
+        Az egyes csoportokat egyenként vizsgáld meg, és amelyek nem minősülnek szemétnek, azoknak egy jó magyar címet kell adnod. A kimenetben elkülöníthetőnek kell lennie ID alapján hogy melyik csoportnak melyik címet adtad.
+        A kimenetbe nem kell semmi bevezető, semmi magyarázat.
+        
+        Szabályok:
+        1. Csak a VALÓDI politikai, gazdasági vagy technológiai súllyal bíró klaszterekről válaszolj.
+        2. Ami bulvár, reklám, sporthír, recept vagy jelentéktelen apróság, azt HAGYD KI a válaszból.
+        3. Formátum: ID: Rövid, ütős cím (max 15 szó) SZIGORÚAN MAGYAR NYELVEN!
+        """
 
-        def _process_chunk(chunk_ids: List[str]):
-            nonlocal first_run_logged
-            news_block = "\n".join([f"{bid}: {id_map[bid].title}" for bid in chunk_ids])
-            
-            parsed_response = gemini_core.generate(
-                contents=f"Osztályozd a következő híreket:\n{news_block}",
-                sys_instr=PROMPTS["classifier"],
-                schema=BatchClassificationResponse,
-                model=config.MODEL_LITE_ID
-            )
-            
-            if not first_run_logged and parsed_response:
-                print("\n--- [DEBUG] Első LLM Válasz (Séma szerint) ---")
-                print(parsed_response.model_dump_json(indent=2))
-                print("-------------------------------------------\n")
-                first_run_logged = True
+        prompt = f"""
+        Hírek:
+        {batch_input}
+        """
 
-            for res in parsed_response.results:
-                if res.id in id_map:
-                    item = id_map[res.id]
-                    item.category = res.cat 
-                    item.profile["is_hun"] = 1.0 if res.hun == "HUN" else 0.0
-                    item.profile["is_checked"] = 1.0
+        # 3. Gemini hívás (Flash Lite ideális erre)
+        response = gemini_core.generate(
+            sys_instr=sys_instr,
+            contents=prompt,
+            max_output_tokens=2048
+        )
 
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            list(executor.map(_process_chunk, chunks))
-        return items
+        print(response)
+
+        # 4. Válasz feldolgozása
+        valid_map = {}
+        if response and response.text:
+            for line in response.text.split('\n'):
+                if ":" in line:
+                    parts = line.split(":", 1)
+                    mid = parts[0].strip()
+                    title = parts[1].strip()
+                    valid_map[mid] = title
+
+        # 5. Státuszok beállítása az objektumokban
+        for c in clusters:
+            if c.id in valid_map:
+                c.summary_title = valid_map[c.id]
+                c.is_trash = False
+            else:
+                c.summary_title = ""
+                c.is_trash = True
+                
+        return clusters
 
     def generate_final_analysis(self, macro_clusters: List[Any]):
         """

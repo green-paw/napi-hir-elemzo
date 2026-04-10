@@ -54,6 +54,8 @@ def main():
     final_cache = save_flat_cache(active_cache, trash_bin)
 
     clusters = source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.08)
+    processed_clusters = llm.process_clusters_with_llm(clusters)
+    
     reporter.generate_html_report(clusters, filename="index.html")
 
     try:

@@ -50,7 +50,7 @@ def main():
         for item in newly_downloaded:
             TextCleaner.process_single(item)
             if i < 5:
-                print(item.clean_content)
+                print(f"{item.title} - {item.content[:50]} -> {item.clean_content}")
                 i += 1
             item.downloaded = RUN_ID
             active_cache[item.hash] = item

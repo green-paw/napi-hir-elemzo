@@ -37,8 +37,10 @@ class LLMService:
 
         chunks = [clusters[i:i + 20] for i in range(0, len(clusters), 20)]
         processed: List[NewsCluster] = []
-    
-        for chunk in chunks[:10]:
+
+        valid_map = {}
+
+        for chunk in chunks[:3]:
             cluster_texts = []
             for c in chunk:
                 titles = " | ".join([it.title[:100] for it in c.items[:5]])
@@ -73,7 +75,6 @@ class LLMService:
             print(response)
 
             # 4. Válasz feldolgozása
-            valid_map = {}
             if response:
                 for line in response.split('\n'):
                     if ":" in line:
@@ -82,18 +83,16 @@ class LLMService:
                         title = parts[1].strip()
                         valid_map[mid] = title
 
-            # 5. Státuszok beállítása az objektumokban
-            for c in clusters:
-                if c.id in valid_map:
-                    c.summary_title = valid_map[c.id]
-                    c.is_trash = False
-                else:
-                    c.summary_title = ""
-                    c.is_trash = True
+        # 5. Státuszok beállítása az objektumokban
+        for c in clusters:
+            if c.id in valid_map:
+                c.summary_title = valid_map[c.id]
+                c.is_trash = False
+            else:
+                c.summary_title = ""
+                c.is_trash = True
 
-            processed.extend(clusters)    
-
-        return processed
+        return clusters
 
     def generate_final_analysis(self, macro_clusters: List[Any]):
         """

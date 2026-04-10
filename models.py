@@ -3,13 +3,12 @@ import html
 import re
 from typing import Any, List, TypeVar, Optional, Generic,Dict, List, Set
 from datetime import datetime
-
-T = TypeVar('T')
-
 from pydantic import BaseModel, Field, field_validator, model_validator, TypeAdapter, BaseModel, Field
 import textwrap
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set, Tuple
+
+T = TypeVar('T')
 
 import config 
 
@@ -30,45 +29,58 @@ class NewsItem(BaseModel):
     @field_validator('title', 'content')
     @classmethod
     def validate_cleantext(cls, v: str) -> str:
-        return cleantext(v)
+        return cls.cleantext(v)
 
     @model_validator(mode='after')
     def compute_hash(self) -> 'NewsItem':
-        self.hash = generate_news_hash(self.title, self.link)
+        self.hash = self.generate_news_hash(self.title, self.link)
         return self
 
     def short_text_for_prompt(self, width: int = 500) -> str:
         combined = f"{self.title} - {self.content}"
         return textwrap.shorten(combined, width=width, placeholder="...")
+    
+    @classmethod
+    def generate_news_hash(cls, title: str, link: str) -> str:
+        clean_link = link.split('?')[0].split('#')[0].strip().lower().rstrip('/')
+        clean_title = cls.cleantext(title).lower()
+        hash_base = f"{clean_title}|{clean_link}"
+        return hashlib.sha256(hash_base.encode('utf-8')).hexdigest()
+    
+    @classmethod
+    def cleantext(cls, raw: str) -> str:
+        if not raw:
+            return ""
+        unescaped = html.unescape(raw)
+        no_html = re.sub(r'<[^>]+?>', ' ', unescaped)
+        return " ".join(no_html.split()).strip()
 
 class NewsCache(BaseModel):
     batches: Dict[str, Dict[str, NewsItem]] = Field(default_factory=dict)
     trash_bin: Dict[str, Set[str]] = Field(default_factory=dict)
 
+    @model_validator(mode='after')
+    def sync_downloaded_ids(self) -> 'NewsCache':
+        for batch_id, items in self.batches.items():
+            for item in items.values():
+                if not item.downloaded:
+                    item.download = batch_id
+        return self
+    
+    def cleanup(self, max_age_hours: int = 24):
+        threshold = datetime.now() - timedelta(hours=max_age_hours)
+        to_delete = [bid for bid in self.batches.keys() if self._is_too_old(bid, threshold)]
+        for bid in to_delete:
+            del self.batches[bid]
+
     @property
     def itemCount(self) -> int:
-        c = 0
-        for b in self.batches.values():
-            c += len(b.items())
-        return c
+        return sum(len(batch) for batch in self.batches.values())
 
+class NewsClassification(BaseModel):
+    id: str = Field(description="A hír egyedi azonosítója a batch-ből (pl. C0)")
+    category: str = Field(description="POL (politika), ECO (gazdaság), TEC (tech) vagy TRASH (szemét)")
+    location: str = Field(description="HUN ha magyar vonatkozású, egyébként INT")
 
-def generate_news_hash(title: str, link: str) -> str:
-    """Stabil SHA-256 hasht generál a cím és a tisztított link alapján."""
-    # 1. Link drasztikusabb tisztítása (trailing slash eltávolítása is)
-    clean_link = link.split('?')[0].split('#')[0].strip().lower().rstrip('/')
-    
-    # 2. Cím tisztítása (ugyanazt a logikát használva, mint a modell)
-    clean_title = cleantext(title).lower()
-    
-    hash_base = f"{clean_title}|{clean_link}"
-    return hashlib.sha256(hash_base.encode('utf-8')).hexdigest()
-
-def cleantext(raw: str) -> str:
-    """HTML mentesítés, entitás dekódolás és whitespace normalizálás."""
-    if not raw:
-        return ""
-    unescaped = html.unescape(raw)
-    # Tagek cseréje szóközre (hogy ne ragadjanak össze a szavak)
-    no_html = re.sub(r'<[^>]+?>', ' ', unescaped)
-    return " ".join(no_html.split()).strip()
+class BatchClassificationResponse(BaseModel):
+    results: List[NewsClassification] = Field(description="A hírek osztályozott listája")

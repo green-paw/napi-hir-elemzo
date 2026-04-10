@@ -1,5 +1,6 @@
 from typing import Dict, List, Set
 from checkpoint_manager import load_checkpoint, save_checkpoint
+import llm_service
 import reporter
 import source
 from models import NewsCache, NewsItem
@@ -18,6 +19,56 @@ def timestamped_print(*args, **kwargs):
     _original_print(f"{timestamp} ", *args, **kwargs)
 
 builtins.print = timestamped_print
+
+llm = llm_service.LLMService()
+
+def main():
+    active_cache: Dict[str, NewsItem] = {}
+    loaded_cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
+    trash_bin: Dict[str, Set[str]] = loaded_cache.trash_bin
+    
+    # 1. Betöltés (a tegnapi, már ellenőrzött hírek)
+    for batch_id in sorted(loaded_cache.batches.keys()):
+        for h, item in loaded_cache.batches[batch_id].items():
+            if h not in active_cache:
+                item.downloaded = batch_id
+                active_cache[h] = item
+
+    full_blacklist = set().union(*trash_bin.values())
+
+    # 2. Új hírek begyűjtése
+    incoming_news: List[NewsItem] = source.fetch_news()
+    newly_downloaded: List[NewsItem] = []
+    
+    for item in incoming_news:
+        if not item.hash: item.compute_hash()
+        if item.hash not in active_cache and item.hash not in full_blacklist:
+            # Csak azokat tesszük a listába, amiket még sosem láttunk
+            newly_downloaded.append(item)
+
+    if newly_downloaded:
+        llm.classify_news_batch(newly_downloaded, trash_bin)
+        valid_new_news = [it for it in newly_downloaded if it.profile.get("category") != "TRASH"]
+
+        for item in valid_new_news:
+            TextCleaner.process_single(item)
+            item.downloaded = RUN_ID
+            active_cache[item.hash] = item
+            
+        # 3. Embedding (Már csak a tiszta hírekre!)
+        source.embed_news(active_cache)
+
+        # TODO: 4. Klaszterezés (Centroidok alapján)
+        # Ez váltja fel a "használhatatlan pontozást" logikai csoportokkal
+        # source.incremental_clustering(valid_new_news, active_cache)
+
+    # 5. Mentés és Riport
+    final_cache = save_flat_cache(active_cache, trash_bin)
+    reporter.generate_html_report(final_cache, RUN_ID, "index.html")
+    try:
+        logger.print_summary()
+    except:
+        pass
 
 def save_flat_cache(flat_cache: Dict[str, NewsItem], trash_bin: Dict[str, Set[str]]) -> NewsCache:
     """
@@ -53,91 +104,12 @@ def save_flat_cache(flat_cache: Dict[str, NewsItem], trash_bin: Dict[str, Set[st
     return new_cache
 
 
-def main():
-
-    active_cache: Dict[str, NewsItem] = {}
-
-    loaded_cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
-    trash_bin = loaded_cache.trash_bin
-
-    sorted_batch_ids = sorted(loaded_cache.batches.keys())
-
-    for batch_id in sorted_batch_ids:
-        for h, item in loaded_cache.batches[batch_id].items():
-            if h not in active_cache:
-                item.downloaded = batch_id
-                active_cache[h] = item
-
-    full_blacklist = set().union(*loaded_cache.trash_bin.values())
-
-    incoming_news: List[NewsItem] = source.fetch_news()
-    for item in incoming_news:
-        if not item.hash: item.compute_hash()
-        if item.hash not in active_cache and item.hash not in full_blacklist:
-            TextCleaner.process_single(item)
-            item.downloaded = RUN_ID
-            active_cache[item.hash] = item
-
-    source.embed_news(active_cache)
-
-    news_to_score = [
-        it for it in active_cache.values() 
-        if not it.profile or "POL" not in it.profile
-    ]
-
-    if news_to_score:
-        anchors = source.get_anchor_embeddings()
-        source.score_items(news_to_score, anchors)
-        print(f"📊 {len(news_to_score)} új hír profilozva.")
-
-    final_cache = save_flat_cache(active_cache, trash_bin)
-    reporter.generate_html_report(final_cache, RUN_ID, "index.html")
-
-    try:
-        logger.print_summary()
-    except:
-        pass
-
-    return
 
 
 
 
 
-    all_live_news, current_cache = source.handle_news_feed_and_cache(incoming_news, RUN_ID)
 
-    current_cache = source.deduplicate_to_chronological_batches(current_cache)
-
-    if not all_live_news:
-        print("❌ Nincsenek feldolgozandó hírek. Leállás.")
-        return
-
-    print(f"textCleaner előtt, {current_cache.itemCount} elem")
-    TextCleaner.process(all_live_news)
-    print(f"textCleaner után, {current_cache.itemCount} elem")
-
-    anchors: Dict[str, np.ndarray] = source.get_anchor_embeddings()
-
-    print(f"embed előtt, {current_cache.itemCount} elem")
-    source.embed_news(all_live_news, current_cache, RUN_ID)
-    print(f"embed után, {current_cache.itemCount} elem")
-    source.score_items(all_live_news, anchors)
-    source.cluster_news(all_live_news)
-
-    trash_count = sum(1 for item in all_live_news if item.profile.get("TRASH", 0) > 0.8)
-    if trash_count > 0:
-        print(f"🗑️  A futás során {trash_count} hír került gyanús (trash) kategóriába.")
-
-    source.update_current_batch(all_live_news, current_cache, RUN_ID)
-
-    current_cache = source.deduplicate_to_chronological_batches(current_cache)
-
-    reporter.generate_html_report(current_cache, RUN_ID, "index.html")
-    try:
-        logger.print_summary()
-    except:
-        pass
-    
 if __name__ == "__main__":
     main()
 

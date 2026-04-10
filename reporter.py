@@ -53,65 +53,96 @@ def generate_html_report(cache_obj: NewsCache, current_run_id: str, filename: st
     <html lang="hu">
     <head>
         <meta charset="UTF-8">
-        <title>News Intelligence Report - {datetime.now().strftime('%Y-%m-%d %H:%M')}</title>
-        <style>"""
+        <title>News Intelligence Report - {datetime.now().strftime('%Y-%m-%d %H:%M')}</title>"""
+    
     html_template += """
-            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: #e0e0e0; margin: 40px; }}
-            h1, h2 {{ color: #4facfe; }}
-            .stats {{ background: #2d2d2d; padding: 20px; border-radius: 8px; margin-bottom: 30px; display: flex; gap: 40px; }}
-            .stat-box {{ font-size: 1.2em; }}
-            .stat-num {{ font-weight: bold; color: #00f2fe; font-size: 1.5em; }}
-            .section {{ margin-bottom: 40px; }}
+    <style>
+        /* Alapbeállítások - Világos téma */
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            background: #f8f9fa; 
+            color: #212529; 
+            margin: 40px auto; 
+            max-width: 900px; 
+            line-height: 1.5;
+        }
+        
+        h1, h2 { color: #1a1a1a; border-bottom: 2px solid #dee2e6; padding-bottom: 10px; }
+        
+        /* Statisztikai doboz */
+        .stats { 
+            background: #fff; 
+            padding: 15px; 
+            border: 1px solid #dee2e6; 
+            border-radius: 6px; 
+            margin-bottom: 30px; 
+            display: flex; 
+            gap: 30px; 
+        }
+        .stat-num { font-weight: bold; color: #007bff; }
 
-            .news-card {{ background: #252525; padding: 15px; margin-bottom: 10px; border-left: 5px solid #444; border-radius: 4px; }}
-            .news-card.new {{ border-left-color: #00c853; }}
-            .news-card.cached {{ border-left-color: #ffab00; }}
-            .title {{ font-weight: bold; font-size: 1.1em; color: #fff; }}
-            .meta {{ color: #888; font-size: 0.9em; margin: 5px 0; }}
-            .scores {{ display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }}
-            .score-tag {{ background: #3d3d3d; padding: 3px 8px; border-radius: 12px; font-size: 0.8em; border: 1px solid #555; }}
-            .high-score {{ background: #4facfe33; border-color: #4facfe; color: #4facfe; font-weight: bold; }}
-            .trash-score {{ background: #ff525233; border-color: #ff5252; color: #ff5252; }}
+        /* Kártya stílus - Letisztult fehér */
+        .news-card { 
+            background: #ffffff; 
+            padding: 20px; 
+            margin-bottom: 15px; 
+            border: 1px solid #dee2e6; 
+            border-radius: 8px;
+            position: relative;
+        }
+        
+        /* Cím és linkek */
+        .news-title { 
+            font-weight: bold; 
+            font-size: 1.2em; 
+            color: #0056b3; 
+            text-decoration: none; 
+            display: block;
+            margin-bottom: 8px;
+        }
+        .news-title:hover { text-decoration: underline; }
+        .news-excerpt { color: #495057; font-size: 0.95em; margin: 10px 0; }
 
+        /* Badge-ek (Kategória és jelzők) */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: bold;
+            color: #fff;
+            margin-right: 5px;
+            text-transform: uppercase;
+        }
+        
+        /* Kategória színek - Erőteljes, de tiszta */
+        .cat-pol { background-color: #dc3545; } /* Piros */
+        .cat-eco { background-color: #28a745; } /* Zöld */
+        .cat-tec { background-color: #007bff; } /* Kék */
+        .cat-trash { background-color: #6c757d; } /* Szürke */
+        
+        /* Magyar jelző - Nemzeti színek helyett tiszta keretes stílus */
+        .hun-tag { 
+            background: #fff; 
+            color: #28a745; 
+            border: 1px solid #28a745; 
+        }
 
-            /* Alap kártya stílus */
-            .news-card { 
-                background: #252525; 
-                padding: 15px; 
-                margin-bottom: 15px; 
-                border-radius: 8px; 
-                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-                transition: transform 0.2s;
-            }
-            .news-card:hover { transform: translateX(5px); background: #2d2d2d; }
+        /* Meta infók (idő, forrás, debug) */
+        .card-header { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; }
+        .source-name { font-weight: bold; color: #343a40; font-size: 0.9em; }
+        .timestamp { color: #6c757d; font-size: 0.85em; }
+        .debug-info { color: #adb5bd; font-size: 0.7em; margin-top: 10px; border-top: 1px solid #f1f3f5; padding-top: 5px; }
 
-            /* Badge alapstílus */
-            .badge {
-                padding: 3px 10px;
-                border-radius: 4px;
-                font-size: 0.75rem;
-                font-weight: bold;
-                color: white;
-                text-transform: uppercase;
-            }
-
-            /* Kategória specifikus színek */
-            .cat-pol { background-color: #d63031; }
-            .cat-eco { background-color: #00b894; }
-            .cat-tec { background-color: #0984e3; }
-            .cat-trash { background-color: #636e72; }
-
-            /* Színes szegélyek */
-            .cat-pol-border { border-left: 6px solid #d63031; }
-            .cat-eco-border { border-left: 6px solid #00b894; }
-            .cat-tec-border { border-left: 6px solid #0984e3; }
-            .cat-trash-border { border-left: 6px solid #636e72; }
-
-            .hun-tag { background: transparent; border: 1px solid #fab1a0; color: #fab1a0; }
-            .high-relevance { background: #fdcb6e; color: #000; }
-        </style>
-    </head>"""
+        /* Kategória szerinti szegély a kártya szélén */
+        .cat-pol-border { border-left: 6px solid #dc3545; }
+        .cat-eco-border { border-left: 6px solid #28a745; }
+        .cat-tec-border { border-left: 6px solid #007bff; }
+        .cat-trash-border { border-left: 6px solid #6c757d; }
+    </style>"""
+    
     html_template += f"""
+    </head>
     <body>
         <h1>📰 News Intelligence Report</h1>
         <p class="meta">{current_run_id}</p>

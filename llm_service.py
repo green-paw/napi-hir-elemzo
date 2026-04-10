@@ -74,8 +74,8 @@ class LLMService:
 
             # 4. Válasz feldolgozása
             valid_map = {}
-            if response and response.text:
-                for line in response.text.split('\n'):
+            if response:
+                for line in response.split('\n'):
                     if ":" in line:
                         parts = line.split(":", 1)
                         mid = parts[0].strip()

@@ -62,13 +62,17 @@ class LLMService:
             for res in parsed_response.results:
                 if res.id in id_map:
                     item = id_map[res.id]
-                    item.category = res.cat # A hír saját mezőjébe megy a string
+                    
+                    # 1. Értékadás a rövidített séma alapján (res.cat és res.hun)
+                    item.category = res.cat 
                     item.profile["is_hun"] = 1.0 if res.hun == "HUN" else 0.0
                     item.profile["is_checked"] = 1.0
                     
-                    if res.category == "TRASH":
+                    # 2. Szűrés - a sémában megadott 'cat' mezőt vizsgáljuk
+                    if res.cat == "TRASH":
                         trash_bin.setdefault("TRASH", set()).add(item.hash)
                     else:
+                        # Csak a releváns hírek kerülnek a következő feldolgozási szakaszba
                         valid_items.append(item)
 
         with ThreadPoolExecutor(max_workers=4) as executor:

@@ -110,7 +110,8 @@ def generate_html_report(cache_obj: NewsCache, current_run_id: str, filename: st
             .hun-tag { background: transparent; border: 1px solid #fab1a0; color: #fab1a0; }
             .high-relevance { background: #fdcb6e; color: #000; }
         </style>
-    </head>
+    </head>"""
+    html_template += f"""
     <body>
         <h1>📰 News Intelligence Report</h1>
         <p class="meta">{current_run_id}</p>

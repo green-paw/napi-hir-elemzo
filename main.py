@@ -53,7 +53,7 @@ def main():
     source.embed_news(active_cache)
     final_cache = save_flat_cache(active_cache, trash_bin)
 
-    clusters = source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.08)
+    clusters = source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.085)
     processed_clusters = llm.process_clusters_with_llm(clusters)
 
     reporter.generate_html_report(processed_clusters, filename="index.html")

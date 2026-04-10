@@ -19,6 +19,40 @@ def timestamped_print(*args, **kwargs):
 
 builtins.print = timestamped_print
 
+def save_flat_cache(flat_cache: Dict[str, NewsItem], trash_bin: Dict[str, Set[str]]) -> NewsCache:
+    """
+    Újraépíti a hierarchikus NewsCache struktúrát, kényszeríti a 24 órás limitet,
+    elmenti a lemezre, és visszaadja a mentett objektumot.
+    """
+    new_cache = NewsCache()
+    new_cache.trash_bin = trash_bin
+    
+    # Használjunk fix bázisidőpontot a futás alatt
+    now = datetime.now()
+    limit = now - timedelta(hours=24)
+    
+    # Statisztika a logoláshoz
+    saved_count = 0
+    
+    for h, item in flat_cache.items():
+        # Csak a limiten belüli híreket tartjuk meg
+        if item.published > limit:
+            # Ha valamiért nincs downloaded (pl. kézi bevitel), legyen a mostani futás
+            bid = item.downloaded or now.isoformat()
+            
+            if bid not in new_cache.batches:
+                new_cache.batches[bid] = {}
+            
+            new_cache.batches[bid][h] = item
+            saved_count += 1
+            
+    # Lemezre írás
+    save_checkpoint("news_feed.json", new_cache, NewsCache)
+    print(f"💾 Cache mentve: {saved_count} elem {len(new_cache.batches)} batch-ben.")
+    
+    return new_cache
+
+
 def main():
 
     active_cache: Dict[str, NewsItem] = {}
@@ -108,35 +142,3 @@ if __name__ == "__main__":
     main()
 
 
-def save_flat_cache(flat_cache: Dict[str, NewsItem], trash_bin: Dict[str, Set[str]]) -> NewsCache:
-    """
-    Újraépíti a hierarchikus NewsCache struktúrát, kényszeríti a 24 órás limitet,
-    elmenti a lemezre, és visszaadja a mentett objektumot.
-    """
-    new_cache = NewsCache()
-    new_cache.trash_bin = trash_bin
-    
-    # Használjunk fix bázisidőpontot a futás alatt
-    now = datetime.now()
-    limit = now - timedelta(hours=24)
-    
-    # Statisztika a logoláshoz
-    saved_count = 0
-    
-    for h, item in flat_cache.items():
-        # Csak a limiten belüli híreket tartjuk meg
-        if item.published > limit:
-            # Ha valamiért nincs downloaded (pl. kézi bevitel), legyen a mostani futás
-            bid = item.downloaded or now.isoformat()
-            
-            if bid not in new_cache.batches:
-                new_cache.batches[bid] = {}
-            
-            new_cache.batches[bid][h] = item
-            saved_count += 1
-            
-    # Lemezre írás
-    save_checkpoint("news_feed.json", new_cache, NewsCache)
-    print(f"💾 Cache mentve: {saved_count} elem {len(new_cache.batches)} batch-ben.")
-    
-    return new_cache

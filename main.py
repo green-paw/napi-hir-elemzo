@@ -24,19 +24,18 @@ llm = llm_service.LLMService()
 
 def main():
     active_cache: Dict[str, NewsItem] = {}
-    loaded_cache = NewsCache()
-    #loaded_cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
-    trash_bin: Dict[str, Set[str]] = loaded_cache.trash_bin
     
-    # 1. Betöltés (a tegnapi, már ellenőrzött hírek)
+    # ha törölni akarom a cache-t:
+    #loaded_cache = NewsCache()
+    loaded_cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
+    trash_bin: Dict[str, Set[str]] = loaded_cache.trash_bin
+    full_blacklist = set().union(*trash_bin.values())
+
     for batch_id in sorted(loaded_cache.batches.keys()):
         for h, item in loaded_cache.batches[batch_id].items():
             if h not in active_cache:
                 active_cache[h] = item
 
-    full_blacklist = set().union(*trash_bin.values())
-
-    # 2. Új hírek begyűjtése
     incoming_news: List[NewsItem] = source.fetch_news()
     newly_downloaded: List[NewsItem] = []
     
@@ -46,28 +45,17 @@ def main():
             newly_downloaded.append(item)
 
     if newly_downloaded:
-        processed_news = llm.classify_news_batch(newly_downloaded)
-        for item in processed_news:
-            if item.category == "TRASH":
-                trash_bin.setdefault("TRASH", set()).add(item.hash)
-                active_cache.pop(item.hash, None)
-            else:
-                TextCleaner.process_single(item)
-                item.downloaded = RUN_ID
-                active_cache[item.hash] = item
-
-        print(f"✅ Feldolgozás kész. Új: {len(processed_news)} | Szűrve: {len(active_cache)}")
+        for item in newly_downloaded:
+            TextCleaner.process_single(item)
+            item.downloaded = RUN_ID
+            active_cache[item.hash] = item
            
-    # 3. Embedding (Már csak a tiszta hírekre!)
-    #source.embed_news(active_cache)
-
-    # TODO: 4. Klaszterezés (Centroidok alapján)
-    # Ez váltja fel a "használhatatlan pontozást" logikai csoportokkal
-    # source.incremental_clustering(valid_new_news, active_cache)
-
-    # 5. Mentés és Riport
+    source.embed_news(active_cache)
     final_cache = save_flat_cache(active_cache, trash_bin)
-    reporter.generate_html_report(final_cache, RUN_ID, "index.html")
+
+    clusters = source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.3)
+    reporter.generate_html_report(clusters, filename="index.html")
+
     try:
         logger.print_summary()
     except:

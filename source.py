@@ -11,8 +11,14 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set, Tuple
 
-import config 
+from sklearn.cluster import AgglomerativeClustering
+import numpy as np
+from collections import defaultdict
+from typing import List
+from models import NewsCluster, NewsItem
+from gemini_core import logger
 
+import config 
 from models import NewsCache, NewsItem
 
 # --- SEGÉDFÜGGVÉNYEK ---
@@ -198,7 +204,7 @@ def embed_news(active_cache: Dict[str, NewsItem]) -> None:
     print(f"🧬 {len(news_to_embed)} új hír embeddingjének lekérése...")
     texts = [str(item.clean_content) for item in news_to_embed]
     try:
-        new_vectors = gemini_core.embed(texts, task_type="RETRIEVAL_DOCUMENT")
+        new_vectors = gemini_core.embed(texts)
         for item, vector in zip(news_to_embed, new_vectors):
             item.embedding = vector
     except Exception as e:
@@ -357,3 +363,53 @@ def deduplicate_to_chronological_batches(cache_obj: NewsCache) -> NewsCache:
     print(f"Deduplikálás: {before} -> {len(unique_items)}")
 
     return cache_obj
+
+
+
+
+
+def create_clusters_by_embedding(items: List[NewsItem], threshold: float = 0.3) -> List[NewsCluster]:
+    """
+    Embedding alapú mikro-klaszterezés.
+    threshold: 0.0 - 1.0 (Cosine távolság). Kisebb = szigorúbb egyezés.
+    """
+    if not items:
+        return []
+    
+    print(f"🔮 Klaszterezés indítása {len(items)} hírre (threshold: {threshold})...")
+    
+    # Csak azokat embeddeljük, amiknek még nincs (bár elvileg már mindnek van)
+    for item in items:
+        if not item.embedding:
+            # Itt hívnánk meg az embedding modellt, de feltételezzük, hogy már megvan
+            pass
+
+    # Vektorok kinyerése és numpy tömbbé alakítása
+    vectors = np.array([it.embedding for it in items if it.embedding is not None])
+    
+    if len(vectors) < 2:
+        # Ha csak 1 hír van, vagy nincs vektor, nem tudunk klaszterezni
+        return [NewsCluster("M1", items)]
+
+    # Agglomerative Clustering (távolság alapú, nem kell n_clusters)
+    clustering = AgglomerativeClustering(
+        n_clusters=None, 
+        distance_threshold=threshold, # Ez a legfontosabb paraméter
+        metric='cosine', # Koszinusz távolság az embeddingekhez
+        linkage='average' # Átlagos távolság a klaszterek között
+    ).fit(vectors)
+    
+    # Hírek csoportosítása a kapott címkék alapján
+    raw_clusters = defaultdict(list)
+    for idx, label in enumerate(clustering.labels_):
+        raw_clusters[label].append(items[idx])
+        
+    # Objektumok gyártása ID-val
+    clusters = [NewsCluster(f"M{i}", items) for i, items in enumerate(raw_clusters.values())]
+    
+    print(f"✅ {len(clusters)} klaszter létrehozva.")
+    
+    # Sorbarendezzük a klasztereket méret szerint (legnagyobb elöl)
+    clusters.sort(key=lambda x: len(x.items), reverse=True)
+    
+    return clusters

@@ -37,9 +37,10 @@ class LLMService:
         item_ids = list(id_map.keys())
         chunks = [item_ids[i:i + 30] for i in range(0, len(item_ids), 30)]
 
-        j = 0
+        first_run_logged = False
 
         def _process_chunk(chunk_ids: List[str]):
+            nonlocal first_run_logged
             news_block = "\n".join([f"{bid}: {id_map[bid].title}" for bid in chunk_ids])
             
             # Sémát használunk a regex helyett
@@ -50,6 +51,13 @@ class LLMService:
                 model=config.MODEL_LITE_ID
             )
             
+            if not first_run_logged and parsed_response:
+                print("\n--- [DEBUG] Első LLM Válasz (Séma szerint) ---")
+                # A Pydantic modelleket a .model_dump_json() segítségével szépen ki lehet íratni
+                print(parsed_response.model_dump_json(indent=2))
+                print("-------------------------------------------\n")
+                first_run_logged = True
+
             # parsed_response már egy BatchClassificationResponse objektum
             for res in parsed_response.results:
                 if res.id in id_map:

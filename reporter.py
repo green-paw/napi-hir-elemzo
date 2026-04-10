@@ -97,21 +97,22 @@ def generate_html_report(cache_obj: NewsCache, current_run_id: str, filename: st
         f.write(html_template)
     print(f"📊 Riport generálva: {os.path.abspath(filename)}")
 
-def _render_card(it: NewsItem, css_class: str) -> str:
-    # Kiválogatjuk a profil értékeket (kivéve a technikai mezőket)
-    scores_html = ""
-    for k, v in it.profile.items():
-        if k == "is_new" or k == "cluster_id": continue
-        
-        extra_class = "high-score" if v > 0.6 else ""
-        if k == "TRASH" and v > 0.7: extra_class = "trash-score"
-        
-        scores_html += f'<span class="score-tag {extra_class}">{k}: {v:.2f}</span>'
+def _render_card(item: NewsItem, status: str) -> str:
+    # 1. Kategória badge (POL, ECO, TEC)
+    cat_html = ""
+    if hasattr(item, 'category') and item.category:
+        # Itt jelenítjük meg az új kategóriát, amit az LLM adott
+        cat_html = f'<span class="badge cat-{item.category.lower()}">{item.category}</span>'
+    
+    # 2. A többi badge
+    hun_html = '<span class="badge">is_hun: 1.00</span>' if item.profile.get("is_hun", 0) > 0.5 else ""
 
     return f"""
-    <div class="news-card {css_class}">
-        <div class="title">{it.title}</div>
-        <div class="meta">Batch: {it.downloaded} | ID: {it.id} | Hash: {it.hash}</div>
-        <div class="scores">{scores_html}</div>
+    <div class="card">
+        <div class="card-header">
+            {cat_html} {hun_html} 
+            <span>{item.source_id}</span>
+        </div>
+        ...
     </div>
     """

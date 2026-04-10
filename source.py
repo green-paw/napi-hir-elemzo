@@ -396,7 +396,7 @@ def create_clusters_by_embedding(items: List[NewsItem], threshold: float = 0.3) 
         n_clusters=None, 
         distance_threshold=threshold, # Ez a legfontosabb paraméter
         metric='cosine', # Koszinusz távolság az embeddingekhez
-        linkage='average' # Átlagos távolság a klaszterek között
+        linkage='complete' # Átlagos távolság a klaszterek között
     ).fit(vectors)
     
     # Hírek csoportosítása a kapott címkék alapján

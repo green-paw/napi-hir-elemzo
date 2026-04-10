@@ -44,16 +44,21 @@ def main():
         if item.hash not in active_cache and item.hash not in full_blacklist:
             newly_downloaded.append(item)
 
+    i = 0
+
     if newly_downloaded:
         for item in newly_downloaded:
             TextCleaner.process_single(item)
+            if i < 5:
+                print(item.clean_content)
+                i += 1
             item.downloaded = RUN_ID
             active_cache[item.hash] = item
            
     source.embed_news(active_cache)
     final_cache = save_flat_cache(active_cache, trash_bin)
 
-    clusters = source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.15)
+    clusters = source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.1)
     reporter.generate_html_report(clusters, filename="index.html")
 
     try:

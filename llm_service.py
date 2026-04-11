@@ -60,14 +60,18 @@ class LLMService:
                 - Magyarország bel- és külügyei (választások, pártpolitika, tüntetések, kormányzati döntések).
                 - Globális konfliktusok és háborúk (Orosz-Ukrán háború, USA-Izrael-Irán konfliktus, frontvonalak, fegyverszállítások).
                 - Valódi technológiai áttörések (AI, energia, űrkutatás).
-            - HAGYD KI (TRASH): 
+            - HAGYD KI (TRASH):
                 - Külföldi politikusok egymásról alkotott magánvéleménye vagy diplomáciai szájkarate (pl. Starmer mit gondol Trumpról), ha nincs mögötte konkrét kormányzati lépés.
                 - Külföldi országok lokális népszerűségi mutatói, bulvár, sport, receptek, reklámok.
+                - Külföldi személyes botrányok, hacsak nem érintenek államfőt vagy nincs globális hatásuk
+                - Bulvár, reklám, sporthír, recept vagy jelentéktelen apróság, azt HAGYD KI a válaszból.
                 - Kattintásvadász, de tartalom nélküli címek.
 
             2. CÍMADÁS ÉS FORMÁTUM:
+            - KATEGÓRIA: POLITIKA, GAZDASÁG, TECHNOLÓGIA vagy TRASH
             - ORSZÁG MEGJELÖLÉSE: A cím elején MINDIG szerepeljen az ország vagy régió (pl. USA:, Nagy-Britannia:, Ukrajna:). 
-            - Formátum: ID: [KATEGÓRIA] Cím (Pl. M80: [POLITIKA] [Magyarország]: Új közvélemény-kutatási adatok...)
+            - A csoport jelentősége Magyarországra vagy globális mércével egy 1-10 skálán
+            - Formátum: ID: [KATEGÓRIA] [HELYSZÍN] [PONTSZÁM] Cím (Pl. M80: [POLITIKA] [Magyarország] [5]: Új közvélemény-kutatási adatok...)
             - Hossz: Max 15 szó, ütős, magyar nyelvű összefoglaló.
             - Némítás: Ha egy klaszter TRASH, semmit ne írj róla a kimenetbe (se ID-t, se magyarázatot).
 

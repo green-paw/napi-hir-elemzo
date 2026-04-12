@@ -78,6 +78,14 @@ jobs:
           path: checkpoints/
           key: ${{ runner.os }}-news-checkpoints-${{ github.run_id }}
 
+      - name: Save artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: news-checkpoints-${{ github.run_id }}
+          path: checkpoints/*.json
+          retention-days: 5          
+
       - name: Prepare public directory
         run: |
           mkdir -p public

@@ -75,8 +75,9 @@ class LLMService:
 
         for chunk in batches:
             cluster_texts = []
+            current_clusters = ", ".join([c.id for c in chunk])
             for c in chunk:
-                titles = " | ".join([str(it.clean_content)[:100] for it in c.items])
+                titles = "\n".join([str(it.clean_content)[:100] for it in c.items])
                 cluster_texts.append(f"{c.id}: [{titles}]")
             
             batch_input = "\n".join(cluster_texts)
@@ -127,7 +128,7 @@ class LLMService:
                 max_output_tokens=2048
             )
 
-            print(response)
+            print(f"{current_clusters}:\n{response}")
 
             # 4. Válasz feldolgozása
             if response:

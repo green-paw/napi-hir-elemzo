@@ -1,3 +1,5 @@
+import textwrap
+
 from models import NewsItem
 import re
 from typing import List, Set, Dict
@@ -28,23 +30,23 @@ class TextCleaner:
         for item in items:
             if item.embedding is not None:
                 continue
-            raw_text = f"{item.title} {item.content}"
+            raw_text = f"{item.title}: {item.content}"
             text = re.sub(r'http\S+|www\S+|https\S+', '', raw_text, flags=re.MULTILINE)
             text = re.sub(r'<.*?>', '', text)
             text = re.sub(r'[^\w\s]', ' ', text)
             words = text.lower().split()
             filtered_words = [w for w in words if w not in TextCleaner.STOPWORDS and len(w) > 2]
-            item.clean_content = " ".join(filtered_words)[:max_chars]
+            item.clean_content = textwrap.shorten(" ".join(filtered_words), width=max_chars, placeholder="...")
         print(f"✨ Szövegtisztítás kész: {len(items)} hír feldolgozva.")
 
     @staticmethod
     def process_single(item: NewsItem, max_chars: int = 800) -> None:
         if item.embedding is not None:
             return
-        raw_text = f"{item.title} {item.content}"
+        raw_text = f"{item.title}: {item.content}"
         text = re.sub(r'http\S+|www\S+|https\S+', '', raw_text, flags=re.MULTILINE)
         text = re.sub(r'<.*?>', '', text)
         text = re.sub(r'[^\w\s]', ' ', text)
         words = text.lower().split()
         filtered_words = [w for w in words if w not in TextCleaner.STOPWORDS and len(w) > 2]
-        item.clean_content = " ".join(filtered_words)[:max_chars]
+        item.clean_content = textwrap.shorten(" ".join(filtered_words), width=max_chars, placeholder="...")

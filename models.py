@@ -98,12 +98,19 @@ class BatchClassificationResponse(BaseModel):
 
 
 class NewsCluster(BaseModel):
-    def __init__(self, cluster_id: str, items: List[NewsItem]):
-        self.id = cluster_id  # Pl. "M1"
-        self.items = items
-        self.summary_title = f"Klaszter {cluster_id} ({len(items)} hír)" # Ideiglenes cím a vizualizációhoz
-        self.is_trash = False
+    id: str
+    items: List[NewsItem]
+    summary_title: str = ""
+    is_trash: bool = False
 
+    def __init__(self, cluster_id: str, items: List[NewsItem], **data):
+        summary = data.get("summary_title", f"Klaszter {cluster_id} ({len(items)} hír)")
+        super().__init__(
+            id=cluster_id, 
+            items=items, 
+            summary_title=summary, 
+            **data
+        )
 
 class LLMClusterResponse(BaseModel):
     id: str = Field(description="A klaszter vagy al-klaszter azonosítója")

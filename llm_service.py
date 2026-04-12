@@ -115,10 +115,10 @@ class LLMService:
             - A csoport jelentősége Magyarországra vagy globális mércével egy 1-10 skálán
             - Formátum: ID: [KATEGÓRIA] [HELYSZÍN] [PONTSZÁM] Cím (Pl. M80: [POLITIKA] [Magyarország] [5]: Új közvélemény-kutatási adatok...)
             - Hossz: Max 15 szó, ütős, magyar nyelvű összefoglaló.
-            - Némítás: Ha egy klaszter TRASH, semmit ne írj róla a kimenetbe (se ID-t, se magyarázatot).
+            - Ha egy klaszter TRASH, egy nagyon rövid, 3-4 szavas indoklást írj cím helyett
 
             3. KIMENETI KORLÁTOK:
-            - Ne írj bevezetőt, ne írj összefoglalót vagy magyarázatot a döntéseidhez.
+            - Ne írj bevezetőt, ne írj összefoglalót
             - Csak a valid ID-kat és a hozzájuk tartozó címeket sorold fel.
             """
 

@@ -8,6 +8,10 @@ import textwrap
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set, Tuple
 
+from pydantic import BaseModel
+from typing import Optional
+import json
+
 T = TypeVar('T')
 
 import config 
@@ -27,6 +31,11 @@ class NewsItem(BaseModel):
     profile: Dict[str, float] = Field(default_factory=dict) # Ebbe NE kerüljön a kategória stringje
     clean_content: Optional[str] = Field(default=None, exclude=True) # Ezt ellenőrizd!
     downloaded: Optional[str] = Field(default=None, exclude=True) # Ezt ellenőrizd!
+
+    def json_for_clustering(self) -> str:
+        data = self.model_dump(include={'id', 'title', 'content'})
+        data['content'] = textwrap.shorten(data['content'], width=100, placeholder="...")
+        return json.dumps(data, ensure_ascii=False)
 
     @field_validator('title', 'content')
     @classmethod
@@ -94,3 +103,19 @@ class NewsCluster:
         self.items = items
         self.summary_title = f"Klaszter {cluster_id} ({len(items)} hír)" # Ideiglenes cím a vizualizációhoz
         self.is_trash = False
+
+
+class LLMClusterResponse(BaseModel):
+    id: str = Field(description="A klaszter vagy al-klaszter azonosítója")
+    score: int = Field(ge=1, le=10, description="Súlyozott pontszám 1 és 10 között")
+    title: Optional[str] = Field(None, description="Magyar nyelvű összefoglaló országjelöléssel")
+    item_ids: List[str] = Field(
+        default_factory=list, 
+        description="Az eredeti hírek ID-jai (pl. C1, C2). Szétbontott klaszter esetén kötelező."
+    )
+    reason: Optional[str] = Field(None, description="Trash esetén a rövid indoklás")
+
+    @property
+    def is_trash(self) -> bool:
+        """Segédmetódus a szűréshez a kód többi részében."""
+        return self.score < 7    

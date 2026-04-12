@@ -3,7 +3,7 @@ from checkpoint_manager import load_checkpoint, save_checkpoint
 import llm_service
 import reporter
 import source
-from models import NewsCache, NewsItem
+from models import NewsCache, NewsCluster, NewsItem
 
 from datetime import datetime, timedelta
 import builtins
@@ -64,6 +64,8 @@ def main():
     #big clusters
     clusters = [cluster for cluster in source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.1) if len(cluster.items) > 1]
     processed_clusters = llm.process_large_clusters(clusters)
+
+    save_checkpoint("clusters.json", processed_clusters, List[NewsCluster])
 
     reporter.generate_html_report(processed_clusters, filename="index.html")
 

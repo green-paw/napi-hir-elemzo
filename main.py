@@ -47,6 +47,7 @@ def main():
     if newly_downloaded:
         for item in newly_downloaded:
             TextCleaner.process_single(item)
+            if not item.clean_content or len(item.clean_content.split()) < 50: continue
             item.downloaded = RUN_ID
             active_cache[item.hash] = item
            
@@ -59,7 +60,9 @@ def main():
 
     #big clusters
     clusters = source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.1)
-    processed_clusters = llm.process_large_clusters(clusters)
+    processed_clusters = [
+        cluster for cluster in llm.process_large_clusters(clusters) if len(cluster.items) >= 1
+    ]
 
     reporter.generate_html_report(processed_clusters, filename="index.html")
 

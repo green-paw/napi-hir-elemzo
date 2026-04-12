@@ -47,9 +47,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: checkpoints/
-          # Fix kulcsot használunk, hogy ugyanazt a "tárolót" érjük el
-          key: ${{ runner.os }}-news-checkpoints-v1
-          # Ha nincs pontos egyezés (pl. az első futásnál), akkor is próbálkozzon
+          key: ${{ runner.os }}-news-checkpoints-${{ github.run_id }}
           restore-keys: |
             ${{ runner.os }}-news-checkpoints-
 
@@ -83,7 +81,7 @@ jobs:
         if: always()
         with:
           path: checkpoints/
-          key: ${{ runner.os }}-news-checkpoints-v1
+          key: ${{ runner.os }}-news-checkpoints-${{ github.run_id }}
 
       - name: Save artifacts
         uses: actions/upload-artifact@v4

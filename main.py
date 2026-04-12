@@ -53,8 +53,13 @@ def main():
     source.embed_news(active_cache)
     final_cache = save_flat_cache(active_cache, trash_bin)
 
-    clusters = source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.085)
-    processed_clusters = llm.process_clusters_with_llm(clusters)
+    #mini clusters, llm névadás, trash szűrés
+    #clusters = source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.085)
+    #processed_clusters = llm.process_mini_clusters(clusters)
+
+    #big clusters
+    clusters = source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.2)
+    processed_clusters = llm.process_large_clusters(clusters)
 
     reporter.generate_html_report(processed_clusters, filename="index.html")
 

@@ -74,12 +74,16 @@ class LLMService:
         valid_map = {}
 
         for i, chunk in enumerate(batches, 0):
-            if i == 0: print(f"{chunk[0].id}: {chunk[0].items[0].clean_content}")
+            if i < 10:
+                cluster = chunk[0]
+                items = cluster.items
+                
+                print(f"{cluster.id}: {len(items)} hír: {items[0].title}...")
 
             cluster_texts = []
             current_clusters = ", ".join([c.id for c in chunk])
             for c in chunk:
-                titles = "\n".join([str(it.clean_content)[:100] for it in c.items])
+                titles = "\n".join([f"{it.title}: {it.content[:100]}" for it in c.items])
                 cluster_texts.append(f"{c.id}: [{titles}]")
             
             batch_input = "\n".join(cluster_texts)

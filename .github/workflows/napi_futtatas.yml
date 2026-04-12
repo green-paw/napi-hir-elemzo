@@ -43,13 +43,20 @@ jobs:
       - name: Create checkpoints directory
         run: mkdir -p checkpoints
 
-      - name: Restore/Save Checkpoints Cache
+      - name: Restore Checkpoints Cache
         uses: actions/cache@v4
         with:
           path: checkpoints/
-          key: ${{ runner.os }}-news-checkpoints-${{ github.run_id }}
+          # Fix kulcsot használunk, hogy ugyanazt a "tárolót" érjük el
+          key: ${{ runner.os }}-news-checkpoints-v1
+          # Ha nincs pontos egyezés (pl. az első futásnál), akkor is próbálkozzon
           restore-keys: |
             ${{ runner.os }}-news-checkpoints-
+
+      - name: Clean old checkpoints
+        # Ha csak a legfrissebbek kellenek, és a Python kódod nem kezeli,
+        # itt törölheted a 2 napnál régebbi fájlokat feltöltés előtt:
+        run: find checkpoints/ -name "*.json" -mtime +2 -exec rm {} \;
 
       - name: Set safe output filename
         run: |
@@ -76,7 +83,7 @@ jobs:
         if: always()
         with:
           path: checkpoints/
-          key: ${{ runner.os }}-news-checkpoints-${{ github.run_id }}
+          key: ${{ runner.os }}-news-checkpoints-v1
 
       - name: Save artifacts
         uses: actions/upload-artifact@v4
@@ -84,7 +91,7 @@ jobs:
         with:
           name: news-checkpoints-${{ github.run_id }}
           path: checkpoints/*.json
-          retention-days: 5          
+          retention-days: 2       
 
       - name: Prepare public directory
         run: |

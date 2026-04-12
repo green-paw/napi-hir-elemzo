@@ -110,12 +110,10 @@ class LLMService:
                 - Kattintásvadász, de tartalom nélküli címek.
 
             2. CÍMADÁS ÉS FORMÁTUM:
-            - KATEGÓRIA: POLITIKA, GAZDASÁG, TECHNOLÓGIA, KÖZÉLET vagy TRASH
             - ORSZÁG MEGJELÖLÉSE: A cím elején MINDIG szerepeljen az ország vagy régió (pl. USA:, Nagy-Britannia:, Ukrajna:). 
-            - A csoport jelentősége Magyarországra vagy globális mércével egy 1-10 skálán
-            - Formátum: ID: [KATEGÓRIA] [HELYSZÍN] [PONTSZÁM] Cím (Pl. M80: [POLITIKA] [Magyarország] [5]: Új közvélemény-kutatási adatok...)
+            - Formátum: ID: [HELYSZÍN] Cím (Pl. "M80: [Magyarország] Új közvélemény-kutatási adatok...")
             - Hossz: Max 15 szó, ütős, magyar nyelvű összefoglaló.
-            - Ha egy klaszter TRASH, egy nagyon rövid, 3-4 szavas indoklást írj cím helyett
+            - Ha egy klaszter TRASH, egy nagyon rövid, 3-4 szavas indoklást írj cím helyett (példa: "M1: [TRASH] bulvár és divat")
 
             3. KIMENETI KORLÁTOK:
             - Ne írj bevezetőt, ne írj összefoglalót
@@ -142,14 +140,14 @@ class LLMService:
                     if ":" in line:
                         parts = line.split(":", 1)
                         mid = parts[0].strip()
-                        title = parts[1].strip()
+                        title = str(parts[1].strip())
                         valid_map[mid] = title
 
         # 5. Státuszok beállítása az objektumokban
         for c in clusters:
             if c.id in valid_map:
                 c.summary_title = valid_map[c.id]
-                c.is_trash = False
+                c.is_trash = "TRASH" in valid_map[c.id]
             else:
                 c.summary_title = ""
                 c.is_trash = True

@@ -64,8 +64,9 @@ def main():
     #big clusters
     clusters = [cluster for cluster in source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.1) if len(cluster.items) > 1]
     processed_clusters = llm.process_large_clusters(clusters)
+    processed_clusters.sort(key=lambda c: len(c.items), reverse=True)
 
-    save_checkpoint("clusters.json", processed_clusters, List[NewsCluster])
+    #save_checkpoint("clusters.json", processed_clusters, List[NewsCluster])
 
     reporter.generate_html_report(processed_clusters, filename="index.html")
 

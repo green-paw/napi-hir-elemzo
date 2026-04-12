@@ -62,7 +62,7 @@ def main():
     #processed_clusters = llm.process_mini_clusters(clusters)
 
     #big clusters
-    clusters = [cluster for cluster in source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.1) if len(cluster.items) > 1]
+    clusters = [cluster for cluster in source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.2) if len(cluster.items) > 1]
     processed_clusters = llm.process_large_clusters(clusters)
     processed_clusters.sort(key=lambda c: len(c.items), reverse=True)
 

@@ -47,7 +47,10 @@ def main():
     if newly_downloaded:
         for item in newly_downloaded:
             TextCleaner.process_single(item)
-            if not item.clean_content or len(item.clean_content.split()) < 50: continue
+            if not item.clean_content or len(item.clean_content.split()) < 50:
+                if RUN_ID not in trash_bin: trash_bin[RUN_ID] = set[str]()
+                trash_bin[RUN_ID].add(item.hash)
+                continue
             item.downloaded = RUN_ID
             active_cache[item.hash] = item
            
@@ -61,7 +64,7 @@ def main():
     #big clusters
     clusters = source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.1)
     processed_clusters = [
-        cluster for cluster in llm.process_large_clusters(clusters) if len(cluster.items) >= 1
+        cluster for cluster in llm.process_large_clusters(clusters) if len(cluster.items) > 1
     ]
 
     reporter.generate_html_report(processed_clusters, filename="index.html")

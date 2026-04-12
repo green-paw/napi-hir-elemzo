@@ -73,7 +73,9 @@ class LLMService:
 
         valid_map = {}
 
-        for chunk in batches:
+        for i, chunk in enumerate(batches, 0):
+            if i == 0: print(f"{chunk[0].id}: {chunk[0].items[0].clean_content}")
+
             cluster_texts = []
             current_clusters = ", ".join([c.id for c in chunk])
             for c in chunk:

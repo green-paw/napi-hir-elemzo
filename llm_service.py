@@ -101,7 +101,11 @@ class LLMService:
                 - Globális konfliktusok és háborúk (Orosz-Ukrán háború, USA-Izrael-Irán konfliktus, frontvonalak, fegyverszállítások).
                 - Valódi technológiai áttörések (AI, energia, űrkutatás).
                 - KÖZÉLET: Súlyos balesetek, természeti katasztrófák, országos jelentőségű közbiztonsági események vagy tragédiák.
-            - HAGYD KI (TRASH):
+            - TRASH:
+                Szolgáltatói adatok: Tőzsdei árfolyamlisták, időjárás-jelentések, lottószámok, TV-műsor.
+                Technikai zaj: RSS hibák, üres oldalak, csak navigációs linkeket tartalmazó szövegek.
+                Nem hírértékű szórakozás: Horoszkóp, keresztrejtvény-ajánló, tippmix tanácsok.
+                Bulvár-celeb: Olyan ismert emberek magánélete, akik nem közszereplők (politikai értelemben).
                 - Külföldi politikusok egymásról alkotott magánvéleménye vagy diplomáciai szájkarate (pl. Starmer mit gondol Trumpról), ha nincs mögötte konkrét kormányzati lépés.
                 - Külföldi országok lokális népszerűségi mutatói, bulvár, sport, receptek, reklámok.
                 - Külföldi személyes botrányok, hacsak nem érintenek államfőt vagy nincs globális hatásuk
@@ -110,6 +114,8 @@ class LLMService:
                 - Kattintásvadász, de tartalom nélküli címek.
 
             2. CÍMADÁS ÉS FORMÁTUM:
+            - A csoportok embedding alapján lettek összevonva. Ha egy csoportról úgy ítéled meg hogy tartalmilag nem összeillő híreket tartalmaz, akkor a legjelentősebb hír vagy hírek alapján értékeld a csoportot. Ebben az esetben a cím elején jelezd hogy "Bontott" a csoport (Példa: "M2: Bontott [USA] Trump bejelentette...")
+            - A bontott csoportoknál ha van valódi hír értékű és trash esemény is, a csoport ne kapjon trash besorolást.
             - ORSZÁG MEGJELÖLÉSE: A cím elején MINDIG szerepeljen az ország vagy régió (pl. USA:, Nagy-Britannia:, Ukrajna:). 
             - Formátum: ID: [HELYSZÍN] Cím (Pl. "M80: [Magyarország] Új közvélemény-kutatási adatok...")
             - Hossz: Max 15 szó, ütős, magyar nyelvű összefoglaló.

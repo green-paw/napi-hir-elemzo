@@ -62,10 +62,8 @@ def main():
     #processed_clusters = llm.process_mini_clusters(clusters)
 
     #big clusters
-    clusters = source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.1)
-    processed_clusters = [
-        cluster for cluster in llm.process_large_clusters(clusters) if len(cluster.items) > 1
-    ]
+    clusters = [cluster for cluster in source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.1) if len(cluster.items) > 1]
+    processed_clusters = llm.process_large_clusters(clusters)
 
     reporter.generate_html_report(processed_clusters, filename="index.html")
 

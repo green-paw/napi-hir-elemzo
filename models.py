@@ -97,7 +97,7 @@ class BatchClassificationResponse(BaseModel):
     results: List[NewsClassification] = Field(description="A hírek osztályozott listája")
 
 
-class NewsCluster:
+class NewsCluster(BaseModel):
     def __init__(self, cluster_id: str, items: List[NewsItem]):
         self.id = cluster_id  # Pl. "M1"
         self.items = items

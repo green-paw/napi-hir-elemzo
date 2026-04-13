@@ -59,7 +59,7 @@ def main():
     full_blacklist = set().union(*trash_bin.values()) if trash_bin else set()
     trash_count = len(full_blacklist)
     
-    print(f"Hírek begyűjtve, active cache: {len(list(active_cache.values()))} hír, trash_bin: {trash_count}")
+    print(f"Hírek begyűjtve, active cache: {len(active_cache)} hír, trash_bin: {trash_count}")
            
     source.embed_news(active_cache)
     final_cache = save_flat_cache(active_cache, trash_bin)
@@ -71,10 +71,11 @@ def main():
     #big clusters
     #clusters = [cluster for cluster in source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.25) if len(cluster.items) > 1]
 
-    print(f"Iteratív klaszterezés indítása {len(list(active_cache.values()))} hírre")
-    clusters = source.iterative_clustering(list(active_cache.values()))
+    print(f"Iteratív klaszterezés indítása {len(active_cache)} hírre")
+    raw_clusters = source.iterative_clustering(list(active_cache.values()))
+    clusters = [c for c in raw_clusters if len(c.items) > 1]
 
-    print(f"Iteratív klaszterezés: {len(list(active_cache.values()))} hír -> {len(clusters)} klaszter. LLM csoportosítás indítása")
+    print(f"Iteratív klaszterezés: {len(active_cache)} hír -> {len(clusters)} klaszter, {len(raw_clusters) - len(clusters)} egyéni hír eldobva. LLM csoportosítás indítása")
     
     processed_clusters = llm.process_large_clusters(clusters)
     processed_clusters.sort(key=lambda c: len(c.items), reverse=True)

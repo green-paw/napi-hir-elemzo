@@ -114,7 +114,7 @@ class NewsCluster(BaseModel):
 
 class LLMClusterResponse(BaseModel):
     id: str = Field(description="A klaszter vagy al-klaszter azonosítója")
-    score: int = Field(1, ge=1, le=10, description="Súlyozott pontszám 1 és 10 között")
+    score: int = Field(7, ge=1, le=10, description="Súlyozott pontszám 1 és 10 között")
     title: Optional[str] = Field(None, description="Kulcsszavak listája egy stringben")
     item_ids: List[str] = Field(
         default_factory=list, 

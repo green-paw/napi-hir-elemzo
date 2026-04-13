@@ -29,7 +29,7 @@ def main():
     #loaded_cache = NewsCache()
     loaded_cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
     trash_bin: Dict[str, Set[str]] = loaded_cache.trash_bin
-    full_blacklist = Set[str] #set().union(*trash_bin.values())
+    full_blacklist = set[str]() #set().union(*trash_bin.values())
 
     for batch_id in sorted(loaded_cache.batches.keys()):
         for h, item in loaded_cache.batches[batch_id].items():
@@ -47,8 +47,9 @@ def main():
     if newly_downloaded:
         for item in newly_downloaded:
             TextCleaner.process_single(item)
-            if not item.clean_content or len(item.clean_content.split()) < 50:
-                if RUN_ID not in trash_bin: trash_bin[RUN_ID] = set[str]()
+            if not item.clean_content or len(item.clean_content.split()) < 40:
+                if RUN_ID not in trash_bin:
+                    trash_bin[RUN_ID] = set[str]()
                 trash_bin[RUN_ID].add(item.hash)
                 continue
             item.downloaded = RUN_ID

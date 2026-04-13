@@ -413,3 +413,38 @@ def create_clusters_by_embedding(items: List[NewsItem], threshold: float = 0.3) 
     clusters.sort(key=lambda x: len(x.items), reverse=True)
     
     return clusters
+
+def iterative_clustering(news_items: List[NewsItem], start_th: float = 0.05, end_th: float = 0.35, step: float = 0.02, critical_mass: int = 30) -> List[NewsCluster]:
+    remaining_items = list(news_items)
+    final_clusters: List[NewsCluster] = []
+    current_th = start_th
+
+    while remaining_items and current_th <= end_th:
+        if len(remaining_items) == 0:
+            break
+        if len(remaining_items) <= critical_mass:
+            final_clusters.append(NewsCluster(id="TEMP", items=remaining_items))
+            remaining_items = []
+            break
+            
+        current_round_clusters = create_clusters_by_embedding(remaining_items, threshold=current_th)
+        still_remaining = []
+        for cluster in clusters:
+            if len(cluster) >= critical_mass:
+                final_clusters.append(cluster)
+            else:
+                still_remaining.extend(cluster.items)
+        
+        remaining_items = still_remaining
+        current_th += step
+        print(f"DEBUG: Th: {current_th:.2f} | Maradt: {len(remaining_items)} hír | Kész klaszterek: {len(final_clusters)}")
+
+    if remaining_items:
+        final_clusters.append(NewsCluster(id="TEMP", items=remaining_items))
+        remaining_items = []
+
+    final_clusters.sort(key=lambda x: len(x.items))
+    for i, cluster in enumerate(final_clusters):
+        cluster.id = f"M{i}"
+    
+    return final_clusters

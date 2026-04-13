@@ -66,7 +66,7 @@ def main():
     #clusters = [cluster for cluster in source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.25) if len(cluster.items) > 1]
     clusters = source.iterative_clustering(list(active_cache.values()))
 
-    print(f"Iteratív klaszterezés: {len(list(active_cache.values()))} hír -> {len(cluster)} klaszter. LLM csoportosítás indítása")
+    print(f"Iteratív klaszterezés: {len(list(active_cache.values()))} hír -> {len(clusters)} klaszter. LLM csoportosítás indítása")
     
     processed_clusters = llm.process_large_clusters(clusters)
     processed_clusters.sort(key=lambda c: len(c.items), reverse=True)

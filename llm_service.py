@@ -134,16 +134,17 @@ class LLMService:
             Te egy stratégiai, politikai és gazdasági hírszerkesztő vagy. A feladatod vegyes hírekből különálló, logikailag összeillő csoportokat alkotni.
 
             Lépések:
-            1. próbálj néhány kulcsszót, maximum 5-öt kiemelni a hírekból (ki? hol? mit csinált?), amelyek alapján több hír egy konzisztens eseménnyé áll össze.
-            2. a bejövő adatok ebben a szerkezetben érkeznek: csoport ID: [egyes hírek id-ja, címe és a tartalom eleje].
-            3. Kizárólag nyers JSONL formátumban válaszolj. Minden sor egy JSON objektum legyen az alábbi mezőkkel:
+            1. próbálj néhány kulcsszót, maximum 5-öt kiemelni a hírekból (ki? hol? mit csinált?), amelyek alapján több hír egy konzisztens atomi eseménnyé áll össze. TILOS általános témákat készíteni! Az események legyenek atomiak: azonos helyen és időben történt hírek tartozzanak egybe.
+            2. egy eseményről ritkán szól 10-nél több hír, ha eléred ezt a számot próbáld meg újragondolni az eseménybe sorolt hírek összefüggését. Ha az egyes hírek helyszínei eltérnek, akkor is vizsgáld felül, hogy érdemesebb lenne bontani.
+            3. a bejövő adatok ebben a szerkezetben érkeznek: csoport ID: [egyes hírek id-ja, címe és a tartalom eleje].
+            4. Kizárólag nyers JSONL formátumban válaszolj. Minden sor egy JSON objektum legyen az alábbi mezőkkel:
                 id: A klaszter új azonosítója (string), a csoport eredeti azonosítója után betűjellel megkülönböztetve (pl: be: M12 -> ki: M12_a, M12_b, stb)
                 title: a kulcsszavak amiket azonosítottál (string, pl: "Trump, USA, Katonai fejlesztések bejelentése"), SZIGORÚAN MAGYAR NYELVEN
                 item_ids: Az eredeti hírek ID-jai, amik ebbe az új klaszterbe tartoznak (list of strings).
-            4. Kimeneti korlátok: Ne írj bevezetőt, ne használj markdown kódblokkokat (```), csak a tiszta JSONL sorokat sorold fel.
+            5. Kimeneti korlátok: Ne írj bevezetőt, ne használj markdown kódblokkokat (```), csak a tiszta JSONL sorokat sorold fel.
 
             Példa a kimenetre:
-            {"id": "M12_a", "title":"Orbán, Budapest, Beszédett mondott", "item_ids": [C1, C5, C12]}
+            {"id": "M12_a", "title":"Orbán, Budapest, Beszéd az áremelésről", "item_ids": [C1, C5, C12]}
             """
 
             prompt = f"""

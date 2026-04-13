@@ -72,14 +72,16 @@ def main():
     #clusters = [cluster for cluster in source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.25) if len(cluster.items) > 1]
 
     print(f"Iteratív klaszterezés indítása {len(active_cache)} hírre")
-    raw_clusters = source.iterative_clustering(list(active_cache.values()))
-    clusters = [c for c in raw_clusters if len(c.items) > 1]
+    clusters = source.iterative_clustering(list(active_cache.values()))
+    clusters_len = len(clusters)
 
-    print(f"Iteratív klaszterezés: {len(active_cache)} hír -> {len(clusters)} klaszter, {len(raw_clusters) - len(clusters)} egyéni hír eldobva. LLM csoportosítás indítása")
+    print(f"Iteratív klaszterezés: {len(active_cache)} hír -> {len(clusters)} klaszter. LLM csoportosítás indítása")
     
     processed_clusters = llm.process_large_clusters(clusters)
     processed_clusters.sort(key=lambda c: len(c.items), reverse=True)
-
+    clusters = [c for c in processed_clusters if len(c.items) > 1]
+    print(f"{clusters_len} clusterből {clusters_len - len(clusters)} egyedi hír eldobva")
+    
     #save_checkpoint("clusters.json", processed_clusters, List[NewsCluster])
 
     reporter.generate_html_report(processed_clusters, filename="index.html")

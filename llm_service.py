@@ -141,7 +141,8 @@ class LLMService:
                 id: A klaszter új azonosítója (string), a csoport eredeti azonosítója után betűjellel megkülönböztetve (pl: be: M12 -> ki: M12_a, M12_b, stb)
                 title: a kulcsszavak amiket azonosítottál (string, pl: "Trump, USA, Katonai fejlesztések bejelentése"), SZIGORÚAN MAGYAR NYELVEN
                 item_ids: Az eredeti hírek ID-jai, amik ebbe az új klaszterbe tartoznak (list of strings).
-            5. Kimeneti korlátok: Ne írj bevezetőt, ne használj markdown kódblokkokat (```), csak a tiszta JSONL sorokat sorold fel.
+            5. TILOS az ID-k ismétlése, egy hír ID egy csoportba kerülhet be. Ha a hírek ugyanarról az eseményről szólnak, tartsd őket egyben. Ha különbözőek, válaszd szét őket, de ne használd ugyanazokat az ID-kat több csoportban.
+            6. Kimeneti korlátok: Ne írj bevezetőt, ne használj markdown kódblokkokat (```), csak a tiszta JSONL sorokat sorold fel.
 
             Példa a kimenetre:
             {"id": "M12_a", "title":"Orbán, Budapest, Beszéd az áremelésről", "item_ids": [C1, C5, C12]}

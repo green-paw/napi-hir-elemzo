@@ -423,7 +423,7 @@ def iterative_clustering(news_items: List[NewsItem], start_th: float = 0.05, end
         if len(remaining_items) == 0:
             break
         if len(remaining_items) <= critical_mass:
-            final_clusters.append(NewsCluster(id="TEMP", items=remaining_items))
+            final_clusters.append(NewsCluster("TEMP", remaining_items))
             remaining_items = []
             break
             
@@ -440,7 +440,7 @@ def iterative_clustering(news_items: List[NewsItem], start_th: float = 0.05, end
         print(f"DEBUG: Th: {current_th:.2f} | Maradt: {len(remaining_items)} hír | Kész klaszterek: {len(final_clusters)}")
 
     if remaining_items:
-        final_clusters.append(NewsCluster(id="TEMP", items=remaining_items))
+        final_clusters.append(NewsCluster("TEMP", remaining_items))
         remaining_items = []
 
     final_clusters.sort(key=lambda x: len(x.items))

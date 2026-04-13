@@ -114,15 +114,14 @@ class NewsCluster(BaseModel):
 
 class LLMClusterResponse(BaseModel):
     id: str = Field(description="A klaszter vagy al-klaszter azonosítója")
-    score: int = Field(ge=1, le=10, description="Súlyozott pontszám 1 és 10 között")
-    title: Optional[str] = Field(None, description="Magyar nyelvű összefoglaló országjelöléssel")
+    score: int = Field(1, ge=1, le=10, description="Súlyozott pontszám 1 és 10 között")
+    title: Optional[str] = Field(None, description="Kulcsszavak listája egy stringben")
     item_ids: List[str] = Field(
         default_factory=list, 
-        description="Az eredeti hírek ID-jai (pl. C1, C2). Szétbontott klaszter esetén kötelező."
+        description="Az eredeti hírek ID-jai (pl. C1, C2)"
     )
     reason: Optional[str] = Field(None, description="Trash esetén a rövid indoklás")
 
     @property
     def is_trash(self) -> bool:
-        """Segédmetódus a szűréshez a kód többi részében."""
-        return self.score < 7    
+        return self.score < 7

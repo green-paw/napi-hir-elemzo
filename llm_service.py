@@ -74,8 +74,8 @@ class LLMService:
         for chunk in batches:
             cluster_texts = []
             for c in chunk:
-                titles = "\n".join([it.json_for_clustering() for it in c.items])
-                cluster_texts.append(f"{c.id}: [{titles}]")
+                short_text = ",\n".join([it.json_for_clustering() for it in c.items])
+                cluster_texts.append(f"{c.id}: [{short_text}]")
             
             batch_input = "\n".join(cluster_texts)
 
@@ -130,6 +130,22 @@ class LLMService:
                 Kimeneti korlátok: Ne írj bevezetőt, ne használj markdown kódblokkokat (```), csak a tiszta JSONL sorokat sorold fel.
             """
 
+            sys_instr = """
+            Te egy stratégiai, politikai és gazdasági hírszerkesztő vagy. A feladatod vegyes hírekből különálló, logikailag összeillő csoportokat alkotni.
+
+            Lépések:
+            1. próbálj néhány kulcsszót, maximum 5-öt kiemelni a hírekból (ki? hol? mit csinált?), amelyek alapján több hír egy konzisztens eseménnyé áll össze.
+            2. a bejövő adatok ebben a szerkezetben érkeznek: csoport ID: [egyes hírek id-ja, címe és a tartalom eleje].
+            3. Kizárólag nyers JSONL formátumban válaszolj. Minden sor egy JSON objektum legyen az alábbi mezőkkel:
+                id: A klaszter új azonosítója (string), a csoport eredeti azonosítója után betűjellel megkülönböztetve (pl: be: M12 -> ki: M12_a, M12_b, stb)
+                title: a kulcsszavak amiket azonosítottál (string, pl: "Trump, USA, Katonai fejlesztések bejelentése"), SZIGORÚAN MAGYAR NYELVEN
+                item_ids: Az eredeti hírek ID-jai, amik ebbe az új klaszterbe tartoznak (list of strings).
+            4. Kimeneti korlátok: Ne írj bevezetőt, ne használj markdown kódblokkokat (```), csak a tiszta JSONL sorokat sorold fel.
+
+            Példa a kimenetre:
+            {"id": "M12_a", "title":"Orbán, Budapest, Beszédett mondott", "item_ids": [C1, C5, C12]}
+            """
+
             prompt = f"""
             Hírek:
             {batch_input}
@@ -148,75 +164,6 @@ class LLMService:
             if response:
                 results = process_llm_output(response)
                 processed.extend(merge_llm_responses(chunk, results))
-
-        return processed
-
-    def process_mini_clusters(self, clusters: List[NewsCluster]) -> List[NewsCluster]:
-        """
-        Batchelve küldi el a klasztereket az LLM-nek. 
-        A válasz alapján frissíti a klaszterek címeit és trash státuszát.
-        """
-        if not clusters:
-            return []        
-
-        chunks = [clusters[i:i + 20] for i in range(0, len(clusters), 20)]
-        processed: List[NewsCluster] = []
-
-        valid_map = {}
-
-        for chunk in chunks[:3]:
-            cluster_texts = []
-            for c in chunk:
-                titles = " | ".join([it.title[:100] for it in c.items[:5]])
-                cluster_texts.append(f"{c.id}: [{titles}]")
-            
-            batch_input = "\n".join(cluster_texts)
-
-            # 2. A "Szigorú Szerkesztő" Prompt
-            sys_instr = f"""
-            Feladat: Szigorú hírszerkesztő vagy. Előre csoportosított hír-klaszterekről döntöd el, hogy van-e valódi stratégiai jelentőségük, vagy csak zajnak minősülnek.
-            A cél a lényeges események szűrése és tömör magyar nyelvű összefoglalása.
-
-            Szabályok és Prioritások:
-
-            1. RELEVANCIA-SZŰRÉS:
-            - TARTSD MEG: 
-                - Magyarország bel- és külügyei (választások, pártpolitika, tüntetések, kormányzati döntések).
-                - Globális konfliktusok és háborúk (Orosz-Ukrán háború, USA-Izrael-Irán konfliktus, frontvonalak, fegyverszállítások).
-                - Valódi technológiai áttörések (AI, energia, űrkutatás).
-                - KÖZÉLET: Súlyos balesetek, természeti katasztrófák, országos jelentőségű közbiztonsági események vagy tragédiák.
-            - HAGYD KI (TRASH):
-                - Külföldi politikusok egymásról alkotott magánvéleménye vagy diplomáciai szájkarate (pl. Starmer mit gondol Trumpról), ha nincs mögötte konkrét kormányzati lépés.
-                - Külföldi országok lokális népszerűségi mutatói, bulvár, sport, receptek, reklámok.
-                - Külföldi személyes botrányok, hacsak nem érintenek államfőt vagy nincs globális hatásuk
-                - Külföldi közéleti, hacsak nem országos szintű eseményről van szó
-                - Bulvár, reklám, sporthír, recept vagy jelentéktelen apróság, azt HAGYD KI a válaszból.
-                - Kattintásvadász, de tartalom nélküli címek.
-
-            2. CÍMADÁS ÉS FORMÁTUM:
-            - KATEGÓRIA: POLITIKA, GAZDASÁG, TECHNOLÓGIA, KÖZÉLET vagy TRASH
-            - ORSZÁG MEGJELÖLÉSE: A cím elején MINDIG szerepeljen az ország vagy régió (pl. USA:, Nagy-Britannia:, Ukrajna:). 
-            - A csoport jelentősége Magyarországra vagy globális mércével egy 1-10 skálán
-            - Formátum: ID: [KATEGÓRIA] [HELYSZÍN] [PONTSZÁM] Cím (Pl. M80: [POLITIKA] [Magyarország] [5]: Új közvélemény-kutatási adatok...)
-            - Hossz: Max 15 szó, ütős, magyar nyelvű összefoglaló.
-            - Némítás: Ha egy klaszter TRASH, semmit ne írj róla a kimenetbe (se ID-t, se magyarázatot).
-
-            3. KIMENETI KORLÁTOK:
-            - Ne írj bevezetőt, ne írj összefoglalót vagy magyarázatot a döntéseidhez.
-            - Csak a valid ID-kat és a hozzájuk tartozó címeket sorold fel.
-            """
-
-            prompt = f"""
-            Hírek:
-            {batch_input}
-            """
-
-            # 3. Gemini hívás (Flash Lite ideális erre)
-            response = gemini_core.generate(
-                sys_instr=sys_instr,
-                contents=prompt,
-                max_output_tokens=2048
-            )
 
         return processed
 

@@ -430,7 +430,7 @@ def iterative_clustering(news_items: List[NewsItem], start_th: float = 0.05, end
         clusters = create_clusters_by_embedding(remaining_items, threshold=current_th)
         still_remaining = []
         for cluster in clusters:
-            if len(cluster) >= critical_mass:
+            if len(cluster.items) >= critical_mass:
                 final_clusters.append(cluster)
             else:
                 still_remaining.extend(cluster.items)

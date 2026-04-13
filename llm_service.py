@@ -178,24 +178,24 @@ class LLMService:
         pass
 
 def process_llm_output(raw_text: str) -> List[LLMClusterResponse]:
-    # Markdown kódblokkok és üres sorok eltávolítása
-    clean_lines = [
-        line.strip() 
-        for line in raw_text.replace("```jsonl", "").replace("```", "").splitlines() 
-        if line.strip()
-    ]
-    
     parsed_objects: List[LLMClusterResponse] = []
-    for line in clean_lines:
+    
+    for line in raw_text.splitlines():
+        line = line.strip()
+        
+        # Csak azokat a sorokat próbáljuk megemészteni, amik JSON objektumnak tűnnek
+        if not line or not line.startswith("{"):
+            continue
+            
         try:
-            # Pydantic V2 parse_raw helyett model_validate_json
+            # model_validate_json a leggyorsabb és legbiztonságosabb Pydantic V2-ben
             obj = LLMClusterResponse.model_validate_json(line)
             parsed_objects.append(obj)
         except Exception as e:
-            print(f"Hiba a sor feldolgozásakor: {e} | Sor: {line}")
+            print(f"⚠️ Hiba a sor feldolgozásakor: {e} | Sor: {line[:50]}...")
             
     return parsed_objects
-
+    
 def merge_llm_responses(
     original_clusters: List[NewsCluster], 
     llm_responses: List[LLMClusterResponse]

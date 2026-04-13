@@ -26,8 +26,8 @@ def main():
     active_cache: Dict[str, NewsItem] = {}
     
     # ha törölni akarom a cache-t:
-    #loaded_cache = NewsCache()
-    loaded_cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
+    loaded_cache = NewsCache()
+    #loaded_cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
     trash_bin: Dict[str, Set[str]] = loaded_cache.trash_bin
     full_blacklist = set[str]() #set().union(*trash_bin.values())
 

@@ -47,8 +47,8 @@ def main():
     if newly_downloaded:
         for item in newly_downloaded:
             TextCleaner.process_single(item)
-            if not item.clean_content or len(item.clean_content.split()) < 20:
-                print(f"TRASH clean_content({len(item.clean_content)}): {item.clean_content}")
+            if not item.clean_content: # or len(item.clean_content.split()) < 20:
+                #print(f"TRASH clean_content({len(item.clean_content)}): {item.clean_content}")
                 if RUN_ID not in trash_bin:
                     trash_bin[RUN_ID] = set[str]()
                 trash_bin[RUN_ID].add(item.hash)

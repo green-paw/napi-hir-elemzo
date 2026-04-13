@@ -376,7 +376,7 @@ def create_clusters_by_embedding(items: List[NewsItem], threshold: float = 0.3) 
     if not items:
         return []
     
-    print(f"🔮 Klaszterezés indítása {len(items)} hírre (threshold: {threshold})...")
+    print(f"🔮 Klaszterezés indítása {len(items)} hírre (threshold: {threshold:.2f})...")
     
     # Csak azokat embeddeljük, amiknek még nincs (bár elvileg már mindnek van)
     for item in items:

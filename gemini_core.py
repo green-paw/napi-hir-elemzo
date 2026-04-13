@@ -59,7 +59,7 @@ def generate(
         system_instruction=sys_instr,
         response_mime_type=response_mime_type,
         response_schema=response_schema,
-        temperature=0.0,
+        temperature=0.2,
         max_output_tokens=max_output_tokens,
         labels={"branch": os.getenv("CURRENT_BRANCH", "main")}
     )

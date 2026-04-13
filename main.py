@@ -29,8 +29,8 @@ def main():
     loaded_cache = NewsCache()
     #loaded_cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
     trash_bin: Dict[str, Set[str]] = loaded_cache.trash_bin
-    full_blacklist = set[str]() #set().union(*trash_bin.values())
-
+    full_blacklist = set().union(*trash_bin.values()) if trash_bin else set()
+    
     for batch_id in sorted(loaded_cache.batches.keys()):
         for h, item in loaded_cache.batches[batch_id].items():
             if h not in active_cache:
@@ -54,6 +54,11 @@ def main():
                 continue
             item.downloaded = RUN_ID
             active_cache[item.hash] = item
+
+    full_blacklist = set().union(*trash_bin.values()) if trash_bin else set()
+    trash_count = len(full_blacklist)
+    
+    print(f"Hírek begyűjtve, active cache: {len(list(active_cache.values()))} hír, trash_bin: {trash_count}")
            
     source.embed_news(active_cache)
     final_cache = save_flat_cache(active_cache, trash_bin)
@@ -64,6 +69,8 @@ def main():
 
     #big clusters
     #clusters = [cluster for cluster in source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.25) if len(cluster.items) > 1]
+
+    print(f"Iteratív klaszterezés indítása {len(list(active_cache.values()))} hírre")
     clusters = source.iterative_clustering(list(active_cache.values()))
 
     print(f"Iteratív klaszterezés: {len(list(active_cache.values()))} hír -> {len(clusters)} klaszter. LLM csoportosítás indítása")

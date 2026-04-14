@@ -252,8 +252,12 @@ def get_anchors_texts(news_items: List[NewsItem]) -> AnchorResponse:
 
         Szabályok:
         1. Minden témához készíts egy tömör angol és egy magyar horgonyt (max 5-8 szó).
-        2. A horgony legyen szemantikailag sűrű, tartalmazza a kulcsszereplőket és az eseményt.
-        3. Csak érvényes JSON válasz jöhet a megadott formátumban.
+        2. Kerüld a túl általános megfogalmazásokat (pl. ne csak "Fidesz választási vereség", hanem "Belső feszültség és felelősségkeresés a Fideszben a vereség után").
+        3. A horgony legyen "szemantikai mágnes": tartalmazza a legfontosabb neveket, helyszíneket és a konkrét cselekvést.
+        4. Minden horgony legyen egyedi és határolja el magát a többi témától. Ha egy chunkon belül több aspektus van, bontsd szét őket (pl. külön horgony a nemzetközi sajtóvisszhangnak és külön a hazai pártreakcióknak).
+        5. A horgony hossza 5-10 szó legyen, hogy elég sűrű legyen az embeddinghez.
+        6. Csak olyan horgonyt készíts, amihez legalább 2-3 hír kapcsolódik a listában.
+        7. Csak érvényes JSON válasz jöhet a megadott formátumban.
         """
     
     texts = "\n".join([item.json_for_clustering() for item in news_items])

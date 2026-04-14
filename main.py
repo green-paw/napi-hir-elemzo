@@ -26,7 +26,8 @@ llm = llm_service.LLMService()
 def main():
     active_cache: Dict[str, NewsItem] = {}
     
-    loaded_cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
+    #loaded_cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
+    loaded_cache = NewsCache()
     trash_bin: Dict[str, Set[str]] = loaded_cache.trash_bin
     full_blacklist = set().union(*trash_bin.values()) if trash_bin else set()
     

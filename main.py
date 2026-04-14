@@ -62,8 +62,11 @@ def main():
     final_cache = save_flat_cache(active_cache, trash_bin)
 
     # 0.2-vel alakítunk kupacokat
-    clusters = source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.2)
-    first_anchors = llm_service.get_anchors_texts(clusters[0].items)
+    #clusters = source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.2)
+    
+    
+    densest30 = get_densest_chunk(list(active_cache.values()))
+    first_anchors = llm_service.get_anchors_texts(densest30)
 
 
     return
@@ -175,6 +178,19 @@ def save_flat_cache(flat_cache: Dict[str, NewsItem], trash_bin: Dict[str, Set[st
 
 
 
+def get_densest_chunk(news_items: List[NewsItem], chunk_size: int = 30) -> List[NewsItem]:
+    if len(news_items) <= chunk_size:
+        return news_items
+    embeddings = np.array([item.embedding for item in news_items], dtype=np.float32)
+    similarity_matrix = np.dot(embeddings, embeddings.T)
+    kth_similarities = []
+    for row in similarity_matrix:
+        partitioned = np.partition(row, -chunk_size)
+        kth_similarities.append(partitioned[-chunk_size])
+    center_idx = int(np.argmax(kth_similarities))
+    center_row = similarity_matrix[center_idx]
+    closest_indices = np.argsort(center_row)[-chunk_size:]
+    return [news_items[int(i)] for i in closest_indices]
 
 def end_log():
     try:

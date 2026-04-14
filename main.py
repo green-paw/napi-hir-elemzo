@@ -87,7 +87,7 @@ def main():
     
     # A sweep_globally már megkapja a teljes objektumot
     for anchor in anchors:
-        matched_items = sweep_globally(list(active_cache.values()), anchor, threshold=0.08)
+        matched_items = sweep_globally(list(active_cache.values()), anchor, threshold=0.1)
         
         if len(matched_items) > 1:
             # Létrehozzuk a klasztert

@@ -4,7 +4,7 @@ import gemini_core
 import config
 from typing import Any, List, Dict, Set
 from concurrent.futures import ThreadPoolExecutor
-from models import BatchClassificationResponse, DualAnchor, LLMClusterResponse, NewsCluster, NewsItem
+from models import AnchorResponse, BatchClassificationResponse, DualAnchor, LLMClusterResponse, NewsCluster, NewsItem
 import json
 
 # Itt gyűjtheted a különböző feladatokhoz tartozó promptokat
@@ -242,7 +242,7 @@ def merge_llm_responses(
 
 
 
-def get_anchors_texts(news_items: List[NewsItem]) -> List[DualAnchor]:
+def get_anchors_texts(news_items: List[NewsItem]) -> AnchorResponse:
     sys_instr = """
         Te egy precíz hírelemző vagy. A feladatod, hogy a megadott hírlistából azonosítsd a VALÓDI és FONTOS eseményeket, stratégiai politikai vagy gazdasági szempontból.
         A fókusz a Magyarországi vagy pedig globális eseményeken van, más országok belügyei csak akkor lényegesek ha van Magyarországi vagy globális jelentőségük.
@@ -260,11 +260,12 @@ def get_anchors_texts(news_items: List[NewsItem]) -> List[DualAnchor]:
     prompt = f"""Hírek a horgonyok kereséséhez:
         {texts}"""
 
+    print(f"AnchorResponse generálás {len(news_items)} hírből")
     try:
-        response: List[DualAnchor] = gemini_core.generate(
+        response: AnchorResponse = gemini_core.generate(
             sys_instr=sys_instr,
             contents=prompt,
-            schema=List[DualAnchor]
+            schema=AnchorResponse
         )    
         print(response)
         return response

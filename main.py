@@ -25,9 +25,7 @@ llm = llm_service.LLMService()
 def main():
     active_cache: Dict[str, NewsItem] = {}
     
-    # ha törölni akarom a cache-t:
-    loaded_cache = NewsCache()
-    #loaded_cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
+    loaded_cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
     trash_bin: Dict[str, Set[str]] = loaded_cache.trash_bin
     full_blacklist = set().union(*trash_bin.values()) if trash_bin else set()
     
@@ -47,8 +45,7 @@ def main():
     if newly_downloaded:
         for item in newly_downloaded:
             TextCleaner.process_single(item)
-            if not item.clean_content: # or len(item.clean_content.split()) < 20:
-                #print(f"TRASH clean_content({len(item.clean_content)}): {item.clean_content}")
+            if not item.clean_content:
                 if RUN_ID not in trash_bin:
                     trash_bin[RUN_ID] = set[str]()
                 trash_bin[RUN_ID].add(item.hash)
@@ -63,6 +60,14 @@ def main():
            
     source.embed_news(active_cache)
     final_cache = save_flat_cache(active_cache, trash_bin)
+
+    # 0.2-vel alakítunk kupacokat
+    clusters = source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.2)
+    first_anchors = llm_service.get_anchors_texts(clusters[0].items)
+
+
+    return
+
 
     #mini clusters, llm névadás, trash szűrés
     #clusters = source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.085)
@@ -128,10 +133,57 @@ def save_flat_cache(flat_cache: Dict[str, NewsItem], trash_bin: Dict[str, Set[st
 
 
 
+"""def iterative_clustering(active_cache: Dict[str, NewsItem]) -> List[NewsCluster]:
+    # A hírtömeg, amiből dolgozunk
+    remaining_news = list(active_cache.values())
+    final_clusters: List[NewsCluster] = []
+
+    print(f"🚀 Iteratív feldolgozás indítása {len(remaining_news)} hírrel...")
+
+    while len(remaining_news) > 0:
+        # 1. Chunk kiválasztása (az aktuális maradék elejéről)
+        chunk = remaining_news[:30]
+        
+        # 2. Horgonyok kérése az LLM-től (Step 1)
+        # Itt hívjuk a Gemini-t a chunk listájával
+        anchors = get_anchors_from_llm(chunk) 
+        
+        if not anchors:
+            # Ha ebből a 30-ból semmi nem volt fontos, eltoljuk az "ablakot"
+            # de a híreket nem töröljük, hátha más horgony később behúzza őket.
+            # Ha sokszor nem találunk semmit, a végén elhagyjuk őket.
+            print("ℹ️ Nem találtunk új témát ebben a chunkban, ugrunk a következőre...")
+            # (Itt egy 'offset' logikát alkalmazunk, hogy ne ragadjunk be)
+            break # Egyelőre, a teszt kedvéért
+            
+        # 3. Globális szűrés a dual-anchor logikával (Matematikai rész)
+        found_in_this_round = set()
+        for anchor in anchors:
+            # Itt történik a 0.1-es távolságú sweep_globally
+            new_cluster = sweep_globally(remaining_news, anchor, threshold=0.1)
+            
+            if len(new_cluster.items) > 1:
+                final_clusters.append(new_cluster)
+                found_in_this_round.update([it.hash for it in new_cluster.items])
+
+        # 4. Törlés a maradékból
+        remaining_news = [it for it in remaining_news if it.hash not in found_in_this_round]
+        
+        print(f"✅ Kör kész. Talált klaszterek: {len(anchors)}, Maradék hír: {len(remaining_news)}")
+
+    return final_clusters"""
 
 
+
+
+def end_log():
+    try:
+        logger.print_summary()
+    except:
+        pass
 
 if __name__ == "__main__":
     main()
+    end_log()
 
 

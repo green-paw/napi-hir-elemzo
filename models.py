@@ -32,9 +32,12 @@ class NewsItem(BaseModel):
     clean_content: Optional[str] = Field(default=None, exclude=True) # Ezt ellenőrizd!
     downloaded: Optional[str] = Field(default=None, exclude=True) # Ezt ellenőrizd!
 
-    def json_for_clustering(self) -> str:
-        data = self.model_dump(include={'id', 'title', 'content'})
-        data['content'] = textwrap.shorten(data['content'], width=100, placeholder="...")
+    def json_for_clustering(self, with_id: bool = False, max_content_width: int = 200) -> str:
+        if with_id:
+            data = self.model_dump(include={'id', 'title', 'content'})
+        else:
+            data = self.model_dump(include={'title', 'content'})
+        data['content'] = textwrap.shorten(data['content'], width=max_content_width, placeholder="...")
         return json.dumps(data, ensure_ascii=False)
 
     @field_validator('title', 'content')
@@ -125,3 +128,11 @@ class LLMClusterResponse(BaseModel):
     @property
     def is_trash(self) -> bool:
         return self.score < 7
+    
+
+class DualAnchor(BaseModel):
+    en: str  # Angol horgony (pl. "US blockade of Hormuz")
+    hu: str  # Magyar horgony (pl. "Amerikai blokád a Hormuzi-szorosban")
+
+class AnchorResponse(BaseModel):
+    themes: List[DualAnchor]

@@ -1,9 +1,10 @@
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set
 from checkpoint_manager import load_checkpoint, save_checkpoint
+import gemini_core
 import llm_service
 import reporter
 import source
-from models import NewsCache, NewsCluster, NewsItem
+from models import DualAnchor, NewsCache, NewsCluster, NewsItem
 
 from datetime import datetime, timedelta
 import builtins
@@ -66,8 +67,38 @@ def main():
     
     
     densest30 = get_densest_chunk(list(active_cache.values()))
-    first_anchors = llm_service.get_anchors_texts(densest30)
+    anchors: List[DualAnchor] = llm_service.get_anchors_texts(densest30).themes
 
+    # embed anchors
+    all_anchor_texts = []
+    for a in anchors:
+        all_anchor_texts.extend([a.en, a.hu])
+    
+    vectors = gemini_core.embed(texts=all_anchor_texts)
+    for i, anchor in enumerate(anchors):
+        anchor.en_emb = vectors[i * 2]
+        anchor.hu_emb = vectors[i * 2 + 1]
+
+    # create clusters
+    found_hashes_in_round = set()
+    #remaining_news: List[NewsItem] = list(active_cache.values())
+    final_clusters: List[NewsCluster] = []
+    
+    # A sweep_globally már megkapja a teljes objektumot
+    for anchor in anchors:
+        matched_items = sweep_globally(list(active_cache.values()), anchor, threshold=0.1)
+        
+        if len(matched_items) > 1:
+            # Létrehozzuk a klasztert
+            new_cluster = NewsCluster(
+                cluster_id=f"M{len(final_clusters)+1}", 
+                title=anchor.hu, 
+                items=matched_items
+            )
+            final_clusters.append(new_cluster)
+            found_hashes_in_round.update([it.hash for it in matched_items])
+
+    reporter.generate_html_report(final_clusters, filename="index.html")
 
     return
 
@@ -191,6 +222,47 @@ def get_densest_chunk(news_items: List[NewsItem], chunk_size: int = 30) -> List[
     center_row = similarity_matrix[center_idx]
     closest_indices = np.argsort(center_row)[-chunk_size:]
     return [news_items[int(i)] for i in closest_indices]
+
+def sweep_globally(news_items: List[NewsItem], anchor: DualAnchor, threshold: float = 0.1, max_size: Optional[int] = None) -> List[NewsItem]:
+    # Biztonsági ellenőrzés
+    if anchor.en_emb is None or anchor.hu_emb is None:
+        return []
+
+    en_vec = np.array(anchor.en_emb)
+    hu_vec = np.array(anchor.hu_emb)
+    
+    candidates = []
+    for item in news_items:
+        if item.embedding is None: continue
+        
+        item_vec = np.array(item.embedding)
+        
+        # Dot product (mivel az embeddingek L2 normalizáltak, ez a similarity)
+        # Távolság = 1 - similarity
+        dist = min(1.0 - np.dot(item_vec, en_vec), 1.0 - np.dot(item_vec, hu_vec))
+        
+        if dist <= threshold:
+            candidates.append((dist, item))
+            
+    candidates.sort(key=lambda x: x[0])
+    if max_size is None: max_size = len(news_items)
+    return [c[1] for c in candidates[:max_size]]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 def end_log():
     try:

@@ -133,6 +133,8 @@ class LLMClusterResponse(BaseModel):
 class DualAnchor(BaseModel):
     en: str  # Angol horgony (pl. "US blockade of Hormuz")
     hu: str  # Magyar horgony (pl. "Amerikai blokád a Hormuzi-szorosban")
+    en_emb: Optional[List[float]] = Field(default=None, exclude=True)
+    hu_emb: Optional[List[float]] = Field(default=None, exclude=True)
 
 class AnchorResponse(BaseModel):
     themes: List[DualAnchor]

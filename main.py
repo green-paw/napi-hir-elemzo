@@ -26,8 +26,8 @@ llm = llm_service.LLMService()
 def main():
     active_cache: Dict[str, NewsItem] = {}
     
-    #loaded_cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
-    loaded_cache = NewsCache()
+    loaded_cache = load_checkpoint("news_feed.json", NewsCache) or NewsCache()
+    #loaded_cache = NewsCache()
     trash_bin: Dict[str, Set[str]] = loaded_cache.trash_bin
     full_blacklist = set().union(*trash_bin.values()) if trash_bin else set()
     
@@ -87,13 +87,13 @@ def main():
     
     # A sweep_globally már megkapja a teljes objektumot
     for anchor in anchors:
-        matched_items = sweep_globally(list(active_cache.values()), anchor, threshold=0.1)
+        matched_items = sweep_globally(list(active_cache.values()), anchor, threshold=0.08)
         
         if len(matched_items) > 1:
             # Létrehozzuk a klasztert
             new_cluster = NewsCluster(
-                cluster_id=f"M{len(final_clusters)+1}", 
-                title=anchor.hu, 
+                cluster_id=f"M{len(final_clusters)+1}",
+                summary_title=anchor.hu,
                 items=matched_items
             )
             final_clusters.append(new_cluster)

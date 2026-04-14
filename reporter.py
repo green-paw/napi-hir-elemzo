@@ -130,6 +130,7 @@ def _render_cluster(cluster: NewsCluster) -> str:
         <div class="news-item">
             <a href="{item.link}" target="_blank" class="news-title">{item.title}</a>
             <div class="news-meta">
+                <span>{item.id}</span> | 
                 <span>{item.source_id}</span> | 
                 <span>{item.published.strftime('%H:%M')}</span> | 
                 <small style="color: #adb5bd">Hash: {item.hash[:8]}</small>

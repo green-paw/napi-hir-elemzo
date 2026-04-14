@@ -93,9 +93,9 @@ def main():
             # Létrehozzuk a klasztert
             new_cluster = NewsCluster(
                 cluster_id=f"M{len(final_clusters)+1}",
-                summary_title=anchor.hu,
                 items=matched_items
             )
+            new_cluster.summary_title=anchor.hu
             final_clusters.append(new_cluster)
             found_hashes_in_round.update([it.hash for it in matched_items])
 

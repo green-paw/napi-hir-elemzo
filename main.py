@@ -70,11 +70,14 @@ def main():
     final_clusters: List[NewsCluster] = []
     all_anchor_texts = []
 
+    need_randomize = False
+
     for r in range(5):    
         remaining_news = [item for item in active_cache.values() if item.hash not in found_hashes_in_round]
-        #densest30 = get_densest_chunk(remaining_news)
-        random30 = np.random.choice(remaining_news, size=min(30, len(remaining_news)), replace=False).tolist()
-        anchors: List[DualAnchor] = llm_service.get_anchors_texts(random30)
+        items_for_anchoring = get_densest_chunk(remaining_news) if not need_randomize else np.random.choice(remaining_news, size=min(30, len(remaining_news)), replace=False).tolist()
+        need_randomize = False
+
+        anchors: List[DualAnchor] = llm_service.get_anchors_texts(items_for_anchoring)
 
         # embed anchors
         current_anchor_texts = []
@@ -88,10 +91,11 @@ def main():
             anchor.hu_emb = vectors[i * 2 + 1]
 
         # create clusters
-        clusters_this_round: List[NewsCluster] = sweep_globally_winner_takes_all(remaining_news, anchors, threshold=0.08)
+        clusters_this_round: List[NewsCluster] = sweep_globally_winner_takes_all(remaining_news, anchors, threshold=0.082)
 
         if not clusters_this_round:
-            found_hashes_in_round.add(random30[0].hash)
+            need_randomize = True
+            #found_hashes_in_round.add(items_for_anchoring[0].hash)
             continue
         
         final_clusters.extend(clusters_this_round)

@@ -296,7 +296,7 @@ def sweep_globally_winner_takes_all(news_items: List[NewsItem], anchors: List[Du
     return final_clusters
 
 
-def finalize_clusters_semantically(clusters: List[NewsCluster], threshold: float = 0.05) -> List[NewsCluster]:
+def finalize_clusters_semantically(clusters: List[NewsCluster], threshold: float = 0.03) -> List[NewsCluster]:
     if not clusters: return []
     
     # 1. Kiszámoljuk minden klaszter középpontját (centroid)
@@ -328,6 +328,7 @@ def finalize_clusters_semantically(clusters: List[NewsCluster], threshold: float
                 # ÖSSZEVONÁS: A target tartalmát átöntjük a currentbe
                 current["cluster"].items.extend(target["cluster"].items)
                 # Opcionális: a címet frissíthetjük a rövidebbre vagy az LLM-mel
+                current["cluster"].summary_title += " - " + target["cluster"].summary_title
                 target["merged"] = True
                 
         final_output.append(current["cluster"])

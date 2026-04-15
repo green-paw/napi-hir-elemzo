@@ -72,7 +72,7 @@ def main():
 
     need_randomize = False
 
-    for r in range(5):    
+    for r in range(20):
         remaining_news = [item for item in active_cache.values() if item.hash not in found_hashes_in_round]
         items_for_anchoring = get_densest_chunk(remaining_news) if not need_randomize else np.random.choice(remaining_news, size=min(30, len(remaining_news)), replace=False).tolist()
         need_randomize = False
@@ -91,7 +91,7 @@ def main():
             anchor.hu_emb = vectors[i * 2 + 1]
 
         # create clusters
-        clusters_this_round: List[NewsCluster] = sweep_globally_winner_takes_all(remaining_news, anchors, threshold=0.082)
+        clusters_this_round: List[NewsCluster] = sweep_globally_winner_takes_all(remaining_news, anchors, threshold=0.0815)
 
         if not clusters_this_round:
             need_randomize = True

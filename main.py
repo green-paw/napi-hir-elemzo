@@ -84,20 +84,9 @@ def main():
     found_hashes_in_round = set()
     #remaining_news: List[NewsItem] = list(active_cache.values())
     final_clusters: List[NewsCluster] = []
-    
-    # A sweep_globally már megkapja a teljes objektumot
-    for anchor in anchors:
-        matched_items = sweep_globally(list(active_cache.values()), anchor, threshold=0.085)
-        
-        if len(matched_items) > 1:
-            # Létrehozzuk a klasztert
-            new_cluster = NewsCluster(
-                cluster_id=f"M{len(final_clusters)+1}",
-                items=matched_items
-            )
-            new_cluster.summary_title=anchor.hu
-            final_clusters.append(new_cluster)
-            found_hashes_in_round.update([it.hash for it in matched_items])
+    clusters_this_round: List[NewsCluster] = sweep_globally_winner_takes_all(list(active_cache.values()), anchors, threshold=0.085)
+    final_clusters.extend(clusters_this_round)
+    found_hashes_in_round.update([it.hash for it in clusters_this_round for it in it.items])
 
     reporter.generate_html_report(final_clusters, filename="index.html")
 
@@ -249,7 +238,48 @@ def sweep_globally(news_items: List[NewsItem], anchor: DualAnchor, threshold: fl
     if max_size is None: max_size = len(news_items)
     return [c[1] for c in candidates[:max_size]]
 
-
+def sweep_globally_winner_takes_all(news_items: List[NewsItem], anchors: List[DualAnchor], threshold: float = 0.1) -> List[NewsCluster]:
+    # 1. Előkészítjük a klasztereket
+    cluster_map: Dict[int, List[NewsItem]] = {i: [] for i in range(len(anchors))}
+    
+    # 2. Végigmegyünk minden egyes híren
+    for item in news_items:
+        if item.embedding is None:
+            continue
+            
+        item_vec = np.array(item.embedding)
+        best_dist = 1.0
+        best_anchor_idx = -1
+        
+        # 3. Megkeressük a hírhez LEGKEVÉSBÉ TÁVOLI (legalacsonyabb hasonlóságú) horgonyt
+        for idx, anchor in enumerate(anchors):
+            en_vec = np.array(anchor.en_emb)
+            hu_vec = np.array(anchor.hu_emb)
+            
+            # A hír távolsága ettől a horgonytól (min a két nyelv között)
+            dist = min(1.0 - np.dot(item_vec, en_vec), 1.0 - np.dot(item_vec, hu_vec))
+            
+            if dist < best_dist:
+                best_dist = dist
+                best_anchor_idx = idx
+        
+        # 4. "Winner takes all": csak ha a legjobb is a threshold alatt van
+        if best_anchor_idx != -1 and best_dist <= threshold:
+            cluster_map[best_anchor_idx].append(item)
+            
+    # 5. NewsCluster objektumokká alakítjuk (csak amiben van legalább 2 hír)
+    final_clusters = []
+    for idx, items in cluster_map.items():
+        if len(items) > 1:
+            new_cluster = NewsCluster(
+                cluster_id=f"M{idx}", 
+                items=items
+            )
+            new_cluster.summary_title=anchors[idx].hu
+            final_clusters.append(new_cluster)
+            
+            
+    return final_clusters
 
 
 

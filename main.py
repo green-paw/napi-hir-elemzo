@@ -73,7 +73,7 @@ def main():
     for r in range(5):    
         remaining_news = [item for item in active_cache.values() if item.hash not in found_hashes_in_round]
         densest30 = get_densest_chunk(remaining_news)
-        anchors: List[DualAnchor] = llm_service.get_anchors_texts(densest30).themes
+        anchors: List[DualAnchor] = llm_service.get_anchors_texts(densest30)
 
         # embed anchors
         current_anchor_texts = []
@@ -99,7 +99,10 @@ def main():
                 found_hashes_in_round.add(item.hash)
         print(f"Round {r+1} finished. Clusters: {len(clusters_this_round)}, Remaining: {len(remaining_news) - sum(len(c.items) for c in clusters_this_round)}")
 
-    reporter.generate_html_report(final_clusters, filename="index.html")
+    final_clusters2 = finalize_clusters_semantically(final_clusters, threshold=0.05)
+    print(f"Klaszter összevonás: {len(final_clusters)} -> {len(final_clusters2)}")
+
+    reporter.generate_html_report(final_clusters2, filename="index.html")
 
     return
 
@@ -293,7 +296,47 @@ def sweep_globally_winner_takes_all(news_items: List[NewsItem], anchors: List[Du
     return final_clusters
 
 
+def finalize_clusters_semantically(clusters: List[NewsCluster], threshold: float = 0.05) -> List[NewsCluster]:
+    if not clusters: return []
+    
+    # 1. Kiszámoljuk minden klaszter középpontját (centroid)
+    # Ehhez a klaszterbe tartozó hírek embeddingjeinek átlagát használjuk
+    cluster_data = []
+    for c in clusters:
+        embeddings = np.array([it.embedding for it in c.items if it.embedding is not None])
+        centroid = np.mean(embeddings, axis=0)
+        # Normalizáljuk, hogy a dot product továbbra is hasonlóságot adjon
+        centroid = centroid / np.linalg.norm(centroid)
+        cluster_data.append({"cluster": c, "centroid": centroid, "merged": False})
 
+    final_output = []
+
+    for i in range(len(cluster_data)):
+        if cluster_data[i]["merged"]: continue
+        
+        current = cluster_data[i]
+        
+        for j in range(i + 1, len(cluster_data)):
+            if cluster_data[j]["merged"]: continue
+            
+            target = cluster_data[j]
+            
+            # Kiszámoljuk a két klaszter középpontjának távolságát
+            dist = 1.0 - np.dot(current["centroid"], target["centroid"])
+            
+            if dist <= threshold:
+                # ÖSSZEVONÁS: A target tartalmát átöntjük a currentbe
+                current["cluster"].items.extend(target["cluster"].items)
+                # Opcionális: a címet frissíthetjük a rövidebbre vagy az LLM-mel
+                target["merged"] = True
+                
+        final_output.append(current["cluster"])
+
+    # Újraindexelés a legvégén
+    for idx, c in enumerate(final_output, 1):
+        c.id = f"M{idx}"
+        
+    return final_output
 
 
 

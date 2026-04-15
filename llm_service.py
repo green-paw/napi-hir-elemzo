@@ -244,11 +244,11 @@ def merge_llm_responses(
 
 def get_anchors_texts(news_items: List[NewsItem]) -> List[DualAnchor]:
     sys_instr = """
-        Te egy precíz hírelemző vagy. A feladatod, hogy a megadott hírlistából azonosítsd a VALÓDI és FONTOS eseményeket, stratégiai politikai vagy gazdasági szempontból.
+        Te egy KÉTNYELVŰ precíz hírelemző vagy. A feladatod, hogy a megadott hírlistából azonosítsd a VALÓDI és FONTOS eseményeket, stratégiai politikai vagy gazdasági szempontból.
         A fókusz a Magyarországi vagy pedig globális eseményeken van, más országok belügyei csak akkor lényegesek ha van Magyarországi vagy globális jelentőségük.
         Csak olyan eseményekhez készíts horgonyt (anchor), amelyek konkrét történésekről szólnak.
         A horgonyok célja embedding alapú keresés lesz angol és magyar nyelvű hírekben vegyesen. Próbálj olyan horgonyt készíteni ami alapján egy nagyobb hírtömegben a horgonyhoz hasonló híreket össze tudjuk gyűjteni cosinus hasonlóság alapján.
-        A bulvárt, navigációs elemeket vagy irreleváns apróságokat hagyd ki.
+        A bulvárt, sportot, navigációs elemeket vagy irreleváns apróságokat hagyd ki.
 
         Szabályok:
         1. Azonosítsd a hírlistában szereplő KÜLÖNBÖZŐ főbb eseményeket. Egy esemény több hírt is magába foglalhat, de egy eseményhez csak EGY horgonypárt készíts.
@@ -257,7 +257,8 @@ def get_anchors_texts(news_items: List[NewsItem]) -> List[DualAnchor]:
         4. Minden horgony legyen egyedi és határolja el magát a többi témától. Ha egy chunkon belül több aspektus van, bontsd szét őket (pl. külön horgony a nemzetközi sajtóvisszhangnak és külön a hazai pártreakcióknak).
         5. A horgony hossza 5-10 szó legyen, hogy elég sűrű legyen az embeddinghez.
         6. Csak olyan horgonyt készíts, amihez legalább 2-3 hír kapcsolódik a listában.
-        7. A válaszod formája SZIGORÚAN csak a magyar horgonyt és az angol horgonyt tartalmazza soronként, egy | jellel elválasztva, például:
+        7. Mindenképpen kell mind a két nyelvű horgony, ha a hír vagy hírek mind angol nyelvűek akkor is legyen az első horgony magyar nyelvű.
+        8. A válaszod formája SZIGORÚAN csak a MAGYAR NYELVŰ horgonyt és az ANGOL NYELVŰ horgonyt tartalmazza soronként, egy | jellel elválasztva, például:
             Belső feszültség és felelősségkeresés a Fideszben a vereség után | Internal tensions and blame game within Fidesz after election defeat
             Orosz áttörés Donyeckben | Russian breakthrough in Donetsk
         """
@@ -270,19 +271,23 @@ def get_anchors_texts(news_items: List[NewsItem]) -> List[DualAnchor]:
     try:
         response: str = gemini_core.generate(
             sys_instr=sys_instr,
-            contents=prompt
+            contents=prompt,
+            max_output_tokens=800
         )    
         print(response)
 
         anchors: List[DualAnchor] = []
-    
+        seen_hu = set()
+
         for line in response.split('\n'):
             if "|" in line:
                 parts = line.split("|")
                 hu_text = parts[0].strip()
                 en_text = parts[1].strip()
-                # Itt hozzuk létre az objektumot, az embeddingek maradnak None-on
-                anchors.append(DualAnchor(hu=hu_text, en=en_text))
+                
+                if hu_text not in seen_hu:
+                    anchors.append(DualAnchor(hu=hu_text, en=en_text))
+                    seen_hu.add(hu_text)
 
         return anchors
     except Exception as e:

@@ -72,8 +72,9 @@ def main():
 
     for r in range(5):    
         remaining_news = [item for item in active_cache.values() if item.hash not in found_hashes_in_round]
-        densest30 = get_densest_chunk(remaining_news)
-        anchors: List[DualAnchor] = llm_service.get_anchors_texts(densest30)
+        #densest30 = get_densest_chunk(remaining_news)
+        random30 = np.random.choice(remaining_news, size=min(30, len(remaining_news)), replace=False).tolist()
+        anchors: List[DualAnchor] = llm_service.get_anchors_texts(random30)
 
         # embed anchors
         current_anchor_texts = []
@@ -87,10 +88,10 @@ def main():
             anchor.hu_emb = vectors[i * 2 + 1]
 
         # create clusters
-        clusters_this_round: List[NewsCluster] = sweep_globally_winner_takes_all(remaining_news, anchors, threshold=0.07)
+        clusters_this_round: List[NewsCluster] = sweep_globally_winner_takes_all(remaining_news, anchors, threshold=0.085)
 
         if not clusters_this_round:
-            found_hashes_in_round.add(densest30[0].hash)
+            found_hashes_in_round.add(random30[0].hash)
             continue
         
         final_clusters.extend(clusters_this_round)
@@ -99,40 +100,12 @@ def main():
                 found_hashes_in_round.add(item.hash)
         print(f"Round {r+1} finished. Clusters: {len(clusters_this_round)}, Remaining: {len(remaining_news) - sum(len(c.items) for c in clusters_this_round)}")
 
-    final_clusters2 = finalize_clusters_semantically(final_clusters, threshold=0.03)
+    final_clusters2 = finalize_clusters_semantically(final_clusters, threshold=0.025)
     print(f"Klaszter összevonás: {len(final_clusters)} -> {len(final_clusters2)}")
 
     reporter.generate_html_report(final_clusters2, filename="index.html")
 
     return
-
-
-    #mini clusters, llm névadás, trash szűrés
-    #clusters = source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.085)
-    #processed_clusters = llm.process_mini_clusters(clusters)
-
-    #big clusters
-    #clusters = [cluster for cluster in source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.25) if len(cluster.items) > 1]
-
-    print(f"Iteratív klaszterezés indítása {len(active_cache)} hírre")
-    clusters = source.iterative_clustering(list(active_cache.values()))
-    clusters_len = len(clusters)
-
-    print(f"Iteratív klaszterezés: {len(active_cache)} hír -> {len(clusters)} klaszter. LLM csoportosítás indítása")
-    
-    processed_clusters = llm.process_large_clusters(clusters)
-    processed_clusters.sort(key=lambda c: len(c.items), reverse=True)
-    clusters = [c for c in processed_clusters if len(c.items) > 1]
-    print(f"{clusters_len} clusterből {clusters_len - len(clusters)} egyedi hír eldobva")
-    
-    #save_checkpoint("clusters.json", processed_clusters, List[NewsCluster])
-
-    reporter.generate_html_report(processed_clusters, filename="index.html")
-
-    try:
-        logger.print_summary()
-    except:
-        pass
 
 def save_flat_cache(flat_cache: Dict[str, NewsItem], trash_bin: Dict[str, Set[str]]) -> NewsCache:
     """
@@ -167,52 +140,6 @@ def save_flat_cache(flat_cache: Dict[str, NewsItem], trash_bin: Dict[str, Set[st
     
     return new_cache
 
-
-
-
-
-"""def iterative_clustering(active_cache: Dict[str, NewsItem]) -> List[NewsCluster]:
-    # A hírtömeg, amiből dolgozunk
-    remaining_news = list(active_cache.values())
-    final_clusters: List[NewsCluster] = []
-
-    print(f"🚀 Iteratív feldolgozás indítása {len(remaining_news)} hírrel...")
-
-    while len(remaining_news) > 0:
-        # 1. Chunk kiválasztása (az aktuális maradék elejéről)
-        chunk = remaining_news[:30]
-        
-        # 2. Horgonyok kérése az LLM-től (Step 1)
-        # Itt hívjuk a Gemini-t a chunk listájával
-        anchors = get_anchors_from_llm(chunk) 
-        
-        if not anchors:
-            # Ha ebből a 30-ból semmi nem volt fontos, eltoljuk az "ablakot"
-            # de a híreket nem töröljük, hátha más horgony később behúzza őket.
-            # Ha sokszor nem találunk semmit, a végén elhagyjuk őket.
-            print("ℹ️ Nem találtunk új témát ebben a chunkban, ugrunk a következőre...")
-            # (Itt egy 'offset' logikát alkalmazunk, hogy ne ragadjunk be)
-            break # Egyelőre, a teszt kedvéért
-            
-        # 3. Globális szűrés a dual-anchor logikával (Matematikai rész)
-        found_in_this_round = set()
-        for anchor in anchors:
-            # Itt történik a 0.1-es távolságú sweep_globally
-            new_cluster = sweep_globally(remaining_news, anchor, threshold=0.1)
-            
-            if len(new_cluster.items) > 1:
-                final_clusters.append(new_cluster)
-                found_in_this_round.update([it.hash for it in new_cluster.items])
-
-        # 4. Törlés a maradékból
-        remaining_news = [it for it in remaining_news if it.hash not in found_in_this_round]
-        
-        print(f"✅ Kör kész. Talált klaszterek: {len(anchors)}, Maradék hír: {len(remaining_news)}")
-
-    return final_clusters"""
-
-
-
 def get_densest_chunk(news_items: List[NewsItem], chunk_size: int = 30) -> List[NewsItem]:
     if len(news_items) <= chunk_size:
         return news_items
@@ -226,31 +153,6 @@ def get_densest_chunk(news_items: List[NewsItem], chunk_size: int = 30) -> List[
     center_row = similarity_matrix[center_idx]
     closest_indices = np.argsort(center_row)[-chunk_size:]
     return [news_items[int(i)] for i in closest_indices]
-
-def sweep_globally(news_items: List[NewsItem], anchor: DualAnchor, threshold: float = 0.1, max_size: Optional[int] = None) -> List[NewsItem]:
-    # Biztonsági ellenőrzés
-    if anchor.en_emb is None or anchor.hu_emb is None:
-        return []
-
-    en_vec = np.array(anchor.en_emb)
-    hu_vec = np.array(anchor.hu_emb)
-    
-    candidates = []
-    for item in news_items:
-        if item.embedding is None: continue
-        
-        item_vec = np.array(item.embedding)
-        
-        # Dot product (mivel az embeddingek L2 normalizáltak, ez a similarity)
-        # Távolság = 1 - similarity
-        dist = min(1.0 - np.dot(item_vec, en_vec), 1.0 - np.dot(item_vec, hu_vec))
-        
-        if dist <= threshold:
-            candidates.append((dist, item))
-            
-    candidates.sort(key=lambda x: x[0])
-    if max_size is None: max_size = len(news_items)
-    return [c[1] for c in candidates[:max_size]]
 
 def sweep_globally_winner_takes_all(news_items: List[NewsItem], anchors: List[DualAnchor], threshold: float = 0.1) -> List[NewsCluster]:
     # 1. Előkészítjük a klasztereket

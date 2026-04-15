@@ -242,7 +242,7 @@ def merge_llm_responses(
 
 
 
-def get_anchors_texts(news_items: List[NewsItem]) -> AnchorResponse:
+def get_anchors_texts(news_items: List[NewsItem]) -> List[DualAnchor]:
     sys_instr = """
         Te egy precíz hírelemző vagy. A feladatod, hogy a megadott hírlistából azonosítsd a VALÓDI és FONTOS eseményeket, stratégiai politikai vagy gazdasági szempontból.
         A fókusz a Magyarországi vagy pedig globális eseményeken van, más országok belügyei csak akkor lényegesek ha van Magyarországi vagy globális jelentőségük.
@@ -257,22 +257,34 @@ def get_anchors_texts(news_items: List[NewsItem]) -> AnchorResponse:
         4. Minden horgony legyen egyedi és határolja el magát a többi témától. Ha egy chunkon belül több aspektus van, bontsd szét őket (pl. külön horgony a nemzetközi sajtóvisszhangnak és külön a hazai pártreakcióknak).
         5. A horgony hossza 5-10 szó legyen, hogy elég sűrű legyen az embeddinghez.
         6. Csak olyan horgonyt készíts, amihez legalább 2-3 hír kapcsolódik a listában.
-        7. Csak érvényes JSON válasz jöhet a megadott formátumban.
+        7. A válaszod formája SZIGORÚAN csak a magyar horgonyt és az angol horgonyt tartalmazza soronként, egy | jellel elválasztva, például:
+            Belső feszültség és felelősségkeresés a Fideszben a vereség után | Internal tensions and blame game within Fidesz after election defeat
+            Orosz áttörés Donyeckben | Russian breakthrough in Donetsk
         """
     
     texts = "\n".join([item.json_for_clustering() for item in news_items])
     prompt = f"""Hírek a horgonyok kereséséhez:
         {texts}"""
 
-    print(f"AnchorResponse generálás {len(news_items)} hírből")
+    print(f"List[DualAnchor] generálás {len(news_items)} hírből")
     try:
-        response: AnchorResponse = gemini_core.generate(
+        response: str = gemini_core.generate(
             sys_instr=sys_instr,
-            contents=prompt,
-            schema=AnchorResponse
+            contents=prompt
         )    
         print(response)
-        return response
+
+        anchors: List[DualAnchor] = []
+    
+        for line in response.split('\n'):
+            if "|" in line:
+                parts = line.split("|")
+                hu_text = parts[0].strip()
+                en_text = parts[1].strip()
+                # Itt hozzuk létre az objektumot, az embeddingek maradnak None-on
+                anchors.append(DualAnchor(hu=hu_text, en=en_text))
+
+        return anchors
     except Exception as e:
         print(f"❌ Hiba a horgonyok generálásakor: {e}")
         return []

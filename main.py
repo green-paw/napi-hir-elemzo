@@ -73,7 +73,7 @@ def main():
     for r in range(5):    
         remaining_news = [item for item in active_cache.values() if item.hash not in found_hashes_in_round]
         densest30 = get_densest_chunk(remaining_news)
-        anchors: List[DualAnchor] = llm_service.get_anchors_texts(densest30).themes
+        anchors: List[DualAnchor] = llm_service.get_anchors_texts(densest30)
 
         # embed anchors
         current_anchor_texts = []

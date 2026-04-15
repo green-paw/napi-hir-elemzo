@@ -251,7 +251,7 @@ def get_anchors_texts(news_items: List[NewsItem]) -> List[DualAnchor]:
         A bulvárt, navigációs elemeket vagy irreleváns apróságokat hagyd ki.
 
         Szabályok:
-        1. Minden témához készíts egy tömör angol és egy magyar horgonyt.
+        1. Azonosítsd a hírlistában szereplő KÜLÖNBÖZŐ főbb eseményeket. Egy eseményhez csak EGY horgonypárt készíts.
         2. Kerüld a túl általános megfogalmazásokat (pl. ne csak "Fidesz választási vereség", hanem "Belső feszültség és felelősségkeresés a Fideszben a vereség után").
         3. A horgony legyen "szemantikai mágnes": tartalmazza a legfontosabb neveket, helyszíneket és a konkrét cselekvést.
         4. Minden horgony legyen egyedi és határolja el magát a többi témától. Ha egy chunkon belül több aspektus van, bontsd szét őket (pl. külön horgony a nemzetközi sajtóvisszhangnak és külön a hazai pártreakcióknak).

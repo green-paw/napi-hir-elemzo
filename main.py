@@ -88,7 +88,7 @@ def main():
             anchor.hu_emb = vectors[i * 2 + 1]
 
         # create clusters
-        clusters_this_round: List[NewsCluster] = sweep_globally_winner_takes_all(remaining_news, anchors, threshold=0.085)
+        clusters_this_round: List[NewsCluster] = sweep_globally_winner_takes_all(remaining_news, anchors, threshold=0.08)
 
         if not clusters_this_round:
             found_hashes_in_round.add(random30[0].hash)
@@ -100,7 +100,7 @@ def main():
                 found_hashes_in_round.add(item.hash)
         print(f"Round {r+1} finished. Clusters: {len(clusters_this_round)}, Remaining: {len(remaining_news) - sum(len(c.items) for c in clusters_this_round)}")
 
-    final_clusters2 = finalize_clusters_semantically(final_clusters, threshold=0.025)
+    final_clusters2 = finalize_clusters_semantically(final_clusters, threshold=0.03)
     print(f"Klaszter összevonás: {len(final_clusters)} -> {len(final_clusters2)}")
 
     reporter.generate_html_report(final_clusters2, filename="index.html")

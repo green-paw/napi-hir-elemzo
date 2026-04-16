@@ -29,14 +29,22 @@ def format_sources_html(news: List[NewsItem]) -> str:
             formatted.append(f'{name} ({links})')
     return " | ".join(formatted)
 
-def generate_html_report(clusters: List[NewsCluster], filename: str = "cluster_report.html"):
+def generate_html_report(clusters: List[NewsCluster], plot: Any = None, filename: str = "cluster_report.html"):
     """
     Kifejezetten a klaszterek vizualizációjára szolgáló riport.
     """
     print(f"Reporter indítva {len(clusters)} klaszterre")
     
     total_news = sum(len(c.items) for c in clusters)
-    
+
+    plot_html = ""
+    if plot:
+        plot_html = f"""
+        <h2>Klaszter-hierarchia (Condensed Tree)</h2>
+        <img src="{{ hdbscan_tree_base64 }}" alt="HDBSCAN Tree" style="max-width: 100%; height: auto;">
+        <p><i>A színes ágak jelölik a stabil klasztereket, a szürke ágak a zajt.</i></p>
+        """
+
     html_template = f"""
     <!DOCTYPE html>
     <html lang="hu">
@@ -106,8 +114,13 @@ def generate_html_report(clusters: List[NewsCluster], filename: str = "cluster_r
     <body>
         <h1>📊 Klaszter Vizualizáció (Threshold Teszt)</h1>
         <div class="stats">
+            <div>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</div>
             <div>Összes hír: <span style="font-weight:bold; color:#007bff;">{total_news}</span></div>
             <div>Létrejött klaszterek: <span style="font-weight:bold; color:#007bff;">{len(clusters)}</span></div>
+        </div>
+
+        <div class="section">
+            {plot_html}
         </div>
 
         <div class="section">

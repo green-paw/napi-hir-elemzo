@@ -17,6 +17,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from text_cleaner import TextCleaner
 
 RUN_ID = datetime.now().isoformat()
+plot = {}
 
 _original_print = builtins.print
 def timestamped_print(*args, **kwargs):
@@ -68,7 +69,7 @@ def main():
     final_cache = save_flat_cache(active_cache, trash_bin)
 
     final_clusters = cluster_with_medoid_titles([item for item in list(active_cache.values()) if item.embedding is not None], min_cluster_size=3)
-    reporter.generate_html_report(final_clusters, filename="index.html")
+    reporter.generate_html_report(final_clusters, filename="index.html", plot=plot)
 
     return
 
@@ -273,6 +274,8 @@ def cluster_with_medoid_titles(news_items: List[NewsItem], min_cluster_size: int
     model = HDBSCAN(min_cluster_size=min_cluster_size, metric='euclidean', cluster_selection_epsilon=epsilon)
     labels = model.fit_predict(normalized_embs)
 
+    plot = get_hdbscan_tree_as_base64(model)
+
     final_clusters: List[NewsCluster] = []
 
     for label in set(labels):
@@ -316,7 +319,23 @@ def cluster_with_medoid_titles(news_items: List[NewsItem], min_cluster_size: int
     return final_clusters
 
 
+import io
+import base64
+import matplotlib.pyplot as plt
 
+def get_hdbscan_tree_as_base64(model):
+    # 1. Kép generálása a háttérben
+    plt.figure(figsize=(10, 6))
+    model.condensed_tree_.plot(select_clusters=True)
+    
+    # 2. Kép mentése egy byte-pufferbe
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    plt.close() # Fontos, hogy ne egye meg a memóriát!
+    
+    # 3. Átalakítás szöveges Base64 kóddá
+    base64_img = base64.b64encode(buf.getvalue()).decode('utf-8')
+    return f"data:image/png;base64,{base64_img}"
 
 
 def end_log():

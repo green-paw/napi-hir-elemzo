@@ -69,7 +69,7 @@ def main():
     final_cache = save_flat_cache(active_cache, trash_bin)
 
     final_clusters = cluster_with_medoid_titles([item for item in list(active_cache.values()) if item.embedding is not None], min_cluster_size=3)
-    reporter.generate_html_report(final_clusters, filename="index.html", plot=plot)
+    reporter.generate_html_report(clusters=final_clusters, filename="index.html", plot=plot)
 
     return
 
@@ -271,10 +271,21 @@ def cluster_with_medoid_titles(news_items: List[NewsItem], min_cluster_size: int
     normalized_embs = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
 
     # 1. Klaszterezés
-    model = HDBSCAN(min_cluster_size=min_cluster_size, metric='euclidean', cluster_selection_epsilon=epsilon)
+    model = HDBSCAN(
+        min_cluster_size=min_cluster_size,
+        metric='euclidean',
+        cluster_selection_epsilon=epsilon,
+        copy=True,
+        store_centers='both'
+    )
     labels = model.fit_predict(normalized_embs)
 
-    plot = get_hdbscan_tree_as_base64(model)
+    try:
+        if epsilon == 0.0:
+            plot = get_hdbscan_tree_as_base64(model)
+    except Exception as e:
+        print(f"Hiba a HDBSCAN fáj generálásakor: {e}")
+        plot = None
 
     final_clusters: List[NewsCluster] = []
 

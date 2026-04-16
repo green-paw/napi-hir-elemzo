@@ -11,10 +11,11 @@ import builtins
 from gemini_core import logger        
 
 import numpy as np
-from sklearn.cluster import HDBSCAN
+#from sklearn.cluster import HDBSCAN
 from sklearn.metrics.pairwise import cosine_similarity
 
 from text_cleaner import TextCleaner
+import hdbscan
 
 RUN_ID = datetime.now().isoformat()
 plot = {}
@@ -271,12 +272,10 @@ def cluster_with_medoid_titles(news_items: List[NewsItem], min_cluster_size: int
     normalized_embs = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
 
     # 1. Klaszterezés
-    model = HDBSCAN(
+    model = hdbscan.HDBSCAN(
         min_cluster_size=min_cluster_size,
         metric='euclidean',
         cluster_selection_epsilon=epsilon,
-        copy=True,
-        store_centers='both',
         min_samples=1,
         allow_single_cluster=True
     )

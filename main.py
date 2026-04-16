@@ -265,15 +265,16 @@ def finalize_clusters_semantically(clusters: List[NewsCluster], threshold: float
 
 
 
-def cluster_with_medoid_titles(news_items: List[NewsItem], min_cluster_size: int = 3):
+def cluster_with_medoid_titles(news_items: List[NewsItem], min_cluster_size: int = 3, epsilon: float = 0.0) -> List[NewsCluster]:
     embeddings = np.array([it.embedding for it in news_items])
     normalized_embs = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
 
     # 1. Klaszterezés
-    model = HDBSCAN(min_cluster_size=min_cluster_size, metric='euclidean', cluster_selection_epsilon=0.06)
+    model = HDBSCAN(min_cluster_size=min_cluster_size, metric='euclidean', cluster_selection_epsilon=epsilon)
     labels = model.fit_predict(normalized_embs)
 
-    final_clusters = []
+    final_clusters: List[NewsCluster] = []
+
     for label in set(labels):
         if label == -1: continue  # Zaj kihagyása
 
@@ -281,6 +282,17 @@ def cluster_with_medoid_titles(news_items: List[NewsItem], min_cluster_size: int
         cluster_indices = np.where(labels == label)[0]
         cluster_items: List[NewsItem] = [news_items[int(i)] for i in cluster_indices]
         cluster_embs = normalized_embs[cluster_indices]
+
+        if len(cluster_items) > 10 and epsilon == 0.0:
+            # Csak ezt az egy klasztert küldjük vissza finomításra
+            print(f"Refining cluster with {len(cluster_items)} items...")
+            refined_sub_clusters = cluster_with_medoid_titles(
+                cluster_items, 
+                min_cluster_size=min_cluster_size, 
+                epsilon=0.05 # Itt szigorítunk
+            )
+            final_clusters.extend(refined_sub_clusters)
+            continue
 
         # 2. Centroid számítás
         centroid = np.mean(cluster_embs, axis=0)

@@ -337,9 +337,19 @@ import base64
 import matplotlib.pyplot as plt
 
 def get_hdbscan_tree_as_base64(model):
-    # 1. Kép generálása a háttérben
+    # Sklearn HDBSCAN esetén néha másképp hívják vagy korlátozott
+    # Próbáljuk meg kinyerni a fát
+    tree = None
+    if hasattr(model, 'condensed_tree_'):
+        tree = model.condensed_tree_
+    elif hasattr(model, '_condensed_tree'): # Belső elnevezés egyes verziókban
+        tree = model._condensed_tree
+
+    if tree is None:
+        raise AttributeError("A modell nem generált fát. Próbáld a min_samples=1 beállítást.")
+
     plt.figure(figsize=(10, 6))
-    model.condensed_tree_.plot(select_clusters=True)
+    tree.plot(select_clusters=True)
     
     # 2. Kép mentése egy byte-pufferbe
     buf = io.BytesIO()

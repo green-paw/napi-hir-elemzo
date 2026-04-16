@@ -67,7 +67,7 @@ def main():
     source.embed_news(active_cache)
     final_cache = save_flat_cache(active_cache, trash_bin)
 
-    final_clusters = cluster_with_medoid_titles(list(active_cache.values()), min_cluster_size=3)
+    final_clusters = cluster_with_medoid_titles([item for item in list(active_cache.values()) if item.embedding is not None], min_cluster_size=3)
     reporter.generate_html_report(final_clusters, filename="index.html")
 
     return
@@ -204,10 +204,10 @@ def sweep_globally_winner_takes_all(news_items: List[NewsItem], anchors: List[Du
     for idx, items in cluster_map.items():
         if len(items) > 1:
             new_cluster = NewsCluster(
-                cluster_id=f"M{idx}", 
-                items=items
+                id=f"M{idx}", 
+                items=items,
+                title=anchors[idx].hu
             )
-            new_cluster.summary_title=anchors[idx].hu
             final_clusters.append(new_cluster)
             
             
@@ -294,10 +294,11 @@ def cluster_with_medoid_titles(news_items: List[NewsItem], min_cluster_size: int
 
         # 4. Objektum létrehozása
         new_cluster = NewsCluster(
-            cluster_id=f"M{label}",
-            items=cluster_items)
-        new_cluster.centroid = centroid
-        new_cluster.summary_title = representative_item.title
+            id=f"M{label}",
+            items=cluster_items,
+            title=representative_item.title,
+            centroid = centroid
+        )
         final_clusters.append(new_cluster)
 
     return final_clusters

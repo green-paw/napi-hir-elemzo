@@ -3,13 +3,11 @@ import html
 import re
 from typing import Any, List, TypeVar, Optional, Generic,Dict, List, Set
 from datetime import datetime
-from pydantic import BaseModel, Field, field_validator, model_validator, TypeAdapter, BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator, TypeAdapter, BaseModel, Field, ConfigDict
 import textwrap
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set, Tuple
 
-from pydantic import BaseModel
-from typing import Optional
 import json
 
 T = TypeVar('T')
@@ -101,19 +99,28 @@ class BatchClassificationResponse(BaseModel):
 
 
 class NewsCluster(BaseModel):
+    #model_config = ConfigDict(extra='forbid')
     id: str
     items: List[NewsItem]
-    summary_title: str = ""
+    title: str = ""
     is_trash: bool = False
     centroid: Optional[List[float]] = None
 
-    def __init__(self, cluster_id: str, items: List[NewsItem], **data):
-        summary = data.get("summary_title", f"Klaszter {cluster_id} ({len(items)} hír)")
+    def __init__(
+        self, 
+        id: str, 
+        items: List[NewsItem], 
+        title: str = "", 
+        is_trash: bool = False, 
+        centroid: Optional[List[float]] = None
+    ):
+        # A Pydantic-nek szótárként (kwargs) adjuk át az adatokat
         super().__init__(
-            id=cluster_id, 
+            id=id, 
             items=items, 
-            summary_title=summary, 
-            **data
+            title=title, 
+            is_trash=is_trash, 
+            centroid=centroid
         )
 
 class LLMClusterResponse(BaseModel):

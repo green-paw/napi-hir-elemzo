@@ -29,6 +29,25 @@ def format_sources_html(news: List[NewsItem]) -> str:
             formatted.append(f'{name} ({links})')
     return " | ".join(formatted)
 
+def generate_log_report():
+    stats_html = "<h2>Modellhasználati statisztikák</h2>"
+    stats = logger.get_aggregated_stats()
+        
+    for model, data in stats.items():
+        stats_html += f"<p>🤖 Modell: {model}</p>"
+        stats_html += f"<p>   ▶ Hívások száma: {data['calls']}</p>"
+        stats_html += f"<p>   📥 Input tokenek:  {data['in']:,} (Ebből Cache: {data['cached']:,})</p>"
+        
+        if data['in'] > 0:
+            savings = (data['cached'] / data['in']) * 100
+            stats_html += f"<p>   ♻️ Cache arány:   {savings:.1f}% megtakarítás</p>"
+
+        stats_html += f"<p>   📤 Output tokenek: {data['out']:,}</p>"
+
+        reasons_str = ", ".join([f"{k}: {v}" for k, v in data['finish_reasons'].items()])
+        stats_html += f"<p>   🛑 Státuszok:      {reasons_str}</p>"
+    return stats_html
+
 def generate_html_report(clusters: List[NewsCluster], plot: Any = None, filename: str = "cluster_report.html"):
     """
     Kifejezetten a klaszterek vizualizációjára szolgáló riport.
@@ -36,14 +55,6 @@ def generate_html_report(clusters: List[NewsCluster], plot: Any = None, filename
     print(f"Reporter indítva {len(clusters)} klaszterre")
     
     total_news = sum(len(c.items) for c in clusters)
-
-    plot_html = ""
-    if plot:
-        plot_html = f"""
-        <h2>Klaszter-hierarchia (Condensed Tree)</h2>
-        <img src="{{ hdbscan_tree_base64 }}" alt="HDBSCAN Tree" style="max-width: 100%; height: auto;">
-        <p><i>A színes ágak jelölik a stabil klasztereket, a szürke ágak a zajt.</i></p>
-        """
 
     html_template = f"""
     <!DOCTYPE html>
@@ -117,6 +128,9 @@ def generate_html_report(clusters: List[NewsCluster], plot: Any = None, filename
             <div>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</div>
             <div>Összes hír: <span style="font-weight:bold; color:#007bff;">{total_news}</span></div>
             <div>Létrejött klaszterek: <span style="font-weight:bold; color:#007bff;">{len(clusters)}</span></div>
+        </div>
+        <div class="stats">
+            {generate_log_report()}
         </div>
 
         <div class="section">

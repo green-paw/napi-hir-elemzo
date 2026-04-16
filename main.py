@@ -73,7 +73,7 @@ def main():
 
     for c in final_clusters:
         c.summary = llm_service.generate_summary(c)
-    reporter.generate_html_report(clusters=final_clusters, filename="index.html", plot=plot)
+    reporter.generate_html_report(clusters=final_clusters, filename="index.html")
 
     return
 

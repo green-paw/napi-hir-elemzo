@@ -34,21 +34,14 @@ def generate_log_report():
     stats = logger.get_aggregated_stats()
         
     for model, data in stats.items():
-        stats_html += f"<p>🤖 Modell: {model}</p>"
-        stats_html += f"<p>   ▶ Hívások száma: {data['calls']}</p>"
-        stats_html += f"<p>   📥 Input tokenek:  {data['in']:,} (Ebből Cache: {data['cached']:,})</p>"
-        
-        if data['in'] > 0:
-            savings = (data['cached'] / data['in']) * 100
-            stats_html += f"<p>   ♻️ Cache arány:   {savings:.1f}% megtakarítás</p>"
-
-        stats_html += f"<p>   📤 Output tokenek: {data['out']:,}</p>"
-
+        stats_html += f"<p>Modell: {model}</p>"
         reasons_str = ", ".join([f"{k}: {v}" for k, v in data['finish_reasons'].items()])
-        stats_html += f"<p>   🛑 Státuszok:      {reasons_str}</p>"
+        stats_html += f"<p>Hívások száma: {data['calls']} | {reasons_str}</p>"
+        stats_html += f"<p>Input: {data['in']:,} | Cache: {data['cached']:,} | Output: {data['out']:,}</p>"
+
     return stats_html
 
-def generate_html_report(clusters: List[NewsCluster], plot: Any = None, filename: str = "cluster_report.html"):
+def generate_html_report(clusters: List[NewsCluster], filename: str = "cluster_report.html"):
     """
     Kifejezetten a klaszterek vizualizációjára szolgáló riport.
     """
@@ -165,12 +158,12 @@ def _render_cluster(cluster: NewsCluster) -> str:
     <div class="cluster-box">
         <div class="cluster-header">
             <div class="cluster-id">{cluster.id} | {"❌" if cluster.is_trash else ""} {cluster.title}</div>
-            <div class="cluster-id">{cluster.summary}</div>
             <div class="cluster-meta">
                 {len(cluster.items)} hír | Representative: {cluster.items[0].hash[:10]}...
             </div>
         </div>
         <div class="cluster-body">
+            <div>{cluster.summary}</div>
             {news_html}
         </div>
     </div>

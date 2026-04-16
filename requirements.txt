@@ -4,3 +4,4 @@ requests
 pytz
 scikit-learn
 markdown
+matplotlib

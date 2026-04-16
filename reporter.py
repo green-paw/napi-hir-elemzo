@@ -30,14 +30,12 @@ def format_sources_html(news: List[NewsItem]) -> str:
     return " | ".join(formatted)
 
 def generate_log_report():
-    stats_html = "<h2>Modellhasználati statisztikák</h2>"
+    stats_html = "<p>Modellhasználati statisztikák</p>"
     stats = logger.get_aggregated_stats()
         
     for model, data in stats.items():
-        stats_html += f"<p>Modell: {model}</p>"
         reasons_str = ", ".join([f"{k}: {v}" for k, v in data['finish_reasons'].items()])
-        stats_html += f"<p>Hívások száma: {data['calls']} | {reasons_str}</p>"
-        stats_html += f"<p>Input: {data['in']:,} | Cache: {data['cached']:,} | Output: {data['out']:,}</p>"
+        stats_html += f"<p class='news-meta'>Modell: {model} | Requests: {data['calls']} | {reasons_str} | Input : {data['in']:,} | Cache: {data['cached']:,} | Output: {data['out']:,}</p>"
 
     return stats_html
 

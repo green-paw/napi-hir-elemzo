@@ -270,7 +270,7 @@ def finalize_clusters_semantically(clusters: List[NewsCluster], threshold: float
 
 
 
-def cluster_with_medoid_titles(news_items: List[NewsItem], min_cluster_size: int = 3, epsilon: float = 0.0) -> List[NewsCluster]:
+def cluster_with_medoid_titles(news_items: List[NewsItem], min_cluster_size: int = 3, epsilon: float = 0.05) -> List[NewsCluster]:
     embeddings = np.array([it.embedding for it in news_items])
     normalized_embs = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
 
@@ -279,7 +279,7 @@ def cluster_with_medoid_titles(news_items: List[NewsItem], min_cluster_size: int
         min_cluster_size=min_cluster_size,
         metric='euclidean',
         cluster_selection_epsilon=epsilon,
-        min_samples=1,
+        min_samples=2,
         allow_single_cluster=True
     )
     labels = model.fit_predict(normalized_embs)
@@ -294,13 +294,13 @@ def cluster_with_medoid_titles(news_items: List[NewsItem], min_cluster_size: int
         cluster_items: List[NewsItem] = [news_items[int(i)] for i in cluster_indices]
         cluster_embs = normalized_embs[cluster_indices]
 
-        if len(cluster_items) > 10 and epsilon == 0.0:
+        if len(cluster_items) > 10 and epsilon == 0.05:
             # Csak ezt az egy klasztert küldjük vissza finomításra
             print(f"Refining cluster with {len(cluster_items)} items...")
             refined_sub_clusters = cluster_with_medoid_titles(
                 cluster_items, 
                 min_cluster_size=min_cluster_size, 
-                epsilon=0.05 # Itt szigorítunk
+                epsilon=0.035 # Itt szigorítunk
             )
             final_clusters.extend(refined_sub_clusters)
             continue

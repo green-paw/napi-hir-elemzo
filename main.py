@@ -276,7 +276,9 @@ def cluster_with_medoid_titles(news_items: List[NewsItem], min_cluster_size: int
         metric='euclidean',
         cluster_selection_epsilon=epsilon,
         copy=True,
-        store_centers='both'
+        store_centers='both',
+        min_samples=1,
+        allow_single_cluster=True
     )
     labels = model.fit_predict(normalized_embs)
 

@@ -246,7 +246,7 @@ def finalize_clusters_semantically(clusters: List[NewsCluster], threshold: float
                 # ÖSSZEVONÁS: A target tartalmát átöntjük a currentbe
                 current["cluster"].items.extend(target["cluster"].items)
                 # Opcionális: a címet frissíthetjük a rövidebbre vagy az LLM-mel
-                current["cluster"].summary_title += " - " + target["cluster"].summary_title
+                current["cluster"].title += " - " + target["cluster"].title
                 target["merged"] = True
                 
         final_output.append(current["cluster"])

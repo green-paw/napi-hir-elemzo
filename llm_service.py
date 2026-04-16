@@ -229,12 +229,12 @@ def merge_llm_responses(
             subset_items = original_cluster.items
 
         # Új NewsCluster példányosítása a válasz alapján
-        new_cluster = NewsCluster(cluster_id=resp.id, items=subset_items)
-        
-        # LLM metaadatok átvezetése
-        new_cluster.summary_title = resp.title if resp.title else f"[{resp.reason}]"
-        new_cluster.is_trash = resp.score < 7 # A te súlyozási logikád alapján
-        
+        new_cluster = NewsCluster(
+            id=resp.id,
+            items=subset_items,
+            title = resp.title if resp.title else f"[{resp.reason}]",
+            is_trash = resp.score < 7
+        )
         final_clusters.append(new_cluster)
 
     return final_clusters

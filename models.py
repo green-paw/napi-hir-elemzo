@@ -105,6 +105,7 @@ class NewsCluster(BaseModel):
     items: List[NewsItem]
     summary_title: str = ""
     is_trash: bool = False
+    centroid: Optional[List[float]] = None
 
     def __init__(self, cluster_id: str, items: List[NewsItem], **data):
         summary = data.get("summary_title", f"Klaszter {cluster_id} ({len(items)} hír)")

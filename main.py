@@ -9,7 +9,11 @@ from models import DualAnchor, NewsCache, NewsCluster, NewsItem
 from datetime import datetime, timedelta
 import builtins
 from gemini_core import logger        
+
 import numpy as np
+from sklearn.cluster import HDBSCAN
+from sklearn.metrics.pairwise import cosine_similarity
+
 from text_cleaner import TextCleaner
 
 RUN_ID = datetime.now().isoformat()
@@ -63,6 +67,13 @@ def main():
     source.embed_news(active_cache)
     final_cache = save_flat_cache(active_cache, trash_bin)
 
+    final_clusters = cluster_with_medoid_titles(list(active_cache.values()), min_cluster_size=3)
+    reporter.generate_html_report(final_clusters, filename="index.html")
+
+    return
+
+
+
     # 0.2-vel alakítunk kupacokat
     #clusters = source.create_clusters_by_embedding(list(active_cache.values()), threshold=0.2)
 
@@ -71,10 +82,11 @@ def main():
     all_anchor_texts = []
 
     need_randomize = False
+    chunk_size = 20
 
-    for r in range(20):
+    for r in range(40):
         remaining_news = [item for item in active_cache.values() if item.hash not in found_hashes_in_round]
-        items_for_anchoring = get_densest_chunk(remaining_news) if not need_randomize else np.random.choice(remaining_news, size=min(30, len(remaining_news)), replace=False).tolist()
+        items_for_anchoring = get_densest_chunk(remaining_news, chunk_size=chunk_size) if not need_randomize else np.random.choice(remaining_news, size=min(chunk_size, len(remaining_news)), replace=False).tolist()
         need_randomize = False
 
         anchors: List[DualAnchor] = llm_service.get_anchors_texts(items_for_anchoring)
@@ -251,6 +263,46 @@ def finalize_clusters_semantically(clusters: List[NewsCluster], threshold: float
 
 
 
+
+
+def cluster_with_medoid_titles(news_items: List[NewsItem], min_cluster_size: int = 3):
+    embeddings = np.array([it.embedding for it in news_items])
+    normalized_embs = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
+
+    # 1. Klaszterezés
+    model = HDBSCAN(min_cluster_size=min_cluster_size, metric='euclidean')
+    labels = model.fit_predict(normalized_embs)
+
+    final_clusters = []
+    for label in set(labels):
+        if label == -1: continue  # Zaj kihagyása
+
+        # Klaszterbe tartozó hírek kigyűjtése
+        cluster_indices = np.where(labels == label)[0]
+        cluster_items: List[NewsItem] = [news_items[int(i)] for i in cluster_indices]
+        cluster_embs = normalized_embs[cluster_indices]
+
+        # 2. Centroid számítás
+        centroid = np.mean(cluster_embs, axis=0)
+        centroid = centroid / np.linalg.norm(centroid)
+
+        # 3. MEDOID megkeresése (A hír, ami legközelebb van a centroidhoz)
+        # Cosine similarity-t nézünk a centroid és a klaszter tagjai között
+        similarities: np.ndarray = np.dot(cluster_embs, centroid)
+        best_idx_in_cluster: int = np.argmax(similarities)
+        representative_item: NewsItem = cluster_items[best_idx_in_cluster]
+
+        # 4. Objektum létrehozása
+        new_cluster = NewsCluster(
+            cluster_id=f"M{label}",
+            items=cluster_items,
+            centroid=centroid,
+            # A hír címe lesz a klaszter címe
+            summary_title=representative_item.title 
+        )
+        final_clusters.append(new_cluster)
+
+    return final_clusters
 
 
 

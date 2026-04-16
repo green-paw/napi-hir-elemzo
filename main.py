@@ -270,7 +270,7 @@ def cluster_with_medoid_titles(news_items: List[NewsItem], min_cluster_size: int
     normalized_embs = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
 
     # 1. Klaszterezés
-    model = HDBSCAN(min_cluster_size=min_cluster_size, metric='euclidean')
+    model = HDBSCAN(min_cluster_size=min_cluster_size, metric='euclidean', cluster_selection_epsilon=0.06)
     labels = model.fit_predict(normalized_embs)
 
     final_clusters = []

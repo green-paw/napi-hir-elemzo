@@ -39,6 +39,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install scikit-learn==1.4.2
 
       - name: Create checkpoints directory
         run: mkdir -p checkpoints

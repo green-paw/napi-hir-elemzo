@@ -120,10 +120,6 @@ def generate_html_report(clusters: List[NewsCluster], plot: Any = None, filename
         </div>
 
         <div class="section">
-            {plot_html}
-        </div>
-
-        <div class="section">
             {"".join([_render_cluster(c) for c in clusters])}
         </div>
     </body>
@@ -155,6 +151,7 @@ def _render_cluster(cluster: NewsCluster) -> str:
     <div class="cluster-box">
         <div class="cluster-header">
             <div class="cluster-id">{cluster.id} | {"❌" if cluster.is_trash else ""} {cluster.title}</div>
+            <div class="cluster-id">{cluster.summary}</div>
             <div class="cluster-meta">
                 {len(cluster.items)} hír | Representative: {cluster.items[0].hash[:10]}...
             </div>

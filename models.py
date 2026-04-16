@@ -106,6 +106,8 @@ class NewsCluster(BaseModel):
     is_trash: bool = False
     centroid: Optional[List[float]] = None
 
+    summary: Optional[str] = Field(default="")
+
     def __init__(
         self, 
         id: str, 

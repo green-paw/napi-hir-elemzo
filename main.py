@@ -70,6 +70,9 @@ def main():
     final_cache = save_flat_cache(active_cache, trash_bin)
 
     final_clusters = cluster_with_medoid_titles([item for item in list(active_cache.values()) if item.embedding is not None], min_cluster_size=3)
+
+    for c in final_clusters:
+        c.summary = llm_service.generate_summary(c)
     reporter.generate_html_report(clusters=final_clusters, filename="index.html", plot=plot)
 
     return
@@ -281,13 +284,6 @@ def cluster_with_medoid_titles(news_items: List[NewsItem], min_cluster_size: int
     )
     labels = model.fit_predict(normalized_embs)
 
-    try:
-        if epsilon == 0.0:
-            plot = get_hdbscan_tree_as_base64(model)
-    except Exception as e:
-        print(f"Hiba a HDBSCAN fáj generálásakor: {e}")
-        plot = None
-
     final_clusters: List[NewsCluster] = []
 
     for label in set(labels):
@@ -334,35 +330,6 @@ def cluster_with_medoid_titles(news_items: List[NewsItem], min_cluster_size: int
         final_clusters.append(new_cluster)
 
     return final_clusters
-
-
-import io
-import base64
-import matplotlib.pyplot as plt
-
-def get_hdbscan_tree_as_base64(model):
-    # Sklearn HDBSCAN esetén néha másképp hívják vagy korlátozott
-    # Próbáljuk meg kinyerni a fát
-    tree = None
-    if hasattr(model, 'condensed_tree_'):
-        tree = model.condensed_tree_
-    elif hasattr(model, '_condensed_tree'): # Belső elnevezés egyes verziókban
-        tree = model._condensed_tree
-
-    if tree is None:
-        raise AttributeError("A modell nem generált fát. Próbáld a min_samples=1 beállítást.")
-
-    plt.figure(figsize=(10, 6))
-    tree.plot(select_clusters=True)
-    
-    # 2. Kép mentése egy byte-pufferbe
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight')
-    plt.close() # Fontos, hogy ne egye meg a memóriát!
-    
-    # 3. Átalakítás szöveges Base64 kóddá
-    base64_img = base64.b64encode(buf.getvalue()).decode('utf-8')
-    return f"data:image/png;base64,{base64_img}"
 
 
 def end_log():

@@ -293,3 +293,30 @@ def get_anchors_texts(news_items: List[NewsItem]) -> List[DualAnchor]:
     except Exception as e:
         print(f"❌ Hiba a horgonyok generálásakor: {e}")
         return []
+
+
+
+def generate_summary(cluster: NewsCluster) -> str:
+    sys_instr = f"""
+        Te egy precíz és tömör hírszerkesztő vagy.
+        Az első feladat eldönteni hogy a hírnek van-e politikai vagy gazdasági jelentősége Magyarország vagy globális szinten. Ha nincs, akkor egy rövid indoklással jelöld meg TRASH-ként.
+        A második feladatod pedig, hogy a klaszterben szereplő hírek alapján egy rövid, SZIGORÚAN MAGYAR NYELVŰ összefoglalót készíts, ami kiemeli a legfontosabb eseményeket és összefüggéseket.
+
+        Az összefoglaló legyen maximum 4-5 mondat hosszú, és tartalmazza a leglényegesebb információkat a klaszterben szereplő hírek alapján.
+        Kerüld a felesleges részleteket, és koncentrálj arra, ami valóban fontos és érdekes lehet egy átlagos olvasó számára.
+        Az összefoglaló legyen világos, könnyen érthető és informatív.
+    """
+
+    prompt = f"""Hírek a klaszterből:
+        {', '.join([item.source_id + ": " + item.title + " - " + item.content[:300] for item in cluster.items])}"""
+
+    try:
+        summary: str = gemini_core.generate(
+            sys_instr=sys_instr,
+            contents=prompt,
+            max_output_tokens=500
+        )    
+        return summary.strip()
+    except Exception as e:
+        print(f"❌ Hiba az összefoglaló generálásakor: {e}")
+        return ""

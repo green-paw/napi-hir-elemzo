@@ -295,11 +295,9 @@ def cluster_with_medoid_titles(news_items: List[NewsItem], min_cluster_size: int
         # 4. Objektum létrehozása
         new_cluster = NewsCluster(
             cluster_id=f"M{label}",
-            items=cluster_items,
-            centroid=centroid,
-            # A hír címe lesz a klaszter címe
-            summary_title=representative_item.title 
-        )
+            items=cluster_items)
+        new_cluster.centroid = centroid
+        new_cluster.summary_title = representative_item.title
         final_clusters.append(new_cluster)
 
     return final_clusters

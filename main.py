@@ -313,6 +313,11 @@ def cluster_with_medoid_titles(news_items: List[NewsItem], min_cluster_size: int
         centroid = np.mean(cluster_embs, axis=0)
         centroid = centroid / np.linalg.norm(centroid)
 
+        if isinstance(centroid, np.ndarray):
+            centroid_list = centroid.tolist()
+        else:
+            centroid_list = centroid # Ha már lista lenne
+
         # 3. MEDOID megkeresése (A hír, ami legközelebb van a centroidhoz)
         # Cosine similarity-t nézünk a centroid és a klaszter tagjai között
         similarities: np.ndarray = np.dot(cluster_embs, centroid)
@@ -324,7 +329,7 @@ def cluster_with_medoid_titles(news_items: List[NewsItem], min_cluster_size: int
             id=f"M{label}",
             items=cluster_items,
             title=representative_item.title,
-            centroid = centroid
+            centroid = centroid_list
         )
         final_clusters.append(new_cluster)
 

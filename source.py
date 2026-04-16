@@ -119,7 +119,8 @@ def fetch_news() -> List[NewsItem]:
 
     for n in temp_pool:
         clean_t: str = n.title.strip().lower()
-        if n.link not in seen_links and clean_t not in seen_titles:
+        #if n.link not in seen_links and clean_t not in seen_titles:
+        if clean_t not in seen_titles:
             seen_links.add(n.link)
             seen_titles.add(clean_t)
             unique_news.append(n)

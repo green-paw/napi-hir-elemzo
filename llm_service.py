@@ -305,6 +305,11 @@ def generate_summary(cluster: NewsCluster) -> str:
         Az összefoglaló legyen maximum 4-5 mondat hosszú, és tartalmazza a leglényegesebb információkat a klaszterben szereplő hírek alapján.
         Kerüld a felesleges részleteket, és koncentrálj arra, ami valóban fontos és érdekes lehet egy átlagos olvasó számára.
         Az összefoglaló legyen világos, könnyen érthető és informatív.
+
+        Kimenet formátuma:
+        Ha a klaszter TRASH: "TRASH: [indoklás röviden]", ilyenkor nem kell összefoglaló szöveg, csak a TRASH jelzés és az indoklás.
+        Ha nem TRASH: Az összefoglaló szövege, ami kiemeli a klaszterben szereplő hírek legfontosabb eseményeit és összefüggéseit.
+        Használj markdown formázást a fontos részek kiemelésére.
     """
 
     prompt = f"""Hírek a klaszterből:

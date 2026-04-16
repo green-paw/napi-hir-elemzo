@@ -163,7 +163,7 @@ def _render_cluster(cluster: NewsCluster) -> str:
             </div>
         </div>
         <div class="cluster-body">
-            <div>{cluster.summary}</div>
+            <div>{markdown.markdown(str(cluster.summary))}</div>
             {news_html}
         </div>
     </div>

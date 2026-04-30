@@ -6,7 +6,7 @@ An automated news intelligence system running on GitHub Actions that aggregates,
 
 This program automatically monitors dozens of RSS feeds, identifies the most significant daily events, and provides a neutral summary alongside a comparative analysis of different political narratives.
 
-[Image of a flow chart showing RSS feed aggregation, AI clustering, and automated dashboard generation]
+![Automated AI News Analyzer Workflow](workflow_flowchart.png)
 
 ## 🛠️ How it Works
 

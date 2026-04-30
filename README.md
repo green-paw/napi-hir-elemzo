@@ -1,3 +1,5 @@
+[Live Dashboard](https://green-paw.github.io/napi-hir-elemzo/)
+
 # AI News Analyzer & Narrative Tracker
 
 An automated news intelligence system running on GitHub Actions that aggregates, clusters, and analyzes global and local news using Google Gemini models (2.5-Flash & Flash-Lite).

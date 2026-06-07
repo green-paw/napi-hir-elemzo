@@ -1,8 +1,6 @@
 name: AI News Analysis with HTML Archive
 
 on:
-  schedule:
-    - cron: '49 3,16 * * *'
   workflow_dispatch: 
 
 permissions:
